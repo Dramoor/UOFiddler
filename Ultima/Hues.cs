@@ -27,7 +27,7 @@ namespace Ultima
             string path = Files.GetFilePath("hues.mul");
             int index = 0;
 
-            const int maxHueCount = 3000;
+            const int maxHueCount = 10000;
             List = new Hue[maxHueCount];
 
             if (path != null)
@@ -36,9 +36,9 @@ namespace Ultima
                 {
                     int blockCount = (int)fs.Length / 708;
 
-                    if (blockCount > 375)
+                    if (blockCount > 1250)
                     {
-                        blockCount = 375;
+                        blockCount = 1250;
                     }
 
                     _header = new int[blockCount];
@@ -141,7 +141,7 @@ namespace Ultima
         {
             index &= 0x3FFF;
 
-            if (index >= 0 && index < 3000)
+            if (index >= 0 && index < 10000)
             {
                 return List[index];
             }

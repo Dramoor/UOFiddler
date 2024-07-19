@@ -161,6 +161,7 @@ namespace UoFiddler.Controls.UserControls
             malasToolStripMenuItem.Text = Options.MapNames[3];
             tokunoToolStripMenuItem.Text = Options.MapNames[4];
             terMurToolStripMenuItem.Text = Options.MapNames[5];
+            oreniaToolStripMenuItem.Text = Options.MapNames[6];
 
             if (OverlayObjectTree.Nodes.Count <= 0)
             {
@@ -173,6 +174,7 @@ namespace UoFiddler.Controls.UserControls
             OverlayObjectTree.Nodes[3].Text = Options.MapNames[3];
             OverlayObjectTree.Nodes[4].Text = Options.MapNames[4];
             OverlayObjectTree.Nodes[5].Text = Options.MapNames[5];
+            OverlayObjectTree.Nodes[6].Text = Options.MapNames[6];
             OverlayObjectTree.Invalidate();
         }
 
@@ -279,6 +281,7 @@ namespace UoFiddler.Controls.UserControls
             ilshenarToolStripMenuItem.Checked = false;
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
+            oreniaToolStripMenuItem.Checked = false;
         }
 
         private void ChangeMapFelucca(object sender, EventArgs e)
@@ -362,6 +365,20 @@ namespace UoFiddler.Controls.UserControls
             terMurToolStripMenuItem.Checked = true;
             CurrentMap = Map.TerMur;
             _currentMapId = 5;
+            ChangeMap();
+        }
+
+        private void ChangeMapOrenia(object sender, EventArgs e)
+        {
+            if (oreniaToolStripMenuItem.Checked)
+            {
+                return;
+            }
+
+            ResetCheckedMap();
+            oreniaToolStripMenuItem.Checked = true;
+            CurrentMap = Map.Orenia;
+            _currentMapId = 6;
             ChangeMap();
         }
 
@@ -487,6 +504,10 @@ namespace UoFiddler.Controls.UserControls
                 case 5:
                     terMurToolStripMenuItem.Checked = true;
                     CurrentMap = Map.TerMur;
+                    break;
+                case 6:
+                    oreniaToolStripMenuItem.Checked = true;
+                    CurrentMap = Map.Orenia;
                     break;
             }
         }
@@ -900,6 +921,12 @@ namespace UoFiddler.Controls.UserControls
             node = new TreeNode(Options.MapNames[5])
             {
                 Tag = 5
+            };
+            OverlayObjectTree.Nodes.Add(node);
+
+            node = new TreeNode(Options.MapNames[6])
+            {
+                Tag = 6
             };
             OverlayObjectTree.Nodes.Add(node);
         }

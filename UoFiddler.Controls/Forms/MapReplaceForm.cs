@@ -41,6 +41,7 @@ namespace UoFiddler.Controls.Forms
             comboBoxMapID.Items.Add(new RMalas());
             comboBoxMapID.Items.Add(new RTokuno());
             comboBoxMapID.Items.Add(new RTerMur());
+            comboBoxMapID.Items.Add(new ROrenia());
             comboBoxMapID.EndUpdate();
             comboBoxMapID.SelectedIndex = 0;
         }
@@ -536,6 +537,11 @@ namespace UoFiddler.Controls.Forms
         private class RTerMur : SupportedMaps
         {
             public RTerMur() : base(5, Options.MapNames[5], 1280, 4096) { }
+        }
+
+        private class ROrenia : SupportedMaps
+        {
+            public ROrenia() : base(6, Options.MapNames[6], 6144, 4096) { }
         }
     }
 }

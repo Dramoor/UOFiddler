@@ -197,6 +197,7 @@ namespace UoFiddler.Classes
             elem.SetAttribute("map3", Options.MapNames[3]);
             elem.SetAttribute("map4", Options.MapNames[4]);
             elem.SetAttribute("map5", Options.MapNames[5]);
+            elem.SetAttribute("map6", Options.MapNames[6]);
             sr.AppendChild(elem);
 
             comment = dom.CreateComment("Extern Tools settings");
@@ -397,6 +398,7 @@ namespace UoFiddler.Classes
                 Options.MapNames[3] = elem.GetAttribute("map3");
                 Options.MapNames[4] = elem.GetAttribute("map4");
                 Options.MapNames[5] = elem.GetAttribute("map5");
+                Options.MapNames[6] = elem.GetAttribute("map6");
             }
 
             ExternTools = new List<ExternTool>();

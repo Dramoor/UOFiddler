@@ -14,7 +14,7 @@ namespace UoFiddler.Plugin.Compare.Classes
         {
             int index = 0;
 
-            List = new Hue[3000];
+            List = new Hue[10000];
 
             if (path != null)
             {
@@ -52,7 +52,7 @@ namespace UoFiddler.Plugin.Compare.Classes
         // {
         //     index &= 0x3FFF;
         //
-        //     if (index >= 0 && index < 3000)
+        //     if (index >= 0 && index < 10000)
         //     {
         //         return List[index];
         //     }

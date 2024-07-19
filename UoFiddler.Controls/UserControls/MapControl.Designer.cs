@@ -65,6 +65,7 @@ namespace UoFiddler.Controls.UserControls
             this.malasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tokunoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.terMurToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.oreniaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.extractMapToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.asBmpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -190,6 +191,7 @@ namespace UoFiddler.Controls.UserControls
             this.malasToolStripMenuItem,
             this.tokunoToolStripMenuItem,
             this.terMurToolStripMenuItem,
+            this.oreniaToolStripMenuItem,
             this.toolStripSeparator1,
             this.extractMapToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
@@ -298,6 +300,13 @@ namespace UoFiddler.Controls.UserControls
             this.terMurToolStripMenuItem.Size = new System.Drawing.Size(171, 22);
             this.terMurToolStripMenuItem.Text = "TerMur";
             this.terMurToolStripMenuItem.Click += new System.EventHandler(this.ChangeMapTerMur);
+            // 
+            // oreniaToolStripMenuItem
+            // 
+            this.oreniaToolStripMenuItem.Name = "oreniaToolStripMenuItem";
+            this.oreniaToolStripMenuItem.Size = new System.Drawing.Size(171, 22);
+            this.oreniaToolStripMenuItem.Text = "Orenia";
+            this.oreniaToolStripMenuItem.Click += new System.EventHandler(this.ChangeMapOrenia);
             // 
             // toolStripSeparator1
             // 
@@ -789,6 +798,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.StatusStrip statusStrip;
         private System.Windows.Forms.ToolStripMenuItem switchVisibleToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem terMurToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem oreniaToolStripMenuItem;
         private System.Windows.Forms.ToolStripTextBox TextBoxGoto;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.ToolStripMenuItem tokunoToolStripMenuItem;

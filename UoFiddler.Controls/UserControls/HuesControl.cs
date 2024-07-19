@@ -159,7 +159,7 @@ namespace UoFiddler.Controls.UserControls
                 Hue hue = Hues.List[index];
                 Rectangle stringRect = new Rectangle(3, y * _itemHeight, pictureBox.Width, _itemHeight);
                 e.Graphics.DrawString(
-                    $"{hue.Index,-5} {$"(0x{hue.Index:X})",-7} {hue.Name}", Font, Brushes.Black, stringRect);
+                    $"{hue.Index + 1,-5} {$"(0x{hue.Index + 1:X})",-7} {hue.Name}", Font, Brushes.Black, stringRect);
 
                 for (int i = 0; i < hue.Colors.Length; ++i)
                 {
@@ -244,7 +244,7 @@ namespace UoFiddler.Controls.UserControls
 
         private void OnTextChangedReplace(object sender, EventArgs e)
         {
-            ReplaceText.ForeColor = Utils.ConvertStringToInt(ReplaceText.Text, out _, 1, 3000) ? Color.Black : Color.Red;
+            ReplaceText.ForeColor = Utils.ConvertStringToInt(ReplaceText.Text, out _, 1, 10000) ? Color.Black : Color.Red;
         }
 
         private void OnKeyDownReplace(object sender, KeyEventArgs e)
@@ -330,7 +330,7 @@ namespace UoFiddler.Controls.UserControls
                 scrollPosition = 0;
             }
 
-            Selected = indexValue;
+            Selected = indexValue - 1;
             vScrollBar.Value = scrollPosition;
         }
 

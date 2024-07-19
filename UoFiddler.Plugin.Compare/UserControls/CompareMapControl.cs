@@ -49,6 +49,7 @@ namespace UoFiddler.Plugin.Compare.UserControls
             malasToolStripMenuItem.Checked = false;
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
+            oreniaToolStripMenuItem.Checked = false;
             showDifferencesToolStripMenuItem.Checked = true;
             showMap1ToolStripMenuItem.Checked = true;
             showMap2ToolStripMenuItem.Checked = false;
@@ -114,6 +115,7 @@ namespace UoFiddler.Plugin.Compare.UserControls
             malasToolStripMenuItem.Text = Options.MapNames[3];
             tokunoToolStripMenuItem.Text = Options.MapNames[4];
             terMurToolStripMenuItem.Text = Options.MapNames[5];
+            oreniaToolStripMenuItem.Text = Options.MapNames[6];
         }
 
         private static int Round(int x)
@@ -535,6 +537,7 @@ namespace UoFiddler.Plugin.Compare.UserControls
             ilshenarToolStripMenuItem.Checked = false;
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
+            oreniaToolStripMenuItem.Checked = false;
         }
 
         private void OnClickChangeFelucca(object sender, EventArgs e)
@@ -635,6 +638,23 @@ namespace UoFiddler.Plugin.Compare.UserControls
 
             _originalMap = Map.TerMur;
             _currentMapId = 5;
+
+            ChangeMap();
+        }
+
+        private void OnClickChangeOrenia(object sender, EventArgs e)
+        {
+            if (oreniaToolStripMenuItem.Checked)
+            {
+                return;
+            }
+
+            ResetCheckedMap();
+
+            oreniaToolStripMenuItem.Checked = true;
+
+            _originalMap = Map.Orenia;
+            _currentMapId = 6;
 
             ChangeMap();
         }
