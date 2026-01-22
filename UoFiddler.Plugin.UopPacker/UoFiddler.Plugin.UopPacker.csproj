@@ -6,7 +6,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AssemblyTitle>UOP Packer</AssemblyTitle>
 		<Product>LegacyMUL Converter</Product>
-		<Copyright>Copyright © 2023</Copyright>
+		<Copyright>Copyright © 2025</Copyright>
 		<AssemblyVersion>1.1.1</AssemblyVersion>
 		<FileVersion>1.1.1</FileVersion>
 	</PropertyGroup>
@@ -22,6 +22,9 @@
 		<OutputPath>..\UoFiddler\bin\$(Configuration)\plugins\</OutputPath>
 		<GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
 	</PropertyGroup>
+	<ItemGroup>
+	  <PackageReference Include="Serilog" Version="4.3.0" />
+	</ItemGroup>
 	<ItemGroup>
 		<ProjectReference Include="..\Ultima\Ultima.csproj">
 			<Private>false</Private>

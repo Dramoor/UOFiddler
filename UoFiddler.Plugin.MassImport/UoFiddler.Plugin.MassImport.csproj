@@ -6,7 +6,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AssemblyTitle>MassImportPlugin</AssemblyTitle>
 		<Product>MassImportPlugin</Product>
-		<Copyright>Copyright © 2023</Copyright>
+		<Copyright>Copyright © 2025</Copyright>
 		<AssemblyVersion>1.1.0.0</AssemblyVersion>
 		<FileVersion>1.1.0.0</FileVersion>
 	</PropertyGroup>
@@ -25,6 +25,9 @@
 		<OutputPath>..\UoFiddler\bin\$(Configuration)\plugins\</OutputPath>
 		<GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
 	</PropertyGroup>
+	<ItemGroup>
+	  <PackageReference Include="Serilog" Version="4.3.0" />
+	</ItemGroup>
 	<ItemGroup>
 		<Compile Update="Forms\MassImportForm.cs">
 			<SubType>Form</SubType>

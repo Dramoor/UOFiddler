@@ -347,7 +347,7 @@ namespace UoFiddler.Controls.UserControls
                 dialog.Multiselect = false;
                 dialog.Title = "Choose image file to replace";
                 dialog.CheckFileExists = true;
-                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp)|*.tif;*.tiff;*.bmp";
+                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp;*.png)|*.tif;*.tiff;*.bmp;*.png";
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {
                     return;
@@ -412,7 +412,7 @@ namespace UoFiddler.Controls.UserControls
                 dialog.Multiselect = false;
                 dialog.Title = $"Choose image file to insert at 0x{index:X}";
                 dialog.CheckFileExists = true;
-                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp)|*.tif;*.tiff;*.bmp";
+                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp;*.png)|*.tif;*.tiff;*.bmp;*.png";
 
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {
@@ -605,7 +605,13 @@ namespace UoFiddler.Controls.UserControls
                     }
 
                     string fileName = Path.Combine(dialog.SelectedPath, $"Landtile 0x{index:X4}.{fileExtension}");
-                    using (Bitmap bit = new Bitmap(Art.GetLand(index)))
+                    var landTile = Art.GetLand(index);
+                    if (landTile is null)
+                    {
+                        continue;
+                    }
+
+                    using (Bitmap bit = new Bitmap(landTile))
                     {
                         bit.Save(fileName, imageFormat);
                     }
@@ -702,7 +708,7 @@ namespace UoFiddler.Controls.UserControls
                 dialog.Multiselect = true;
                 dialog.Title = $"Choose images to replace starting at 0x{index:X}";
                 dialog.CheckFileExists = true;
-                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp)|*.tif;*.tiff;*.bmp";
+                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp;*.png)|*.tif;*.tiff;*.bmp;*.png";
 
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {

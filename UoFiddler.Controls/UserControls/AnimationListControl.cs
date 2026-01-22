@@ -32,6 +32,8 @@ namespace UoFiddler.Controls.UserControls
             InitializeComponent();
 
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
+            // TODO can this be moved into the control itself?
+            listView1.Height += SystemInformation.HorizontalScrollBarHeight;
         }
 
         public string[][] GetActionNames { get; } = {
@@ -132,15 +134,8 @@ namespace UoFiddler.Controls.UserControls
             }
         };
 
-        private Bitmap _mainPicture;
         private int _currentSelect;
         private int _currentSelectAction;
-        private bool _animate;
-        private int _frameIndex;
-        private Bitmap[] _animationList;
-        private bool _imageInvalidated = true;
-        private Timer _timer;
-        private AnimationFrame[] _frames;
         private int _customHue;
         private int _defHue;
         private int _facing = 1;
@@ -158,18 +153,17 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
-            _mainPicture = null;
             _currentSelect = 0;
             _currentSelectAction = 0;
-            _animate = false;
-            _imageInvalidated = true;
-            StopAnimation();
-            _frames = null;
             _customHue = 0;
             _defHue = 0;
             _facing = 1;
             _sortAlpha = false;
             _displayType = 0;
+            MainPictureBox.Reset();
+            AnimateCheckBox.Checked = false;
+            ShowFrameBoundsCheckBox.Checked = false;
+
             OnLoad(this, EventArgs.Empty);
         }
 
@@ -192,7 +186,6 @@ namespace UoFiddler.Controls.UserControls
 
             LoadListView();
 
-            extractAnimationToolStripMenuItem.Visible = false;
             _currentSelect = 0;
             _currentSelectAction = 0;
             if (TreeViewMobs.Nodes[0].Nodes.Count > 0)
@@ -290,45 +283,8 @@ namespace UoFiddler.Controls.UserControls
 
         private bool Animate
         {
-            get => _animate;
-            set
-            {
-                if (_animate == value)
-                {
-                    return;
-                }
-
-                _animate = value;
-                extractAnimationToolStripMenuItem.Visible = _animate;
-                StopAnimation();
-                _imageInvalidated = true;
-                MainPictureBox.Invalidate();
-            }
-        }
-
-        private void StopAnimation()
-        {
-            if (_timer != null)
-            {
-                if (_timer.Enabled)
-                {
-                    _timer.Stop();
-                }
-
-                _timer.Dispose();
-                _timer = null;
-            }
-
-            if (_animationList != null)
-            {
-                foreach (var animationBmp in _animationList)
-                {
-                    animationBmp?.Dispose();
-                }
-            }
-
-            _animationList = null;
-            _frameIndex = 0;
+            get => MainPictureBox.Animate;
+            set => MainPictureBox.Animate = value;
         }
 
         private int CurrentSelect
@@ -337,164 +293,40 @@ namespace UoFiddler.Controls.UserControls
             set
             {
                 _currentSelect = value;
-                if (_timer != null)
-                {
-                    if (_timer.Enabled)
-                    {
-                        _timer.Stop();
-                    }
-
-                    _timer.Dispose();
-                    _timer = null;
-                }
                 SetPicture();
-                MainPictureBox.Invalidate();
             }
         }
 
         private void SetPicture()
         {
-            _frames = null;
-            _mainPicture?.Dispose();
             if (_currentSelect == 0)
             {
                 return;
             }
 
-            if (Animate)
-            {
-                _mainPicture = DoAnimation();
-            }
-            else
-            {
-                int body = _currentSelect;
-                Animations.Translate(ref body);
-                int hue = _customHue;
-                if (hue != 0)
-                {
-                    _frames = Animations.GetAnimation(_currentSelect, _currentSelectAction, _facing, ref hue, true, false);
-                }
-                else
-                {
-                    _frames = Animations.GetAnimation(_currentSelect, _currentSelectAction, _facing, ref hue, false, false);
-                    _defHue = hue;
-                }
-
-                if (_frames != null)
-                {
-                    if (_frames[0].Bitmap != null)
-                    {
-                        _mainPicture = new Bitmap(_frames[0].Bitmap);
-                        BaseGraphicLabel.Text = $"BaseGraphic: {body} (0x{body:X})";
-                        GraphicLabel.Text = $"Graphic: {_currentSelect} (0x{_currentSelect:X})";
-                        HueLabel.Text = $"Hue: {hue + 1} (0x{hue + 1:X})";
-                    }
-                    else
-                    {
-                        _mainPicture = null;
-                    }
-                }
-                else
-                {
-                    _mainPicture = null;
-                }
-            }
-        }
-
-        private Bitmap DoAnimation()
-        {
-            if (_timer != null)
-            {
-                return _animationList[_frameIndex] != null
-                    ? new Bitmap(_animationList[_frameIndex])
-                    : null;
-            }
-
             int body = _currentSelect;
             Animations.Translate(ref body);
             int hue = _customHue;
-            if (hue != 0)
+            bool preserveHue = hue != 0;
+
+            MainPictureBox.Frames = Animations.GetAnimation(_currentSelect, _currentSelectAction, _facing, ref hue, preserveHue, false)
+                ?.Select(animation => new AnimatedFrame(animation.Bitmap, animation.Center)).ToList();
+
+            if (!preserveHue)
             {
-                _frames = Animations.GetAnimation(_currentSelect, _currentSelectAction, _facing, ref hue, true, false);
-            }
-            else
-            {
-                _frames = Animations.GetAnimation(_currentSelect, _currentSelectAction, _facing, ref hue, false, false);
                 _defHue = hue;
             }
 
-            if (_frames == null)
+            if (MainPictureBox.FirstFrame == null)
             {
-                return null;
+                return;
             }
 
             BaseGraphicLabel.Text = $"BaseGraphic: {body} (0x{body:X})";
             GraphicLabel.Text = $"Graphic: {_currentSelect} (0x{_currentSelect:X})";
             HueLabel.Text = $"Hue: {hue + 1} (0x{hue + 1:X})";
-            int count = _frames.Length;
-            _animationList = new Bitmap[count];
 
-            for (int i = 0; i < count; ++i)
-            {
-                _animationList[i] = _frames[i].Bitmap;
-            }
-
-            // TODO: avoid division by 0 - needs checking if this is valid logic for count.
-            if (count <= 0)
-            {
-                count = 1;
-            }
-
-            _timer = new Timer
-            {
-                Interval = 1000 / count
-            };
-            _timer.Tick += AnimTick;
-            _timer.Start();
-
-            _frameIndex = 0;
-
-            LoadListViewFrames(); // Reload FrameTab
-
-            return _animationList[0] != null ? new Bitmap(_animationList[0]) : null;
-        }
-
-        private void AnimTick(object sender, EventArgs e)
-        {
-            ++_frameIndex;
-
-            if (_frameIndex == _animationList.Length)
-            {
-                _frameIndex = 0;
-            }
-
-            _imageInvalidated = true;
-
-            MainPictureBox.Invalidate();
-        }
-
-        private void OnPaint_MainPicture(object sender, PaintEventArgs e)
-        {
-            if (_imageInvalidated)
-            {
-                SetPicture();
-            }
-
-            if (_mainPicture != null)
-            {
-                Point location = Point.Empty;
-                Size size = _mainPicture.Size;
-                location.X = (MainPictureBox.Width - _mainPicture.Width) / 2;
-                location.Y = (MainPictureBox.Height - _mainPicture.Height) / 2;
-
-                Rectangle destRect = new Rectangle(location, size);
-
-                e.Graphics.DrawImage(_mainPicture, destRect, 0, 0, _mainPicture.Width, _mainPicture.Height, GraphicsUnit.Pixel);
-            }
-            else
-            {
-                _mainPicture = null;
-            }
+            LoadListViewFrames();
         }
 
         private void TreeViewMobs_AfterSelect(object sender, TreeViewEventArgs e)
@@ -546,11 +378,6 @@ namespace UoFiddler.Controls.UserControls
                 }
                 TreeViewMobs.SelectedNode = e.Node.Nodes[0];
             }
-        }
-
-        private void Animate_Click(object sender, EventArgs e)
-        {
-            Animate = !Animate;
         }
 
         private bool LoadXml()
@@ -690,14 +517,13 @@ namespace UoFiddler.Controls.UserControls
         {
             int graphic = (int)e.Item.Tag;
             int hue = 0;
-            _frames = Animations.GetAnimation(graphic, 0, 1, ref hue, false, true);
+            Bitmap bmp = Animations.GetAnimation(graphic, 0, 1, ref hue, false, true)?[0].Bitmap;
 
-            if (_frames == null)
+            if (bmp == null)
             {
                 return;
             }
 
-            Bitmap bmp = _frames[0].Bitmap;
             int width = bmp.Width;
             int height = bmp.Height;
 
@@ -749,7 +575,7 @@ namespace UoFiddler.Controls.UserControls
             try
             {
                 listView1.Clear();
-                for (int frame = 0; frame < _animationList.Length; ++frame)
+                for (int frame = 0; frame < MainPictureBox.Frames?.Count; ++frame)
                 {
                     ListViewItem item = new ListViewItem(frame.ToString(), 0)
                     {
@@ -766,12 +592,12 @@ namespace UoFiddler.Controls.UserControls
 
         private void Frames_ListView_DrawItem(object sender, DrawListViewItemEventArgs e)
         {
-            if (_animationList == null)
+            if (MainPictureBox.Frames == null)
             {
                 return;
             }
 
-            Bitmap bmp = _animationList[(int)e.Item.Tag];
+            Bitmap bmp = MainPictureBox.Frames[(int)e.Item.Tag].Bitmap;
             int width = bmp.Width;
             int height = bmp.Height;
 
@@ -785,8 +611,14 @@ namespace UoFiddler.Controls.UserControls
                 height = e.Bounds.Height;
             }
 
+            if (listView1.SelectedItems.Contains(e.Item))
+            {
+                e.Graphics.FillRectangle(new SolidBrush(SystemColors.Highlight), e.Bounds);
+            }
+
             e.Graphics.DrawImage(bmp, e.Bounds.X, e.Bounds.Y, width, height);
             e.DrawText(TextFormatFlags.Bottom | TextFormatFlags.HorizontalCenter);
+
             using (var pen = new Pen(Color.Gray))
             {
                 e.Graphics.DrawRectangle(pen, e.Bounds.X, e.Bounds.Y, e.Bounds.Width, e.Bounds.Height);
@@ -949,7 +781,13 @@ namespace UoFiddler.Controls.UserControls
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
             string fileName = Path.Combine(Options.OutputPath, $"{what} {_currentSelect}.{fileExtension}");
 
-            Bitmap sourceBitmap = Animate ? _animationList[0] : _mainPicture;
+            Bitmap sourceBitmap = MainPictureBox.CurrentFrame?.Bitmap;
+
+            if (sourceBitmap == null)
+            {
+                return;
+            }
+
             using (Bitmap newBitmap = new Bitmap(sourceBitmap.Width, sourceBitmap.Height))
             {
                 using (Graphics newGraph = Graphics.FromImage(newBitmap))
@@ -988,11 +826,6 @@ namespace UoFiddler.Controls.UserControls
 
         private void ExportAnimationFrames(ImageFormat imageFormat)
         {
-            if (!Animate)
-            {
-                return;
-            }
-
             string what = "Mob";
             if (_displayType == 1)
             {
@@ -1002,14 +835,15 @@ namespace UoFiddler.Controls.UserControls
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
             string fileName = Path.Combine(Options.OutputPath, $"{what} {_currentSelect}");
 
-            for (int i = 0; i < _animationList.Length; ++i)
+            for (int i = 0; i < MainPictureBox.Frames?.Count; ++i)
             {
-                using (Bitmap newBitmap = new Bitmap(_animationList[i].Width, _animationList[i].Height))
+                var frameBitmap = MainPictureBox.Frames[i].Bitmap;
+                using (Bitmap newBitmap = new Bitmap(frameBitmap.Width, frameBitmap.Height))
                 {
                     using (Graphics newGraph = Graphics.FromImage(newBitmap))
                     {
                         newGraph.FillRectangle(Brushes.White, 0, 0, newBitmap.Width, newBitmap.Height);
-                        newGraph.DrawImage(_animationList[i], new Point(0, 0));
+                        newGraph.DrawImage(frameBitmap, new Point(0, 0));
                         newGraph.Save();
                     }
 
@@ -1057,7 +891,7 @@ namespace UoFiddler.Controls.UserControls
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
             string fileName = Path.Combine(Options.OutputPath, $"{what} {_currentSelect}");
 
-            Bitmap bit = _animationList[(int)listView1.SelectedItems[0].Tag];
+            Bitmap bit = MainPictureBox.Frames[(int)listView1.SelectedItems[0].Tag].Bitmap;
             using (Bitmap newBitmap = new Bitmap(bit.Width, bit.Height))
             {
                 using (Graphics newGraph = Graphics.FromImage(newBitmap))
@@ -1069,6 +903,47 @@ namespace UoFiddler.Controls.UserControls
 
                 newBitmap.Save($"{fileName}-{(int)listView1.SelectedItems[0].Tag}.{fileExtension}", imageFormat);
             }
+        }
+
+        private void ExportAnimatedGif(bool looping)
+        {
+            if (MainPictureBox.Frames == null)
+            {
+                return;
+            }
+
+            var outputFile = Path.Combine(Options.OutputPath, $"{(_displayType == 1 ? "Equipment" : "Mob")} {_currentSelect}.gif");
+            MainPictureBox.Frames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: MainPictureBox.ShowFrameBounds);
+            MessageBox.Show($"InGame Anim saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void OnClickExtractAnimGifLooping(object sender, EventArgs e)
+        {
+            ExportAnimatedGif(true);
+        }
+
+        private void OnClickExtractAnimGifNoLooping(object sender, EventArgs e)
+        {
+            ExportAnimatedGif(false);
+        }
+
+        private void Frames_ListView_Click(object sender, EventArgs e)
+        {
+            var index = listView1.SelectedIndices.Count > 0 ? listView1.SelectedIndices[0] : 0;
+            MainPictureBox.FrameIndex = index;
+        }
+
+        private void AnimateCheckBox_Click(object sender, EventArgs e)
+        {
+            MainPictureBox.Animate = !MainPictureBox.Animate;
+            AnimateCheckBox.Checked = MainPictureBox.Animate;
+        }
+
+        private void ShowFrameBoundsCheckBox_Click(object sender, EventArgs e)
+        {
+            MainPictureBox.ShowFrameBounds = !MainPictureBox.ShowFrameBounds;
+            ShowFrameBoundsCheckBox.Checked = MainPictureBox.ShowFrameBounds;
         }
     }
 

@@ -17,6 +17,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Text.RegularExpressions;
 using System.Windows.Forms;
+using AnimatedGif;
 using Ultima;
 using UoFiddler.Controls.Classes;
 using UoFiddler.Controls.Forms;
@@ -93,6 +94,8 @@ namespace UoFiddler.Controls.UserControls
 
         private readonly Point _drawPoint = new Point(0, 0);
         private Point _drawPointAni = new Point(100, 100);
+        private Size _animSize = new Size(0, 0);
+        private Point _minDrawPointAni = new Point(int.MaxValue, int.MaxValue);
 
         private object[] _layers = new object[25];
         private readonly bool[] _layerVisible = new bool[25];
@@ -102,9 +105,9 @@ namespace UoFiddler.Controls.UserControls
         private bool _gargoyle;
         private bool _showPd = true;
         private bool _animate;
-        private Timer _mTimer;
+        private Timer _animationTimer;
         private Bitmap[] _animation;
-        private int _mFrameIndex;
+        private int _frameIndex;
         private int _facing = 1;
         private int _action = 1;
         private bool _loaded;
@@ -138,15 +141,15 @@ namespace UoFiddler.Controls.UserControls
             _facing = 1;
             _action = 1;
 
-            if (_mTimer != null)
+            if (_animationTimer != null)
             {
-                if (_mTimer.Enabled)
+                if (_animationTimer.Enabled)
                 {
-                    _mTimer.Stop();
+                    _animationTimer.Stop();
                 }
 
-                _mTimer.Dispose();
-                _mTimer = null;
+                _animationTimer.Dispose();
+                _animationTimer = null;
             }
 
             if (_animation != null)
@@ -158,7 +161,7 @@ namespace UoFiddler.Controls.UserControls
             }
 
             _animation = null;
-            _mFrameIndex = 0;
+            _frameIndex = 0;
 
             EquipTable.Initialize();
             GumpTable.Initialize();
@@ -491,11 +494,13 @@ namespace UoFiddler.Controls.UserControls
 
         private void DoAnimation()
         {
-            if (_mTimer != null)
+            if (_animationTimer != null)
             {
                 return;
             }
 
+            _animSize = new Size(0, 0);
+            _minDrawPointAni = new Point(int.MaxValue, int.MaxValue);
             int hue = 0;
             int back = 0;
             if (!_female)
@@ -552,10 +557,10 @@ namespace UoFiddler.Controls.UserControls
 
             for (int i = 0; i < count; ++i)
             {
-                _animation[i] = new Bitmap(DressPic.Width, DressPic.Height);
+                _animation[i] = new Bitmap(DressPic.Width, DressPic.Height,  PixelFormat.Format32bppArgb);
                 using (Graphics graph = Graphics.FromImage(_animation[i]))
                 {
-                    graph.Clear(Color.WhiteSmoke);
+                    graph.Clear(Color.Transparent);
                     if (_mount != 0)
                     {
                         if (_action >= 23 && _action <= 29) //mount animations
@@ -584,6 +589,10 @@ namespace UoFiddler.Controls.UserControls
                                 {
                                     draw.X = _drawPointAni.X - mountFrame[i].Center.X;
                                     draw.Y = _drawPointAni.Y - mountFrame[i].Center.Y - mountFrame[i].Bitmap.Height;
+                                    _minDrawPointAni.X = Math.Min(_minDrawPointAni.X, draw.X);
+                                    _minDrawPointAni.Y = Math.Min(_minDrawPointAni.Y, draw.Y);
+                                    _animSize.Width = Math.Max(_animSize.Width, draw.X + mountFrame[i].Bitmap.Width);
+                                    _animSize.Height = Math.Max(_animSize.Height, draw.Y + mountFrame[i].Bitmap.Height);
                                     graph.DrawImage(mountFrame[i].Bitmap, draw);
                                 }
                             }
@@ -591,6 +600,11 @@ namespace UoFiddler.Controls.UserControls
                     }
                     draw.X = _drawPointAni.X - mobile[i].Center.X;
                     draw.Y = _drawPointAni.Y - mobile[i].Center.Y - mobile[i].Bitmap.Height;
+                    _minDrawPointAni.X = Math.Min(_minDrawPointAni.X, draw.X);
+                    _minDrawPointAni.Y = Math.Min(_minDrawPointAni.Y, draw.Y);
+                    _animSize.Width = Math.Max(_animSize.Width, draw.X + mobile[i].Bitmap.Width);
+                    _animSize.Height = Math.Max(_animSize.Height, draw.Y + mobile[i].Bitmap.Height);
+
                     graph.DrawImage(mobile[i].Bitmap, draw);
                     for (int j = 1; j < animOrder.Length; ++j)
                     {
@@ -626,37 +640,41 @@ namespace UoFiddler.Controls.UserControls
 
                         draw.X = _drawPointAni.X - frames[i].Center.X;
                         draw.Y = _drawPointAni.Y - frames[i].Center.Y - frames[i].Bitmap.Height;
-
+                        _minDrawPointAni.X = Math.Min(_minDrawPointAni.X, draw.X);
+                        _minDrawPointAni.Y = Math.Min(_minDrawPointAni.Y, draw.Y);
+                        _animSize.Width = Math.Max(_animSize.Width, draw.X + frames[i].Bitmap.Width);
+                        _animSize.Height = Math.Max(_animSize.Height, draw.Y + frames[i].Bitmap.Height);
                         graph.DrawImage(frames[i].Bitmap, draw);
                     }
                 }
             }
-            _mFrameIndex = 0;
-            _mTimer = new Timer
+            _frameIndex = 0;
+            _animationTimer = new Timer
             {
-                Interval = 150// 1000 / count;
+                Interval = 150  // 1000 / count;
             };
-            _mTimer.Tick += AnimTick;
-            _mTimer.Start();
+            _animationTimer.Tick += AnimTick;
+            _animationTimer.Start();
         }
 
         private void AnimTick(object sender, EventArgs e)
         {
-            ++_mFrameIndex;
+            ++_frameIndex;
 
-            if (_mFrameIndex >= _animation.Length)
+            if (_frameIndex >= _animation.Length)
             {
-                _mFrameIndex = 0;
+                _frameIndex = 0;
             }
 
-            if (_animation?[_mFrameIndex] == null)
+            if (_animation?[_frameIndex] == null)
             {
                 return;
             }
 
             using (Graphics graph = Graphics.FromImage(DressPic.Image))
             {
-                graph.DrawImage(_animation[_mFrameIndex], _drawPoint);
+                graph.Clear(Color.Transparent);
+                graph.DrawImage(_animation[_frameIndex], _drawPoint);
             }
             DressPic.Invalidate();
         }
@@ -977,15 +995,15 @@ namespace UoFiddler.Controls.UserControls
 
         public void RefreshDrawing()
         {
-            if (_mTimer != null)
+            if (_animationTimer != null)
             {
-                if (_mTimer.Enabled)
+                if (_animationTimer.Enabled)
                 {
-                    _mTimer.Stop();
+                    _animationTimer.Stop();
                 }
 
-                _mTimer.Dispose();
-                _mTimer = null;
+                _animationTimer.Dispose();
+                _animationTimer = null;
             }
 
             if (_animation != null)
@@ -997,7 +1015,7 @@ namespace UoFiddler.Controls.UserControls
             }
 
             _animation = null;
-            _mFrameIndex = 0;
+            _frameIndex = 0;
 
             DrawPaperdoll();
         }
@@ -1279,6 +1297,51 @@ namespace UoFiddler.Controls.UserControls
 
             MessageBox.Show($"InGame Anim saved to '{fileName}-X.{fileExtension}'", "Saved", MessageBoxButtons.OK,
                 MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void ExportAnimatedGif(bool looping)
+        {
+            var outputFile = Path.Combine(Options.OutputPath, "Dress Anim.gif");
+
+            {
+                using var gif = AnimatedGif.AnimatedGif.Create(outputFile, delay: 150);
+                foreach (var animation in _animation)
+                {
+                    if (animation != null)
+                    {
+                        using (Bitmap target = new Bitmap(_animSize.Width - _minDrawPointAni.X, _animSize.Height - _minDrawPointAni.Y))
+                        {
+                            using (Graphics g = Graphics.FromImage(target))
+                            {
+                                g.DrawImage(animation,
+                                    new Rectangle(new Point(0, 0), _animSize),
+                                    new Rectangle(_minDrawPointAni.X, _minDrawPointAni.Y, _animSize.Width, _animSize.Height),
+                                    GraphicsUnit.Pixel);
+                            }
+                            gif.AddFrame(target, delay: -1, quality: GifQuality.Bit8);
+                        }
+                    }
+                }
+            }
+
+            if (!looping)
+            {
+                using var stream = new FileStream(outputFile, FileMode.Open, FileAccess.Write);
+                stream.Seek(28, SeekOrigin.Begin);
+                stream.WriteByte(0);
+            }
+
+            MessageBox.Show($"InGame Anim saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+        private void OnClickExtractAnimGifLooping(object sender, EventArgs e)
+        {
+            ExportAnimatedGif(true);
+        }
+
+        private void OnClickExtractAnimGifNoLooping(object sender, EventArgs e)
+        {
+            ExportAnimatedGif(false);
         }
 
         private void OnClickBuildAnimationList(object sender, EventArgs e)

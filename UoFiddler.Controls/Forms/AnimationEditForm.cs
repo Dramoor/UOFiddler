@@ -806,7 +806,7 @@ namespace UoFiddler.Controls.Forms
                 dialog.Multiselect = false;
                 dialog.Title = $"Choose image file to replace at {frameIndex}";
                 dialog.CheckFileExists = true;
-                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp)|*.tif;*.tiff;*.bmp";
+                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp;*.png)|*.tif;*.tiff;*.bmp;*.png";
 
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {
@@ -1062,32 +1062,42 @@ namespace UoFiddler.Controls.Forms
 
                 using (StreamReader sr = new StreamReader(dialog.FileName))
                 {
-                    string line;
-                    ushort[] palette = new ushort[0x100];
+                    ushort[] palette = new ushort[Animations.PaletteCapacity];
+
                     int i = 0;
-                    while ((line = sr.ReadLine()) != null)
+                    while (sr.ReadLine() is { } line)
                     {
-                        if ((line = line.Trim()).Length == 0 || line.StartsWith("#"))
+                        if ((line = line.Trim()).Length == 0 || line.StartsWith('#'))
                         {
                             continue;
                         }
 
-                        palette[i++] = ushort.Parse(line);
-                        //My Soulblighter Modification
-                        if (palette[i++] == 32768)
-                        {
-                            palette[i++] = 32769;
-                        }
-                        //End of Soulblighter Modification
-                        if (i >= 0x100)
+                        i++;
+
+                        if (i >= Animations.PaletteCapacity)
                         {
                             break;
                         }
+
+                        palette[i] = ushort.Parse(line);
+
+                        // My Soulblighter Modification
+                        // Convert color 0,0,0 to 0,0,8
+                        // TODO: find out why do we need this replacement
+                        if (palette[i] == 32768)
+                        {
+                            palette[i] = 32769;
+                        }
+                        // End of Soulblighter Modification
                     }
+
                     edit.ReplacePalette(palette);
                 }
+
                 SetPaletteBox();
+
                 FramesListView.Invalidate();
+
                 Options.ChangedUltimaClass["Animations"] = true;
             }
         }
@@ -2353,8 +2363,10 @@ namespace UoFiddler.Controls.Forms
                                 if (dialog.FileName.Contains(".gif"))
                                 {
                                     using (Bitmap bmpTemp = new Bitmap(dialog.FileName))
+                                    using (MemoryStream ms = new MemoryStream())
                                     {
-                                        Bitmap bitmap = new Bitmap(bmpTemp);
+                                        bmpTemp.Save(ms, ImageFormat.Gif);
+                                        Bitmap bitmap = new Bitmap(ms);
 
                                         FrameDimension dimension = new FrameDimension(bitmap.FrameDimensionsList[0]);
 
@@ -3075,10 +3087,10 @@ namespace UoFiddler.Controls.Forms
                         if (dialog.ShowDialog() == DialogResult.OK)
                         {
                             Color customConvert = Color.FromArgb(255, (int)numericUpDownRed.Value, (int)numericUpDownGreen.Value, (int)numericUpDownBlue.Value);
-                            
+
                             DirectionTrackBar.Enabled = false;
                             DirectionTrackBar.Value = 0;
-                            
+
                             AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
 
                             if (edit != null)
@@ -3087,8 +3099,10 @@ namespace UoFiddler.Controls.Forms
                                 if (dialog.FileName.Contains(".gif"))
                                 {
                                     using (Bitmap bmpTemp = new Bitmap(dialog.FileName))
+                                    using (MemoryStream ms = new MemoryStream())
                                     {
-                                        Bitmap bitmap = new Bitmap(bmpTemp);
+                                        bmpTemp.Save(ms, ImageFormat.Gif);
+                                        Bitmap bitmap = new Bitmap(ms);
 
                                         FrameDimension dimension = new FrameDimension(bitmap.FrameDimensionsList[0]);
 
@@ -3925,7 +3939,7 @@ namespace UoFiddler.Controls.Forms
                 GifBitmapDecoder decoder = new GifBitmapDecoder(imageStreamSource, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.Default);
                 BitmapPalette pal = decoder.Palette;
                 int i;
-                for (i = 0; i < 0x100; i++)
+                for (i = 0; i < Animations.PaletteCapacity; i++)
                 {
                     animIdx.Palette[i] = 0;
                 }
@@ -3933,7 +3947,7 @@ namespace UoFiddler.Controls.Forms
                 try
                 {
                     i = 0;
-                    while (i < 0x100) //&& i < pal.Colors.Count)
+                    while (i < Animations.PaletteCapacity) //&& i < pal.Colors.Count)
                     {
                         int red = pal.Colors[i].R / 8;
                         int green = pal.Colors[i].G / 8;
@@ -3958,7 +3972,7 @@ namespace UoFiddler.Controls.Forms
                     // TODO: ignored?
                 }
 
-                for (i = 0; i < 0x100; i++)
+                for (i = 0; i < Animations.PaletteCapacity; i++)
                 {
                     if (animIdx.Palette[i] < 0x8000)
                     {
@@ -3978,7 +3992,7 @@ namespace UoFiddler.Controls.Forms
             int delta = bd.Stride >> 1;
 
             int i = 0;
-            while (i < 0x100)
+            while (i < Animations.PaletteCapacity)
             {
                 animIdx.Palette[i] = 0;
                 i++;
@@ -4015,13 +4029,13 @@ namespace UoFiddler.Controls.Forms
                         animIdx.Palette[count++] = c;
                     }
 
-                    if (count >= 0x100)
+                    if (count >= Animations.PaletteCapacity)
                     {
                         break;
                     }
                 }
 
-                for (i = 0; i < 0x100; i++)
+                for (i = 0; i < Animations.PaletteCapacity; i++)
                 {
                     if (animIdx.Palette[i] < 0x8000)
                     {
@@ -4029,7 +4043,7 @@ namespace UoFiddler.Controls.Forms
                     }
                 }
 
-                if (count >= 0x100)
+                if (count >= Animations.PaletteCapacity)
                 {
                     break;
                 }
@@ -4042,7 +4056,7 @@ namespace UoFiddler.Controls.Forms
         public void PaletteConverter(int selector, AnimIdx animIdx)
         {
             int i;
-            for (i = 0; i < 0x100; i++)
+            for (i = 0; i < Animations.PaletteCapacity; i++)
             {
                 int blueTemp = (animIdx.Palette[i] - 0x8000) / 0x20;
                 blueTemp *= 0x20;
@@ -4086,7 +4100,7 @@ namespace UoFiddler.Controls.Forms
                 animIdx.Palette[i] = (ushort)contaFinal;
             }
 
-            for (i = 0; i < 0x100; i++)
+            for (i = 0; i < Animations.PaletteCapacity; i++)
             {
                 if (animIdx.Palette[i] < 0x8000)
                 {
@@ -4101,7 +4115,7 @@ namespace UoFiddler.Controls.Forms
             redP /= 8;
             greenP /= 8;
             blueP /= 8;
-            for (i = 0; i < 0x100; i++)
+            for (i = 0; i < Animations.PaletteCapacity; i++)
             {
                 int blueTemp = (animIdx.Palette[i] - 0x8000) / 0x20;
                 blueTemp *= 0x20;
@@ -4156,7 +4170,7 @@ namespace UoFiddler.Controls.Forms
                 animIdx.Palette[i] = (ushort)contaFinal;
             }
 
-            for (i = 0; i < 0x100; i++)
+            for (i = 0; i < Animations.PaletteCapacity; i++)
             {
                 if (animIdx.Palette[i] < 0x8000)
                 {

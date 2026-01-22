@@ -248,7 +248,7 @@ namespace UoFiddler.Controls.UserControls
                 dialog.Multiselect = false;
                 dialog.Title = "Choose image file to replace";
                 dialog.CheckFileExists = true;
-                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp)|*.tif;*.tiff;*.bmp";
+                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp;*.png)|*.tif;*.tiff;*.bmp;*.png";
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {
                     return;
@@ -310,7 +310,7 @@ namespace UoFiddler.Controls.UserControls
                 dialog.Multiselect = false;
                 dialog.Title = $"Choose image file to insert at 0x{index:X}";
                 dialog.CheckFileExists = true;
-                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp)|*.tif;*.tiff;*.bmp";
+                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp;*.png)|*.tif;*.tiff;*.bmp;*.png";
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {
                     return;
@@ -534,7 +534,13 @@ namespace UoFiddler.Controls.UserControls
                     }
 
                     string fileName = Path.Combine(dialog.SelectedPath, $"Texture 0x{index:X4}.{fileExtension}");
-                    using (Bitmap bit = new Bitmap(Textures.GetTexture(index)))
+                    var texture = Textures.GetTexture(index);
+                    if (texture is null)
+                    {
+                        continue;
+                    }
+
+                    using (Bitmap bit = new Bitmap(texture))
                     {
                         bit.Save(fileName, imageFormat);
                     }
@@ -569,7 +575,7 @@ namespace UoFiddler.Controls.UserControls
                 dialog.Multiselect = true;
                 dialog.Title = $"Choose images to replace starting at 0x{index:X}";
                 dialog.CheckFileExists = true;
-                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp)|*.tif;*.tiff;*.bmp";
+                dialog.Filter = "Image files (*.tif;*.tiff;*.bmp;*.png)|*.tif;*.tiff;*.bmp;*.png";
 
                 if (dialog.ShowDialog() != DialogResult.OK)
                 {

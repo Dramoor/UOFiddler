@@ -6,7 +6,7 @@
 		<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 		<AssemblyTitle>ComparePlugin</AssemblyTitle>
 		<Product>ComparePlugin</Product>
-		<Copyright>Copyright © 2023</Copyright>
+		<Copyright>Copyright © 2025</Copyright>
 		<AssemblyVersion>1.7.0.0</AssemblyVersion>
 		<FileVersion>1.7.0.0</FileVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -23,6 +23,9 @@
 		<OutputPath>..\UoFiddler\bin\$(Configuration)\plugins\</OutputPath>
 		<GenerateSerializationAssemblies>Off</GenerateSerializationAssemblies>
 	</PropertyGroup>
+	<ItemGroup>
+	  <PackageReference Include="Serilog" Version="4.3.0" />
+	</ItemGroup>
 	<ItemGroup>
 		<Compile Update="UserControls\CompareCliLocControl.cs">
 			<SubType>UserControl</SubType>
