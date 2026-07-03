@@ -5,7 +5,7 @@ using System.IO;
 using Ultima.Helpers;
 
 namespace Ultima
-{
+{     
     public static class Art
     {
         private static FileIndex _fileIndex = new FileIndex(

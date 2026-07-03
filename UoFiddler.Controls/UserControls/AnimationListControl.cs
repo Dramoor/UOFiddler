@@ -382,7 +382,11 @@ namespace UoFiddler.Controls.UserControls
 
         private bool LoadXml()
         {
-            string fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+            string fileName = Path.Combine(Files.RootDir, "Animationlist.xml");
+
+            if (!File.Exists(fileName))
+                fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+
             if (!File.Exists(fileName))
             {
                 return false;
@@ -709,7 +713,12 @@ namespace UoFiddler.Controls.UserControls
                 TreeViewMobs.EndUpdate();
             }
 
-            string fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+            string fileName = Path.Combine(Files.RootDir, "Animationlist.xml");
+
+            if (!File.Exists(fileName))
+                fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+
+            //string fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
 
             XmlDocument dom = new XmlDocument();
             XmlDeclaration decl = dom.CreateXmlDeclaration("1.0", "utf-8", null);

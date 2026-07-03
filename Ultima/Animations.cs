@@ -6,7 +6,7 @@ namespace Ultima
 {
     public static class Animations
     {
-        public const int _maxAnimationValue = 2048; // bodyconv.def says it's maximum animation value so max bodyId?
+        public const int _maxAnimationValue = 4096; // bodyconv.def says it's maximum animation value so max bodyId?
         public static readonly int PaletteCapacity = 0x100;
 
         private static FileIndex _fileIndex = new FileIndex("Anim.idx", "Anim.mul", 0x40000, 6);

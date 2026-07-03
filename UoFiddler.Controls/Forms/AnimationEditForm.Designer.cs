@@ -107,6 +107,9 @@
             toolStripSeparator10 = new System.Windows.Forms.ToolStripSeparator();
             AnimationPictureBox = new System.Windows.Forms.PictureBox();
             EditSidePanel = new System.Windows.Forms.Panel();
+            AddedMobileGroupBox = new System.Windows.Forms.GroupBox();
+            DrawOppositeHumanCheckBox = new System.Windows.Forms.CheckBox();
+            DrawMountedCheckBox = new System.Windows.Forms.CheckBox();
             FramesGroupBox = new System.Windows.Forms.GroupBox();
             FramesTrackBar = new System.Windows.Forms.TrackBar();
             SpeedGroupBox = new System.Windows.Forms.GroupBox();
@@ -169,6 +172,7 @@
             AnimationEditToolStrip.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)AnimationPictureBox).BeginInit();
             EditSidePanel.SuspendLayout();
+            AddedMobileGroupBox.SuspendLayout();
             FramesGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)FramesTrackBar).BeginInit();
             SpeedGroupBox.SuspendLayout();
@@ -224,19 +228,19 @@
             ContextMenuStripTreeView.ImageScalingSize = new System.Drawing.Size(20, 20);
             ContextMenuStripTreeView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addToolStripMenuItem, removeToolStripMenuItem, extractImagesToolStripMenuItem1, importToolStripMenuItem1, exportToolStripMenuItem1 });
             ContextMenuStripTreeView.Name = "contextMenuStrip2";
-            ContextMenuStripTreeView.Size = new System.Drawing.Size(158, 114);
+            ContextMenuStripTreeView.Size = new System.Drawing.Size(157, 114);
             // 
             // addToolStripMenuItem
             // 
             addToolStripMenuItem.Name = "addToolStripMenuItem";
-            addToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
+            addToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
             addToolStripMenuItem.Text = "Replace";
             addToolStripMenuItem.Visible = false;
             // 
             // removeToolStripMenuItem
             // 
             removeToolStripMenuItem.Name = "removeToolStripMenuItem";
-            removeToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
+            removeToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += OnClickRemoveAction;
             // 
@@ -244,7 +248,7 @@
             // 
             extractImagesToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { asBmpToolStripMenuItem, asTiffToolStripMenuItem, asJpgToolStripMenuItem, asPngToolStripMenuItem });
             extractImagesToolStripMenuItem1.Name = "extractImagesToolStripMenuItem1";
-            extractImagesToolStripMenuItem1.Size = new System.Drawing.Size(157, 22);
+            extractImagesToolStripMenuItem1.Size = new System.Drawing.Size(156, 22);
             extractImagesToolStripMenuItem1.Text = "Extract Images..";
             // 
             // asBmpToolStripMenuItem
@@ -283,7 +287,7 @@
             // 
             importToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { fromvdToolStripMenuItem });
             importToolStripMenuItem1.Name = "importToolStripMenuItem1";
-            importToolStripMenuItem1.Size = new System.Drawing.Size(157, 22);
+            importToolStripMenuItem1.Size = new System.Drawing.Size(156, 22);
             importToolStripMenuItem1.Text = "Import..";
             // 
             // fromvdToolStripMenuItem
@@ -297,13 +301,13 @@
             // 
             exportToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { tovdToolStripMenuItem });
             exportToolStripMenuItem1.Name = "exportToolStripMenuItem1";
-            exportToolStripMenuItem1.Size = new System.Drawing.Size(157, 22);
+            exportToolStripMenuItem1.Size = new System.Drawing.Size(156, 22);
             exportToolStripMenuItem1.Text = "Export..";
             // 
             // tovdToolStripMenuItem
             // 
             tovdToolStripMenuItem.Name = "tovdToolStripMenuItem";
-            tovdToolStripMenuItem.Size = new System.Drawing.Size(105, 22);
+            tovdToolStripMenuItem.Size = new System.Drawing.Size(106, 22);
             tovdToolStripMenuItem.Text = "To .vd";
             tovdToolStripMenuItem.Click += OnClickExportToVD;
             // 
@@ -971,6 +975,7 @@
             // EditSidePanel
             // 
             EditSidePanel.BackColor = System.Drawing.SystemColors.Control;
+            EditSidePanel.Controls.Add(AddedMobileGroupBox);
             EditSidePanel.Controls.Add(FramesGroupBox);
             EditSidePanel.Controls.Add(SpeedGroupBox);
             EditSidePanel.Controls.Add(LocationCenterGroupBox);
@@ -982,6 +987,46 @@
             EditSidePanel.Name = "EditSidePanel";
             EditSidePanel.Size = new System.Drawing.Size(190, 524);
             EditSidePanel.TabIndex = 0;
+            // 
+            // AddedMobileGroupBox
+            // 
+            AddedMobileGroupBox.Controls.Add(DrawOppositeHumanCheckBox);
+            AddedMobileGroupBox.Controls.Add(DrawMountedCheckBox);
+            AddedMobileGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
+            AddedMobileGroupBox.Location = new System.Drawing.Point(0, 437);
+            AddedMobileGroupBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            AddedMobileGroupBox.Name = "AddedMobileGroupBox";
+            AddedMobileGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            AddedMobileGroupBox.Size = new System.Drawing.Size(190, 67);
+            AddedMobileGroupBox.TabIndex = 23;
+            AddedMobileGroupBox.TabStop = false;
+            AddedMobileGroupBox.Text = "Add Mobiles";
+            // 
+            // DrawOppositeHumanCheckBox
+            // 
+            DrawOppositeHumanCheckBox.AutoSize = true;
+            DrawOppositeHumanCheckBox.BackColor = System.Drawing.SystemColors.ButtonFace;
+            DrawOppositeHumanCheckBox.Location = new System.Drawing.Point(10, 42);
+            DrawOppositeHumanCheckBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            DrawOppositeHumanCheckBox.Name = "DrawOppositeHumanCheckBox";
+            DrawOppositeHumanCheckBox.Size = new System.Drawing.Size(147, 19);
+            DrawOppositeHumanCheckBox.TabIndex = 17;
+            DrawOppositeHumanCheckBox.Text = "Draw Opposite Human";
+            DrawOppositeHumanCheckBox.UseVisualStyleBackColor = false;
+            DrawOppositeHumanCheckBox.CheckedChanged += CbDrawOppositeHuman_CheckedChanged;
+            // 
+            // DrawMountedCheckBox
+            // 
+            DrawMountedCheckBox.AutoSize = true;
+            DrawMountedCheckBox.BackColor = System.Drawing.SystemColors.ButtonFace;
+            DrawMountedCheckBox.Location = new System.Drawing.Point(10, 20);
+            DrawMountedCheckBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            DrawMountedCheckBox.Name = "DrawMountedCheckBox";
+            DrawMountedCheckBox.Size = new System.Drawing.Size(133, 19);
+            DrawMountedCheckBox.TabIndex = 16;
+            DrawMountedCheckBox.Text = "Draw Mount Frames";
+            DrawMountedCheckBox.UseVisualStyleBackColor = false;
+            DrawMountedCheckBox.CheckedChanged += CbDrawMounted_CheckedChanged;
             // 
             // FramesGroupBox
             // 
@@ -1426,6 +1471,8 @@
             AnimationEditToolStrip.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)AnimationPictureBox).EndInit();
             EditSidePanel.ResumeLayout(false);
+            AddedMobileGroupBox.ResumeLayout(false);
+            AddedMobileGroupBox.PerformLayout();
             FramesGroupBox.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)FramesTrackBar).EndInit();
             SpeedGroupBox.ResumeLayout(false);
@@ -1536,6 +1583,8 @@
         private System.Windows.Forms.CheckBox SaveCoordinatesCheckBox;
         private System.Windows.Forms.TrackBar FramesTrackBar;
         private System.Windows.Forms.GroupBox LocationCenterGroupBox;
+        private System.Windows.Forms.CheckBox DrawMountedCheckBox;
+        private System.Windows.Forms.CheckBox DrawOppositeHumanCheckBox;
         private System.Windows.Forms.Label CenterYLabel;
         private System.Windows.Forms.Label CenterXLabel;
         private System.Windows.Forms.Button SameCenterButton;
@@ -1550,6 +1599,7 @@
         private System.Windows.Forms.ToolStripButton DrawReferencialPointToolStripButton;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator10;
         private System.Windows.Forms.GroupBox FramesGroupBox;
+        private System.Windows.Forms.GroupBox AddedMobileGroupBox; 
         private System.Windows.Forms.PictureBox AnimationPictureBox;
         private System.Windows.Forms.ToolStripMenuItem asJpgToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem asPngToolStripMenuItem;
