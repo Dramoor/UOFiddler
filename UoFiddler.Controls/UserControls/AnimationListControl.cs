@@ -382,14 +382,47 @@ namespace UoFiddler.Controls.UserControls
 
         private bool LoadXml()
         {
-            string fileName = Path.Combine(Files.RootDir, "Animationlist.xml");
-
-            if (!File.Exists(fileName))
-                fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
-
-            if (!File.Exists(fileName))
+            // Try profile-specific animation list first (Animationlist_{profile}.xml)
+            string fileName = null;
+            string profile = null;
+            if (!string.IsNullOrEmpty(Options.ProfileName))
             {
-                return false;
+                profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
+            }
+
+            if (!string.IsNullOrEmpty(profile))
+            {
+                /*
+                string profileFileRoot = Path.Combine(Files.RootDir, $"Animationlist_{profile}.xml");
+                if (File.Exists(profileFileRoot))
+                    fileName = profileFileRoot;
+
+                if (fileName == null)
+                {
+                    string profileFileApp = Path.Combine(Options.AppDataPath, $"Animationlist_{profile}.xml");
+                    if (File.Exists(profileFileApp))
+                        fileName = profileFileApp;
+                }
+                */
+
+                fileName = Path.Combine(Files.RootDir, $"Animationlist_{profile}.xml");
+
+                if (!File.Exists(fileName))
+                    fileName = Path.Combine(Options.AppDataPath, $"Animationlist_{profile}.xml");
+            }
+
+            if (fileName == null)
+            {
+
+                fileName = Path.Combine(Files.RootDir, "Animationlist.xml");
+
+                if (!File.Exists(fileName))
+                    fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+
+                if (!File.Exists(fileName))
+                {
+                    return false;
+                }
             }
 
             TreeViewMobs.BeginUpdate();
@@ -713,10 +746,25 @@ namespace UoFiddler.Controls.UserControls
                 TreeViewMobs.EndUpdate();
             }
 
-            string fileName = Path.Combine(Files.RootDir, "Animationlist.xml");
+            // Save to profile-specific animation list if profile is selected, otherwise use default locations
+            string fileName;
+            string profile = null;
+            if (!string.IsNullOrEmpty(Options.ProfileName))
+            {
+                profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
+            }
 
-            if (!File.Exists(fileName))
-                fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+            if (!string.IsNullOrEmpty(profile))
+            {
+                fileName = Path.Combine(Options.AppDataPath, $"Animationlist_{profile}.xml");
+            }
+            else
+            {
+                fileName = Path.Combine(Files.RootDir, "Animationlist.xml");
+
+                if (!File.Exists(fileName))
+                    fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+            }
 
             //string fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
 

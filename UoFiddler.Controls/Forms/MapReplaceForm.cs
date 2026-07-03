@@ -42,6 +42,8 @@ namespace UoFiddler.Controls.Forms
             comboBoxMapID.Items.Add(new RTokuno());
             comboBoxMapID.Items.Add(new RTerMur());
             comboBoxMapID.Items.Add(new ROrenia());
+            comboBoxMapID.Items.Add(new RArchaeaPrima());
+            comboBoxMapID.Items.Add(new RArchaea());
             comboBoxMapID.EndUpdate();
             comboBoxMapID.SelectedIndex = 0;
         }
@@ -542,6 +544,16 @@ namespace UoFiddler.Controls.Forms
         private class ROrenia : SupportedMaps
         {
             public ROrenia() : base(6, Options.MapNames[6], 6144, 4096) { }
+        }
+
+        private class RArchaeaPrima : SupportedMaps
+        {
+            public RArchaeaPrima() : base(7, Options.MapNames[7], 6144, 4096) { }
+        }
+
+        private class RArchaea : SupportedMaps
+        {
+            public RArchaea() : base(8, Options.MapNames[8], 6144, 4096) { }
         }
     }
 }

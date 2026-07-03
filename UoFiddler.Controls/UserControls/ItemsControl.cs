@@ -400,7 +400,7 @@ namespace UoFiddler.Controls.UserControls
 
             var sb = new StringBuilder();
             sb.AppendLine($"Name: {item.Name}");
-            sb.AppendLine($"Graphic: 0x{graphic:X4}");
+            sb.AppendLine($"Graphic: 0x{graphic:X4} ({graphic})");
             sb.AppendLine($"Height/Capacity: {item.Height}");
             sb.AppendLine($"Weight: {item.Weight}");
             sb.AppendLine($"Animation: {item.Animation}");
@@ -621,7 +621,12 @@ namespace UoFiddler.Controls.UserControls
             }
 
             NameLabel.Text = !Art.IsValidStatic(graphic) ? "Name: FREE" : $"Name: {TileData.ItemTable[graphic].Name}";
+            // show hex and decimal together to ensure visibility
             GraphicLabel.Text = $"Graphic: 0x{graphic:X4} ({graphic})";
+            if (DecimalGraphicLabel != null)
+            {
+                DecimalGraphicLabel.Text = string.Empty;
+            }
         }
 
         private void OnClickSave(object sender, EventArgs e)

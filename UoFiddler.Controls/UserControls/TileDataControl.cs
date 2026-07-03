@@ -92,6 +92,30 @@ namespace UoFiddler.Controls.UserControls
 
         private static TileDataControl _refMarker;
         private bool _changingIndex;
+        // use ClilocControl's shared data instead of a private StringList
+
+        private void OnClickSetCliloc(object sender, EventArgs e)
+        {
+            if (treeViewItem.SelectedNode?.Tag == null)
+            {
+                return;
+            }
+
+            int index = (int)treeViewItem.SelectedNode.Tag;
+
+            try
+            {
+                int clilocNumber = index < 0x4000 ? 1020000 + index : 1078872 + index;
+                string newText = textBoxCliloc.Text ?? string.Empty;
+
+                // Update shared cliloc in ClilocControl so other UI updates reflect change
+                ClilocControl.SetEntryInLoaded(clilocNumber, newText);
+            }
+            catch
+            {
+                // swallow errors and do nothing
+            }
+        }
 
         public bool IsLoaded { get; private set; }
 
@@ -612,6 +636,18 @@ namespace UoFiddler.Controls.UserControls
             textBoxUnk1.Text = data.MiscData.ToString();
             textBoxUnk2.Text = data.Unk2.ToString();
             textBoxUnk3.Text = data.Unk3.ToString();
+
+            // Load cliloc string for this item if available using ClilocControl shared data
+            try
+            {
+                int clilocNumber = index < 0x4000 ? 1020000 + index : 1078872 + index;
+                string clilocText = ClilocControl.GetStringFromLoaded(clilocNumber);
+                textBoxCliloc.Text = clilocText ?? string.Empty;
+            }
+            catch
+            {
+                textBoxCliloc.Text = string.Empty;
+            }
 
             Array enumValues = Enum.GetValues(typeof(TileFlag));
             int maxLength = Art.IsUOAHS() ? enumValues.Length : (enumValues.Length / 2) + 1;

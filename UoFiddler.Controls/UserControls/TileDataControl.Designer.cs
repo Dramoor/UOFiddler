@@ -88,8 +88,12 @@ namespace UoFiddler.Controls.UserControls
             label1 = new System.Windows.Forms.Label();
             textBoxUnk3 = new System.Windows.Forms.TextBox();
             label12 = new System.Windows.Forms.Label();
+            labelCliloc = new System.Windows.Forms.Label();
+            textBoxCliloc = new System.Windows.Forms.TextBox();
+            buttonSetCliloc = new System.Windows.Forms.Button();
             textBoxAnim = new System.Windows.Forms.TextBox();
             label2 = new System.Windows.Forms.Label();
+
             checkedListBox1 = new System.Windows.Forms.CheckedListBox();
             tabPageLand = new System.Windows.Forms.TabPage();
             splitContainer5 = new System.Windows.Forms.SplitContainer();
@@ -333,6 +337,9 @@ namespace UoFiddler.Controls.UserControls
             splitContainer3.Panel1.Controls.Add(label3);
             splitContainer3.Panel1.Controls.Add(label1);
             splitContainer3.Panel1.Controls.Add(textBoxUnk3);
+            splitContainer3.Panel1.Controls.Add(labelCliloc);
+            splitContainer3.Panel1.Controls.Add(textBoxCliloc);
+            splitContainer3.Panel1.Controls.Add(buttonSetCliloc);
             splitContainer3.Panel1.Controls.Add(label12);
             splitContainer3.Panel1.Controls.Add(textBoxAnim);
             splitContainer3.Panel1.Controls.Add(label2);
@@ -674,6 +681,36 @@ namespace UoFiddler.Controls.UserControls
             label12.Size = new System.Drawing.Size(34, 15);
             label12.TabIndex = 23;
             label12.Text = "Unk3";
+            // 
+            // labelCliloc
+            // 
+            labelCliloc.AutoSize = true;
+            labelCliloc.Location = new System.Drawing.Point(140, 127);
+            labelCliloc.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            labelCliloc.Name = "labelCliloc";
+            labelCliloc.Size = new System.Drawing.Size(36, 15);
+            labelCliloc.TabIndex = 44;
+            labelCliloc.Text = "Cliloc";
+            // 
+            // textBoxCliloc
+            // 
+            textBoxCliloc.Location = new System.Drawing.Point(186, 123);
+            textBoxCliloc.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            textBoxCliloc.Name = "textBoxCliloc";
+            textBoxCliloc.ReadOnly = false;
+            textBoxCliloc.Size = new System.Drawing.Size(230, 23);
+            textBoxCliloc.TabIndex = 24;
+            // 
+            // buttonSetCliloc
+            // 
+            buttonSetCliloc.Location = new System.Drawing.Point(424, 123);
+            buttonSetCliloc.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            buttonSetCliloc.Name = "buttonSetCliloc";
+            buttonSetCliloc.Size = new System.Drawing.Size(56, 23);
+            buttonSetCliloc.TabIndex = 25;
+            buttonSetCliloc.Text = "Set";
+            buttonSetCliloc.UseVisualStyleBackColor = true;
+            buttonSetCliloc.Click += OnClickSetCliloc;
             // 
             // textBoxAnim
             // 
@@ -1185,5 +1222,8 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.Label miscDataLabel;
         private System.Windows.Forms.Label stackOffLabel;
         private System.Windows.Forms.Label layerLabel;
+        private System.Windows.Forms.Label labelCliloc;
+        private System.Windows.Forms.TextBox textBoxCliloc;
+        private System.Windows.Forms.Button buttonSetCliloc;
     }
 }

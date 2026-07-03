@@ -120,7 +120,7 @@ namespace Ultima
             temp = Convert.ToByte(split[i++]);
             if (temp != 0)
             {
-                Flags |= TileFlag.Generic;
+                Flags |= TileFlag.Stackable;
             }
 
             temp = Convert.ToByte(split[i++]);
@@ -691,7 +691,7 @@ namespace Ultima
             temp = Convert.ToByte(split[i++]);
             if (temp != 0)
             {
-                Flags |= TileFlag.Generic;
+                Flags |= TileFlag.Stackable;
             }
 
             temp = Convert.ToByte(split[i++]);
@@ -1067,7 +1067,7 @@ namespace Ultima
         /// <summary>
         /// The tile is stackable
         /// </summary>
-        Generic = 0x00000800,
+        Stackable = 0x00000800,
         /// <summary>
         /// The tile is a window. Like <see cref="TileFlag.NoShoot" />, tiles with this flag block line of sight.
         /// </summary>

@@ -31,6 +31,82 @@ namespace UoFiddler.Controls.UserControls
             FindEntry.TextBox.PreviewKeyDown += FindEntry_PreviewKeyDown;
         }
 
+        // Provide programmatic access to cliloc data for other controls
+        public static string GetStringFromLoaded(int number)
+        {
+            if (_cliloc == null)
+            {
+                // attempt to load a default cliloc similarly to Lang setter
+                string lang;
+                if (Files.GetFilePath("cliloc.enu") != null)
+                {
+                    lang = "enu";
+                }
+                else if (Files.GetFilePath("cliloc.deu") != null)
+                {
+                    lang = "deu";
+                }
+                else if (Files.GetFilePath("cliloc.custom1") != null)
+                {
+                    lang = "custom1";
+                }
+                else if (Files.GetFilePath("cliloc.custom2") != null)
+                {
+                    lang = "custom2";
+                }
+                else
+                {
+                    lang = "enu";
+                }
+
+                _cliloc = new StringList(lang, Options.NewClilocFormat);
+            }
+
+            return _cliloc.GetString(number);
+        }
+
+        public static void SetEntryInLoaded(int number, string text)
+        {
+            if (_cliloc == null)
+            {
+                // load default as in GetStringFromLoaded
+                string lang;
+                if (Files.GetFilePath("cliloc.enu") != null)
+                {
+                    lang = "enu";
+                }
+                else if (Files.GetFilePath("cliloc.deu") != null)
+                {
+                    lang = "deu";
+                }
+                else if (Files.GetFilePath("cliloc.custom1") != null)
+                {
+                    lang = "custom1";
+                }
+                else if (Files.GetFilePath("cliloc.custom2") != null)
+                {
+                    lang = "custom2";
+                }
+                else
+                {
+                    lang = "enu";
+                }
+
+                _cliloc = new StringList(lang, Options.NewClilocFormat);
+            }
+
+            // Use StringList.SetEntry to ensure internal tables are updated
+            _cliloc.SetEntry(number, text ?? string.Empty, StringEntry.CliLocFlag.Modified);
+
+            Options.ChangedUltimaClass["CliLoc"] = true;
+
+            if (_source != null)
+            {
+                _source.DataSource = _cliloc.Entries;
+                _source.ResetBindings(false);
+            }
+        }
+
         private const string _searchNumberPlaceholder = "Enter Number";
         private const string _searchTextPlaceholder = "Enter Text";
 
@@ -93,8 +169,37 @@ namespace UoFiddler.Controls.UserControls
             Cursor.Current = Cursors.WaitCursor;
             _sortOrder = SortOrder.Ascending;
             _sortColumn = 0;
-            LangComboBox.SelectedIndex = 0;
-            Lang = 0;
+
+            if (_cliloc == null)
+            {
+                // no cliloc preloaded, load default (enu)
+                LangComboBox.SelectedIndex = 0;
+                Lang = 0;
+            }
+            else
+            {
+                // keep existing loaded cliloc; set combobox to reflect its language without reloading
+                int idx = 0;
+                switch (_cliloc.Language)
+                {
+                    case "deu":
+                        idx = 1;
+                        break;
+                    case "custom1":
+                        idx = 2;
+                        break;
+                    case "custom2":
+                        idx = 3;
+                        break;
+                    default:
+                        idx = 0;
+                        break;
+                }
+
+                LangComboBox.SelectedIndex = idx;
+                _lang = idx; // don't call Lang setter to avoid reloading
+            }
+
             _cliloc.Entries.Sort(new StringList.NumberComparer(false));
             _source.DataSource = _cliloc.Entries;
             dataGridView1.DataSource = _source;

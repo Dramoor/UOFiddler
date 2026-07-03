@@ -79,6 +79,8 @@ namespace Ultima
             "map4.mul",
             "map5.mul",
             "map6.mul",
+            "map7.mul",
+            "map8.mul",
             "map0legacymul.uop",
             "map1legacymul.uop",
             "map2legacymul.uop",
@@ -86,6 +88,8 @@ namespace Ultima
             "map4legacymul.uop",
             "map5legacymul.uop",
             "map6legacymul.uop",
+            "map7legacymul.uop",
+            "map8legacymul.uop",
             "mapdif0.mul",
             "mapdif1.mul",
             "mapdif2.mul",
@@ -131,6 +135,8 @@ namespace Ultima
             "staidx4.mul",
             "staidx5.mul",
             "staidx6.mul",
+            "staidx7.mul",
+            "staidx8.mul",
             "statics0.mul",
             "statics1.mul",
             "statics2.mul",
@@ -138,6 +144,8 @@ namespace Ultima
             "statics4.mul",
             "statics5.mul",
             "statics6.mul",
+            "statics7.mul",
+            "statics8.mul",
             "texidx.mul",
             "texmaps.mul",
             "tiledata.mul",
@@ -184,7 +192,8 @@ namespace Ultima
             {
                 string filePath = Path.Combine(RootDir, file);
 
-                MulPath[file] = File.Exists(filePath) ? file : string.Empty;
+                // store keys in lowercase to match GetFilePath lookup which uses file.ToLower()
+                MulPath[file.ToLower()] = File.Exists(filePath) ? file : string.Empty;
             }
         }
 
@@ -199,17 +208,18 @@ namespace Ultima
             foreach (string file in _uoFiles)
             {
                 string filePath;
+                string key = file.ToLower();
 
                 // file was set
-                if (!string.IsNullOrEmpty(MulPath[file]))
+                if (!string.IsNullOrEmpty(MulPath[key]))
                 {
                     // and was relative like "art.mul"
-                    if (string.IsNullOrEmpty(Path.GetDirectoryName(MulPath[file])))
+                    if (string.IsNullOrEmpty(Path.GetDirectoryName(MulPath[key])))
                     {
-                        filePath = Path.Combine(RootDir, MulPath[file]);
+                        filePath = Path.Combine(RootDir, MulPath[key]);
                         if (File.Exists(filePath))
                         {
-                            MulPath[file] = filePath;
+                            MulPath[key] = filePath;
                             continue;
                         }
                     }
@@ -223,7 +233,7 @@ namespace Ultima
 
                 // file was not set, or relative and non existent
                 filePath = Path.Combine(RootDir, file);
-                MulPath[file] = File.Exists(filePath) ? filePath : string.Empty;
+                MulPath[key] = File.Exists(filePath) ? filePath : string.Empty;
             }
         }
 
@@ -234,7 +244,7 @@ namespace Ultima
         /// <param name="key"></param>
         public static void SetMulPath(string path, string key)
         {
-            MulPath[key] = path;
+            MulPath[key.ToLower()] = path;
         }
 
         /// <summary>

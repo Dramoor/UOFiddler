@@ -162,19 +162,29 @@ namespace UoFiddler.Controls.UserControls
             tokunoToolStripMenuItem.Text = Options.MapNames[4];
             terMurToolStripMenuItem.Text = Options.MapNames[5];
             oreniaToolStripMenuItem.Text = Options.MapNames[6];
+            archaeaPrimaToolStripMenuItem.Text = Options.MapNames[7];
+            archaeaToolStripMenuItem.Text = Options.MapNames[8];
 
             if (OverlayObjectTree.Nodes.Count <= 0)
             {
                 return;
             }
 
-            OverlayObjectTree.Nodes[0].Text = Options.MapNames[0];
-            OverlayObjectTree.Nodes[1].Text = Options.MapNames[1];
-            OverlayObjectTree.Nodes[2].Text = Options.MapNames[2];
-            OverlayObjectTree.Nodes[3].Text = Options.MapNames[3];
-            OverlayObjectTree.Nodes[4].Text = Options.MapNames[4];
-            OverlayObjectTree.Nodes[5].Text = Options.MapNames[5];
-            OverlayObjectTree.Nodes[6].Text = Options.MapNames[6];
+            // Ensure OverlayObjectTree has as many top-level nodes as there are map names
+            int mapCount = Options.MapNames.Length;
+            for (int i = 0; i < mapCount; ++i)
+            {
+                if (OverlayObjectTree.Nodes.Count <= i)
+                {
+                    OverlayObjectTree.Nodes.Add(new TreeNode(Options.MapNames[i]));
+                }
+                else
+                {
+                    OverlayObjectTree.Nodes[i].Text = Options.MapNames[i];
+                }
+            }
+
+            // If there are extra nodes (older configuration), leave them but update display
             OverlayObjectTree.Invalidate();
         }
 
@@ -282,6 +292,8 @@ namespace UoFiddler.Controls.UserControls
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
             oreniaToolStripMenuItem.Checked = false;
+            archaeaPrimaToolStripMenuItem.Checked = false;
+            archaeaToolStripMenuItem.Checked = false;
         }
 
         private void ChangeMapFelucca(object sender, EventArgs e)
@@ -379,6 +391,34 @@ namespace UoFiddler.Controls.UserControls
             oreniaToolStripMenuItem.Checked = true;
             CurrentMap = Map.Orenia;
             _currentMapId = 6;
+            ChangeMap();
+        }
+
+        private void ChangeMapArchaeaPrima(object sender, EventArgs e)
+        {
+            if (archaeaPrimaToolStripMenuItem.Checked)
+            {
+                return;
+            }
+
+            ResetCheckedMap();
+            archaeaPrimaToolStripMenuItem.Checked = true;
+            CurrentMap = Map.ArchaeaPrima;
+            _currentMapId = 7;
+            ChangeMap();
+        }
+
+        private void ChangeMapArchaea(object sender, EventArgs e)
+        {
+            if (archaeaToolStripMenuItem.Checked)
+            {
+                return;
+            }
+
+            ResetCheckedMap();
+            archaeaToolStripMenuItem.Checked = true;
+            CurrentMap = Map.Archaea;
+            _currentMapId = 8;
             ChangeMap();
         }
 
@@ -508,6 +548,14 @@ namespace UoFiddler.Controls.UserControls
                 case 6:
                     oreniaToolStripMenuItem.Checked = true;
                     CurrentMap = Map.Orenia;
+                    break;
+                case 7:
+                    archaeaPrimaToolStripMenuItem.Checked = true;
+                    CurrentMap = Map.ArchaeaPrima;
+                    break;
+                case 8:
+                    archaeaToolStripMenuItem.Checked = true;
+                    CurrentMap = Map.Archaea;
                     break;
             }
         }
@@ -690,6 +738,12 @@ namespace UoFiddler.Controls.UserControls
             }
 
             if (OverlayObjectTree.Nodes.Count <= 0 || !showMarkersToolStripMenuItem.Checked)
+            {
+                return;
+            }
+
+            // guard: if current map id is outside overlay nodes, skip markers
+            if (_currentMapId < 0 || _currentMapId >= OverlayObjectTree.Nodes.Count)
             {
                 return;
             }

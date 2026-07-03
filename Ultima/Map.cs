@@ -29,6 +29,9 @@ namespace Ultima
         public static readonly Map Tokuno = new Map(4, 4, 1448, 1448);
         public static readonly Map TerMur = new Map(5, 5, 1280, 4096);
         public static readonly Map Orenia = new Map(6, 6, 6144, 4096);
+        public static readonly Map ArchaeaPrima = new Map(7, 7, 6144, 4096);
+        public static readonly Map Archaea = new Map(8, 8, 6144, 4096);
+
         public static Map Custom;
 
         public static void StartUpSetDiff(bool value)
@@ -66,6 +69,8 @@ namespace Ultima
             Tokuno.Tiles.CloseStreams();
             TerMur.Tiles.CloseStreams();
             Orenia.Tiles.CloseStreams();
+            ArchaeaPrima.Tiles.CloseStreams();
+            Archaea.Tiles.CloseStreams();
 
             Felucca.Tiles.StaticIndexInit = false;
             Trammel.Tiles.StaticIndexInit = false;
@@ -74,19 +79,21 @@ namespace Ultima
             Tokuno.Tiles.StaticIndexInit = false;
             TerMur.Tiles.StaticIndexInit = false;
             Orenia.Tiles.StaticIndexInit = false;
+            ArchaeaPrima.Tiles.StaticIndexInit = false;
+            Archaea.Tiles.StaticIndexInit = false;
 
-            Felucca._cache = Trammel._cache = Ilshenar._cache = Malas._cache = Tokuno._cache = TerMur._cache = Orenia._cache = null;
-            Felucca._tiles = Trammel._tiles = Ilshenar._tiles = Malas._tiles = Tokuno._tiles = TerMur._tiles = Orenia._tiles = null;
+            Felucca._cache = Trammel._cache = Ilshenar._cache = Malas._cache = Tokuno._cache = TerMur._cache = Orenia._cache = ArchaeaPrima._cache = Archaea._cache = null;
+            Felucca._tiles = Trammel._tiles = Ilshenar._tiles = Malas._tiles = Tokuno._tiles = TerMur._tiles = Orenia._tiles = ArchaeaPrima._tiles = Archaea._tiles = null;
             Felucca._cacheNoStatics =
                 Trammel._cacheNoStatics =
-                Ilshenar._cacheNoStatics = Malas._cacheNoStatics = Tokuno._cacheNoStatics = TerMur._cacheNoStatics = Orenia._cacheNoStatics = null;
+                Ilshenar._cacheNoStatics = Malas._cacheNoStatics = Tokuno._cacheNoStatics = TerMur._cacheNoStatics = Orenia._cacheNoStatics = ArchaeaPrima._cacheNoStatics = Archaea._cacheNoStatics = null;
             Felucca._cacheNoPatch =
                 Trammel._cacheNoPatch =
-                Ilshenar._cacheNoPatch = Malas._cacheNoPatch = Tokuno._cacheNoPatch = TerMur._cacheNoPatch = Orenia._cacheNoPatch = null;
+                Ilshenar._cacheNoPatch = Malas._cacheNoPatch = Tokuno._cacheNoPatch = TerMur._cacheNoPatch = Orenia._cacheNoPatch = ArchaeaPrima._cacheNoPatch = Archaea._cacheNoPatch = null;
             Felucca._cacheNoStaticsNoPatch =
                 Trammel._cacheNoStaticsNoPatch =
                 Ilshenar._cacheNoStaticsNoPatch =
-                Malas._cacheNoStaticsNoPatch = Tokuno._cacheNoStaticsNoPatch = TerMur._cacheNoStaticsNoPatch = Orenia._cacheNoStaticsNoPatch = null;
+                Malas._cacheNoStaticsNoPatch = Tokuno._cacheNoStaticsNoPatch = TerMur._cacheNoStaticsNoPatch = Orenia._cacheNoStaticsNoPatch = ArchaeaPrima._cacheNoStaticsNoPatch = Archaea._cacheNoStaticsNoPatch = null;
         }
 
         public void ResetCache()

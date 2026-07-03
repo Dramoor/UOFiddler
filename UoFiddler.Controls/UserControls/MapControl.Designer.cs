@@ -67,6 +67,8 @@ namespace UoFiddler.Controls.UserControls
             this.tokunoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.terMurToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.oreniaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.archaeaPrimaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.archaeaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.extractMapToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.asBmpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -203,6 +205,8 @@ namespace UoFiddler.Controls.UserControls
             this.tokunoToolStripMenuItem,
             this.terMurToolStripMenuItem,
             this.oreniaToolStripMenuItem,
+            this.archaeaPrimaToolStripMenuItem,
+            this.archaeaToolStripMenuItem,
             this.toolStripSeparator1,
             this.extractMapToolStripMenuItem});
             this.contextMenuStrip1.Name = "contextMenuStrip1";
@@ -318,6 +322,20 @@ namespace UoFiddler.Controls.UserControls
             this.oreniaToolStripMenuItem.Size = new System.Drawing.Size(171, 22);
             this.oreniaToolStripMenuItem.Text = "Orenia";
             this.oreniaToolStripMenuItem.Click += new System.EventHandler(this.ChangeMapOrenia);
+            // 
+            // archaeaPrimaToolStripMenuItem
+            // 
+            this.archaeaPrimaToolStripMenuItem.Name = "archaeaPrimaToolStripMenuItem";
+            this.archaeaPrimaToolStripMenuItem.Size = new System.Drawing.Size(171, 22);
+            this.archaeaPrimaToolStripMenuItem.Text = "Archaea Prima";
+            this.archaeaPrimaToolStripMenuItem.Click += new System.EventHandler(this.ChangeMapArchaeaPrima);
+            // 
+            // archaeaToolStripMenuItem
+            // 
+            this.archaeaToolStripMenuItem.Name = "archaeaToolStripMenuItem";
+            this.archaeaToolStripMenuItem.Size = new System.Drawing.Size(171, 22);
+            this.archaeaToolStripMenuItem.Text = "Archaea";
+            this.archaeaToolStripMenuItem.Click += new System.EventHandler(this.ChangeMapArchaea);
             // 
             // toolStripSeparator1
             // 
@@ -811,6 +829,8 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem switchVisibleToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem terMurToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem oreniaToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem archaeaPrimaToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem archaeaToolStripMenuItem;
         private System.Windows.Forms.ToolStripTextBox TextBoxGoto;
         private System.Windows.Forms.Timer timer1;
         private System.Windows.Forms.ToolStripMenuItem tokunoToolStripMenuItem;

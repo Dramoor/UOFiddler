@@ -174,6 +174,64 @@ namespace Ultima
             return _entryTable?.ContainsKey(number) != true ? null : _entryTable[number];
         }
 
+        /// <summary>
+        /// Adds or updates an entry in the StringList and its lookup tables.
+        /// Keeps the Entries list ordered by Number.
+        /// </summary>
+        /// <param name="number"></param>
+        /// <param name="text"></param>
+        /// <param name="flag"></param>
+        public void SetEntry(int number, string text, StringEntry.CliLocFlag flag)
+        {
+            if (Entries == null)
+            {
+                Entries = new List<StringEntry>();
+            }
+
+            if (_stringTable == null)
+            {
+                _stringTable = new Dictionary<int, string>();
+            }
+
+            if (_entryTable == null)
+            {
+                _entryTable = new Dictionary<int, StringEntry>();
+            }
+
+            if (_entryTable.ContainsKey(number))
+            {
+                var existing = _entryTable[number];
+                existing.Text = text ?? string.Empty;
+                existing.Flag = flag;
+                _stringTable[number] = text ?? string.Empty;
+                return;
+            }
+
+            var se = new StringEntry(number, text ?? string.Empty, flag);
+            // insert in sorted order by number
+            int insertIndex = Entries.Count;
+            for (int i = 0; i < Entries.Count; ++i)
+            {
+                if (Entries[i].Number > number)
+                {
+                    insertIndex = i;
+                    break;
+                }
+            }
+
+            if (insertIndex >= 0 && insertIndex <= Entries.Count)
+            {
+                Entries.Insert(insertIndex, se);
+            }
+            else
+            {
+                Entries.Add(se);
+            }
+
+            _entryTable[number] = se;
+            _stringTable[number] = text ?? string.Empty;
+        }
+
         public class NumberComparer : IComparer<StringEntry>
         {
             private readonly bool _sortDescending;

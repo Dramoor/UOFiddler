@@ -77,6 +77,7 @@ namespace UoFiddler.Controls.UserControls
             StatusStrip = new StatusStrip();
             NameLabel = new ToolStripStatusLabel();
             GraphicLabel = new ToolStripStatusLabel();
+            DecimalGraphicLabel = new ToolStripStatusLabel();
             PreLoader = new System.ComponentModel.BackgroundWorker();
             ToolStrip = new ToolStrip();
             saveToolStripButton = new ToolStripButton();
@@ -379,7 +380,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // StatusStrip
             // 
-            StatusStrip.Items.AddRange(new ToolStripItem[] { NameLabel, GraphicLabel });
+            StatusStrip.Items.AddRange(new ToolStripItem[] { NameLabel, GraphicLabel, DecimalGraphicLabel });
             StatusStrip.Location = new System.Drawing.Point(0, 447);
             StatusStrip.Name = "StatusStrip";
             StatusStrip.Padding = new Padding(1, 0, 16, 0);
@@ -404,6 +405,14 @@ namespace UoFiddler.Controls.UserControls
             GraphicLabel.Size = new System.Drawing.Size(150, 17);
             GraphicLabel.Text = "Graphic:";
             GraphicLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // DecimalGraphicLabel
+            // 
+            DecimalGraphicLabel.AutoSize = false;
+            DecimalGraphicLabel.Name = "DecimalGraphicLabel";
+            DecimalGraphicLabel.Size = new System.Drawing.Size(80, 17);
+            DecimalGraphicLabel.Text = "";
+            DecimalGraphicLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // PreLoader
             // 
@@ -604,6 +613,7 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripMenuItem extractToolStripMenuItem;
         private ToolStripMenuItem findNextFreeSlotToolStripMenuItem;
         private ToolStripStatusLabel GraphicLabel;
+        private ToolStripStatusLabel DecimalGraphicLabel;
         private ToolStripMenuItem insertAtToolStripMenuItem;
         private ToolStripTextBox InsertText;
         private ToolStripStatusLabel NameLabel;
