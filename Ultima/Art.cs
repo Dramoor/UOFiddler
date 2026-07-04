@@ -993,78 +993,100 @@ namespace Ultima
                 string uopPath = Path.Combine(path, "artlegacymul.uop");
                 if (!string.IsNullOrEmpty(uopPath))
                 {
-                    // Attempt to find the UOP packer type in already loaded assemblies
-                    Type convType = null;
-                    foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                    bool saveUop = false;
+                    try
                     {
-                        convType = a.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
-                        if (convType != null) break;
-                    }
-
-                    // If not loaded, try loading the plugin DLL from the application's plugins folder
-                    if (convType == null)
-                    {
-                        string possible = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "UOPPacker.dll");
-                        if (File.Exists(possible))
+                        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
                         {
-                            var asm = Assembly.LoadFrom(possible);
-                            convType = asm.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
+                            var optType = a.GetType("UoFiddler.Controls.Classes.Options");
+                            if (optType == null)
+                                continue;
+
+                            var prop = optType.GetProperty("SaveUopWhenSaving", BindingFlags.Public | BindingFlags.Static);
+                            if (prop != null)
+                            {
+                                saveUop = (bool)prop.GetValue(null);
+                                break;
+                            }
                         }
                     }
+                    catch { }
 
-                    bool invoked = false;
-                    if (convType != null)
+                    if (saveUop)
                     {
-                        MethodInfo toUop = convType.GetMethod("ToUop", BindingFlags.Public | BindingFlags.Static);
-                        if (toUop != null)
+                        // Attempt to find the UOP packer type in already loaded assemblies
+                        Type convType = null;
+                        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
                         {
-                            // Determine FileType enum value from the converter assembly
-                            Type fileTypeEnum = convType.Assembly.GetType("UoFiddler.Plugin.UopPacker.Classes.FileType");
-                            object fileTypeVal = null;
-                            if (fileTypeEnum != null)
+                            convType = a.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
+                            if (convType != null) break;
+                        }
+
+                        // If not loaded, try loading the plugin DLL from the application's plugins folder
+                        if (convType == null)
+                        {
+                            string possible = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "UOPPacker.dll");
+                            if (File.Exists(possible))
                             {
-                                fileTypeVal = Enum.Parse(fileTypeEnum, "ArtLegacyMul");
+                                var asm = Assembly.LoadFrom(possible);
+                                convType = asm.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
                             }
-                            // Invoke ToUop(inMul, inIdx, outUop, FileType.ArtLegacyMul, 0, CompressionFlag.None)
-                            // Last parameter is Ultima.CompressionFlag which is shared from this assembly
+                        }
+
+                        bool invoked = false;
+                        if (convType != null)
+                        {
+                            MethodInfo toUop = convType.GetMethod("ToUop", BindingFlags.Public | BindingFlags.Static);
+                            if (toUop != null)
+                            {
+                                // Determine FileType enum value from the converter assembly
+                                Type fileTypeEnum = convType.Assembly.GetType("UoFiddler.Plugin.UopPacker.Classes.FileType");
+                                object fileTypeVal = null;
+                                if (fileTypeEnum != null)
+                                {
+                                    fileTypeVal = Enum.Parse(fileTypeEnum, "ArtLegacyMul");
+                                }
+                                // Invoke ToUop(inMul, inIdx, outUop, FileType.ArtLegacyMul, 0, CompressionFlag.None)
+                                // Last parameter is Ultima.CompressionFlag which is shared from this assembly
+                                try
+                                {
+                                    toUop.Invoke(null, new object[] { mul, idx, uopPath, fileTypeVal, 0, CompressionFlag.None });
+                                    invoked = true;
+                                }
+                                catch (Exception ex)
+                                {
+                                    // record failure to invoke plugin converter
+                                    try
+                                    {
+                                        string logFile = Path.Combine(path, "uop_plugin_error.log");
+                                        File.AppendAllText(logFile, ex + System.Environment.NewLine + "----" + System.Environment.NewLine);
+                                    }
+                                    catch { }
+                                }
+                            }
+                        }
+
+                        // If plugin converter not available or invocation failed, use embedded conversion on the written files
+                        if (!invoked)
+                        {
                             try
                             {
-                                toUop.Invoke(null, new object[] { mul, idx, uopPath, fileTypeVal, 0, CompressionFlag.None });
-                                invoked = true;
+                                using (var fileMul = new FileStream(mul, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                using (var fileIdx = new FileStream(idx, FileMode.Open, FileAccess.Read, FileShare.Read))
+                                {
+                                    CreateUopFromStreams(fileMul, fileIdx, uopPath);
+                                }
                             }
                             catch (Exception ex)
                             {
-                                // record failure to invoke plugin converter
+                                // write diagnostic to app folder where files were saved
                                 try
                                 {
-                                    string logFile = Path.Combine(path, "uop_plugin_error.log");
+                                    string logFile = Path.Combine(path, "uop_create_error.log");
                                     File.AppendAllText(logFile, ex + System.Environment.NewLine + "----" + System.Environment.NewLine);
                                 }
                                 catch { }
                             }
-                        }
-                    }
-
-                    // If plugin converter not available or invocation failed, use embedded conversion on the written files
-                    if (!invoked)
-                    {
-                        try
-                        {
-                            using (var fileMul = new FileStream(mul, FileMode.Open, FileAccess.Read, FileShare.Read))
-                            using (var fileIdx = new FileStream(idx, FileMode.Open, FileAccess.Read, FileShare.Read))
-                            {
-                                CreateUopFromStreams(fileMul, fileIdx, uopPath);
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            // write diagnostic to app folder where files were saved
-                            try
-                            {
-                                string logFile = Path.Combine(path, "uop_create_error.log");
-                                File.AppendAllText(logFile, ex + System.Environment.NewLine + "----" + System.Environment.NewLine);
-                            }
-                            catch { }
                         }
                     }
                 }

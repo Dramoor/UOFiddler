@@ -201,6 +201,10 @@ namespace UoFiddler.Controls.Classes
         }
 
         public static bool TileDataDirectlySaveOnChange { get; set; }
+        /// <summary>
+        /// If true, when saving muls the application will also create a .uop alongside them
+        /// </summary>
+        public static bool SaveUopWhenSaving { get; set; } = false;
         public static string AppDataPath { get; set; }
         public static string OutputPath { get; set; }
         public static string ProfileName { get; set; }

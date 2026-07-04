@@ -138,6 +138,11 @@ namespace UoFiddler.Classes
             elem = dom.CreateElement("CacheData");
             elem.SetAttribute("active", Files.CacheData.ToString());
             sr.AppendChild(elem);
+            comment = dom.CreateComment("Create UOP when saving muls");
+            sr.AppendChild(comment);
+            elem = dom.CreateElement("SaveUopWhenSaving");
+            elem.SetAttribute("active", Options.SaveUopWhenSaving.ToString());
+            sr.AppendChild(elem);
             // + Colors
             comment = dom.CreateComment("Focus tile color for tile views");
             sr.AppendChild(comment);
@@ -330,6 +335,12 @@ namespace UoFiddler.Classes
             if (elem != null)
             {
                 Options.NewClilocFormat = bool.Parse(elem.GetAttribute("active"));
+            }
+
+            elem = (XmlElement)xOptions.SelectSingleNode("SaveUopWhenSaving");
+            if (elem != null)
+            {
+                Options.SaveUopWhenSaving = bool.Parse(elem.GetAttribute("active"));
             }
 
             elem = (XmlElement)xOptions.SelectSingleNode("ItemClip");

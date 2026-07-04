@@ -84,6 +84,7 @@ namespace UoFiddler.Forms
             argstext.Text = Options.MapArgs;
             textBoxOutputPath.Text = Options.OutputPath;
             checkBoxNewClilocFormat.Checked = Options.NewClilocFormat;
+            checkBoxSaveUop.Checked = Options.SaveUopWhenSaving;
         }
 
         private void OnClickApply(object sender, EventArgs e)
@@ -131,6 +132,11 @@ namespace UoFiddler.Forms
             if (checkBoxNewClilocFormat.Checked != Options.NewClilocFormat)
             {
                 Options.NewClilocFormat = checkBoxNewClilocFormat.Checked;
+            }
+
+            if (checkBoxSaveUop.Checked != Options.SaveUopWhenSaving)
+            {
+                Options.SaveUopWhenSaving = checkBoxSaveUop.Checked;
             }
 
             if (checkBoxItemClip.Checked != Options.ArtItemClip)

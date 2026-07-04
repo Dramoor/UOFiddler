@@ -446,6 +446,17 @@ namespace UoFiddler.Forms
             groupBox4.Controls.Add(button2);
             groupBox4.Controls.Add(textBoxOutputPath);
             groupBox4.Controls.Add(label10);
+            // 
+            // checkBoxSaveUop
+            // 
+            checkBoxSaveUop = new System.Windows.Forms.CheckBox();
+            checkBoxSaveUop.AutoSize = true;
+            checkBoxSaveUop.Location = new System.Drawing.Point(16, 462);
+            checkBoxSaveUop.Name = "checkBoxSaveUop";
+            checkBoxSaveUop.Size = new System.Drawing.Size(140, 19);
+            checkBoxSaveUop.TabIndex = 18;
+            checkBoxSaveUop.Text = "Create UOP when saving";
+            checkBoxSaveUop.UseVisualStyleBackColor = true;
             groupBox4.Location = new System.Drawing.Point(16, 405);
             groupBox4.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             groupBox4.Name = "groupBox4";
@@ -564,11 +575,23 @@ namespace UoFiddler.Forms
             toolTip1.SetToolTip(checkBoxNewClilocFormat, "For client version 7.0.104 and newer this needs to be checked. It allows reading of new cliloc format. This option has only partial support so saving file will only produce old cliloc format.");
             checkBoxNewClilocFormat.UseVisualStyleBackColor = true;
             // 
+            // checkBoxSaveUop
+            // 
+            checkBoxSaveUop.AutoSize = true;
+            checkBoxSaveUop.Location = new System.Drawing.Point(16, 462);
+            checkBoxSaveUop.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            checkBoxSaveUop.Name = "checkBoxSaveUop";
+            checkBoxSaveUop.Size = new System.Drawing.Size(158, 19);
+            checkBoxSaveUop.TabIndex = 18;
+            checkBoxSaveUop.Text = "Create UOP when saving";
+            checkBoxSaveUop.UseVisualStyleBackColor = true;
+            // 
             // OptionsForm
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             ClientSize = new System.Drawing.Size(518, 501);
+            Controls.Add(checkBoxSaveUop);
             Controls.Add(buttonClose);
             Controls.Add(ColorsGroupBox);
             Controls.Add(groupBox4);
@@ -643,5 +666,6 @@ namespace UoFiddler.Forms
         private System.Windows.Forms.CheckBox checkboxRemoveTileBorder;
         private System.Windows.Forms.CheckBox checkBoxOverrideBackgroundColorFromTile;
         private System.Windows.Forms.CheckBox checkBoxNewClilocFormat;
+        private System.Windows.Forms.CheckBox checkBoxSaveUop;
     }
 }
