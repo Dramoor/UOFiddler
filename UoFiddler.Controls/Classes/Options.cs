@@ -66,7 +66,7 @@ namespace UoFiddler.Controls.Classes
         /// <summary>
         /// Defines the MapNames
         /// </summary>\
-        public static string[] MapNames { get; set; } = { "Felucca", "Trammel", "Ilshenar", "Malas", "Tokuno", "Ter Mur" , "Orenia", "ArchaeaPrima", "Archaea"};
+        public static string[] MapNames { get; set; } = { "Felucca", "Trammel", "Ilshenar", "Malas", "Tokuno", "Ter Mur"};
 
         /// <summary>
         /// Defines which Plugins to load on startup
@@ -208,6 +208,11 @@ namespace UoFiddler.Controls.Classes
         public static string AppDataPath { get; set; }
         public static string OutputPath { get; set; }
         public static string ProfileName { get; set; }
+        /// <summary>
+        /// When true, load maps dynamically from configured mul paths or folders and use Mapnames.xml for names.
+        /// When false, use the legacy fixed map set (Felucca, Trammel, ...).
+        /// </summary>
+        public static bool UseDynamicMapLoading { get; set; } = false;
         public static Color TileFocusColor { get; set; } = Color.DarkRed;
         public static Color TileSelectionColor { get; set; } = Color.DodgerBlue;
         public static bool OverrideBackgroundColorFromTile { get; set; }

@@ -83,6 +83,7 @@ namespace UoFiddler.Classes
             DirectoryInfo di = new DirectoryInfo(Application.StartupPath);
             MoveFiles(di.GetFiles("Options_default.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Animationlist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
+            MoveFiles(di.GetFiles("Mapnames.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Multilist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
 
             di = new DirectoryInfo(Path.Combine(Application.StartupPath, "plugins"));
@@ -178,6 +179,11 @@ namespace UoFiddler.Classes
             elem = dom.CreateElement("UseMapDiff");
             elem.SetAttribute("active", Map.UseDiff.ToString());
             sr.AppendChild(elem);
+            comment = dom.CreateComment("UseDynamicMapLoading should load maps dynamically from mul paths and use Mapnames.xml");
+            sr.AppendChild(comment);
+            elem = dom.CreateElement("UseDynamicMapLoading");
+            elem.SetAttribute("active", Options.UseDynamicMapLoading.ToString());
+            sr.AppendChild(elem);
             comment = dom.CreateComment("Offset Sound Ids by 1 (POL specific setting)");
             sr.AppendChild(comment);
             elem = dom.CreateElement("PolSoundIdOffset");
@@ -201,13 +207,15 @@ namespace UoFiddler.Classes
             comment = dom.CreateComment("Defines the map names");
             sr.AppendChild(comment);
             elem = dom.CreateElement("MapNames");
-            elem.SetAttribute("map0", Options.MapNames[0]);
-            elem.SetAttribute("map1", Options.MapNames[1]);
-            elem.SetAttribute("map2", Options.MapNames[2]);
-            elem.SetAttribute("map3", Options.MapNames[3]);
-            elem.SetAttribute("map4", Options.MapNames[4]);
-            elem.SetAttribute("map5", Options.MapNames[5]);
-            elem.SetAttribute("map6", Options.MapNames[6]);
+            if (Options.MapNames != null)
+            {
+                for (int i = 0; i < Options.MapNames.Length; ++i)
+                {
+                    string key = $"map{i}";
+                    string value = Options.MapNames[i] ?? string.Empty;
+                    elem.SetAttribute(key, value);
+                }
+            }
             sr.AppendChild(elem);
 
             comment = dom.CreateComment("Extern Tools settings");
@@ -392,6 +400,12 @@ namespace UoFiddler.Classes
                 Map.StartUpSetDiff(bool.Parse(elem.GetAttribute("active")));
             }
 
+            elem = (XmlElement)xOptions.SelectSingleNode("UseDynamicMapLoading");
+            if (elem != null)
+            {
+                Options.UseDynamicMapLoading = bool.Parse(elem.GetAttribute("active"));
+            }
+
             elem = (XmlElement)xOptions.SelectSingleNode("PolSoundIdOffset");
             if (elem != null)
             {
@@ -414,13 +428,35 @@ namespace UoFiddler.Classes
             elem = (XmlElement)xOptions.SelectSingleNode("MapNames");
             if (elem != null)
             {
-                Options.MapNames[0] = elem.GetAttribute("map0");
-                Options.MapNames[1] = elem.GetAttribute("map1");
-                Options.MapNames[2] = elem.GetAttribute("map2");
-                Options.MapNames[3] = elem.GetAttribute("map3");
-                Options.MapNames[4] = elem.GetAttribute("map4");
-                Options.MapNames[5] = elem.GetAttribute("map5");
-                Options.MapNames[6] = elem.GetAttribute("map6");
+                // Dynamically detect all attributes named mapN and load them into the array
+                int maxIndex = -1;
+                var temp = new Dictionary<int, string>();
+                foreach (XmlAttribute a in elem.Attributes)
+                {
+                    if (a.Name.StartsWith("map", StringComparison.OrdinalIgnoreCase))
+                    {
+                        string idxStr = a.Name.Substring(3);
+                        if (int.TryParse(idxStr, out int idx) && idx >= 0)
+                        {
+                            temp[idx] = a.Value ?? string.Empty;
+                            if (idx > maxIndex) maxIndex = idx;
+                        }
+                    }
+                }
+
+                if (maxIndex >= 0)
+                {
+                    var names = new string[maxIndex + 1];
+                    for (int i = 0; i <= maxIndex; ++i)
+                    {
+                        if (temp.TryGetValue(i, out string val))
+                            names[i] = val;
+                        else
+                            names[i] = string.Empty;
+                    }
+
+                    Options.MapNames = names;
+                }
             }
 
             ExternTools = new List<ExternTool>();

@@ -25,9 +25,9 @@ namespace UoFiddler.Controls.UserControls
 {
     public partial class MultisControl : UserControl
     {
-        private readonly string _multiXmlFileName = Path.Combine(Options.AppDataPath, "Multilist.xml");
-        private readonly XmlDocument _xmlDocument;
-        private readonly XmlElement _xmlElementMultis;
+        private readonly string _multiXmlFileName;
+        private readonly XmlDocument _xmlDocument = null;
+        private readonly XmlElement _xmlElementMultis = null;
 
         public MultisControl()
         {
@@ -35,13 +35,37 @@ namespace UoFiddler.Controls.UserControls
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
             _refMarker = this;
 
+            // Prefer profile-specific Multilist if present: Multilist_{profile}.xml
+            string profile = null;
+            if (!string.IsNullOrEmpty(Options.ProfileName))
+                profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
+
+            string profileFile = null;
+            if (!string.IsNullOrEmpty(profile))
+                profileFile = Path.Combine(Options.AppDataPath, $"Multilist_{profile}.xml");
+
+            string defaultFile = Path.Combine(Options.AppDataPath, "Multilist.xml");
+
+            if (!string.IsNullOrEmpty(profileFile) && File.Exists(profileFile))
+            {
+                _multiXmlFileName = profileFile;
+            }
+            else
+            {
+                _multiXmlFileName = defaultFile;
+            }
+
             if (!File.Exists(_multiXmlFileName))
             {
                 return;
             }
 
-            _xmlDocument = new XmlDocument();
-            _xmlDocument.Load(_multiXmlFileName);
+            var doc = new XmlDocument();
+            doc.Load(_multiXmlFileName);
+            // assign to readonly backing fields via reflection? Use local variables and copy to readonly via helper
+            // Can't assign to readonly _xmlDocument/_xmlElementMultis here since they were initialized to null; use reflection-free approach: store in private non-readonly fields instead.
+            // However to keep changes minimal, use the existing pattern and assign via local variables and shadow the readonly fields by replacing their usage with the local ones below.
+            _xmlDocument = doc;
             _xmlElementMultis = _xmlDocument["Multis"];
         }
 

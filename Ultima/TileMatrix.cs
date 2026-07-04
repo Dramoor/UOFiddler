@@ -56,12 +56,13 @@ namespace Ultima
             BlockWidth = width >> 3;
             BlockHeight = height >> 3;
 
+            // Prefer legacy UOP map files when available, otherwise fall back to .mul
             if (path == null)
             {
-                _mapPath = Files.GetFilePath($"map{fileIndex}.mul");
+                _mapPath = Files.GetFilePath($"map{fileIndex}LegacyMUL.uop");
                 if (string.IsNullOrEmpty(_mapPath) || !File.Exists(_mapPath))
                 {
-                    _mapPath = Files.GetFilePath($"map{fileIndex}LegacyMUL.uop");
+                    _mapPath = Files.GetFilePath($"map{fileIndex}.mul");
                 }
 
                 if (_mapPath?.EndsWith(".uop") == true)
@@ -71,10 +72,10 @@ namespace Ultima
             }
             else
             {
-                _mapPath = Path.Combine(path, $"map{fileIndex}.mul");
+                _mapPath = Path.Combine(path, $"map{fileIndex}LegacyMUL.uop");
                 if (!File.Exists(_mapPath))
                 {
-                    _mapPath = Path.Combine(path, $"map{fileIndex}LegacyMUL.uop");
+                    _mapPath = Path.Combine(path, $"map{fileIndex}.mul");
                 }
 
                 if (!File.Exists(_mapPath))

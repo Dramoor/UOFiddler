@@ -619,10 +619,16 @@ namespace Ultima
 
                 for (int i = 0; i < length; i++)
                 {
-                    string entryName = $"build/{uopPattern}/{i:D8}{uopEntryExtension}";
-                    ulong hash = UopUtils.HashFileName(entryName);
+                    // Primary format: 8 digits (common)
+                    string entryName8 = $"build/{uopPattern}/{i:D8}{uopEntryExtension}";
+                    ulong hash8 = UopUtils.HashFileName(entryName8);
+                    hashes.TryAdd(hash8, i);
 
-                    hashes.TryAdd(hash, i);
+                    // Some UOPs (e.g., multicollection) use 6-digit file names - also add that hash
+                    string entryName6 = $"build/{uopPattern}/{i:D6}{uopEntryExtension}";
+                    ulong hash6 = UopUtils.HashFileName(entryName6);
+                    // TryAdd will ignore duplicates
+                    hashes.TryAdd(hash6, i);
                 }
 
                 br.BaseStream.Seek(nextBlock, SeekOrigin.Begin);

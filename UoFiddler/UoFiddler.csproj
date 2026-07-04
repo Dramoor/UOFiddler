@@ -9,9 +9,9 @@
 		<AssemblyTitle>UoFiddler</AssemblyTitle>
 		<Product>UoFiddler</Product>
 		<Copyright>Copyright © 2025</Copyright>
-		<AssemblyVersion>5.0.0</AssemblyVersion>
-		<FileVersion>5.0.0</FileVersion>
-		<Version>5.0.0</Version>
+		<AssemblyVersion>5.0.2</AssemblyVersion>
+		<FileVersion>5.0.2</FileVersion>
+		<Version>5.0.2</Version>
 		<GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
 	</PropertyGroup>
 	<PropertyGroup>
@@ -146,6 +146,9 @@
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 		<None Include="Animationlist.xml">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</None>
+		<None Include="Mapnames.xml">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</None>
 	</ItemGroup>

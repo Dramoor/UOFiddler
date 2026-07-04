@@ -65,9 +65,6 @@ namespace UoFiddler.Plugin.Compare.UserControls
             this.malasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.tokunoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.terMurToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.oreniaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.archaeaPrimaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.archaeaToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.markDiffToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize)(this.pictureBox)).BeginInit();
             this.contextMenuStrip1.SuspendLayout();
@@ -206,9 +203,6 @@ namespace UoFiddler.Plugin.Compare.UserControls
             this.malasToolStripMenuItem,
             this.tokunoToolStripMenuItem,
             this.terMurToolStripMenuItem,
-            this.oreniaToolStripMenuItem,
-            this.archaeaPrimaToolStripMenuItem,
-            this.archaeaToolStripMenuItem,
             this.markDiffToolStripMenuItem});
             this.toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.toolStripDropDownButton1.Name = "toolStripDropDownButton1";
@@ -289,34 +283,6 @@ namespace UoFiddler.Plugin.Compare.UserControls
             this.terMurToolStripMenuItem.Text = "TerMur";
             this.terMurToolStripMenuItem.Click += new System.EventHandler(this.OnClickChangeTerMur);
             // 
-            // oreniaToolStripMenuItem
-            // 
-            this.oreniaToolStripMenuItem.Name = "oreniaToolStripMenuItem";
-            this.oreniaToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
-            this.oreniaToolStripMenuItem.Text = "Orenia";
-            this.oreniaToolStripMenuItem.Click += new System.EventHandler(this.OnClickChangeOrenia);
-            // 
-            // archaeaPrimaToolStripMenuItem
-            // 
-            this.archaeaPrimaToolStripMenuItem.Name = "archaeaPrimaToolStripMenuItem";
-            this.archaeaPrimaToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
-            this.archaeaPrimaToolStripMenuItem.Text = "Archaea Prima";
-            this.archaeaPrimaToolStripMenuItem.Click += new System.EventHandler(this.OnClickChangeArchaeaPrima);
-            // 
-            // archaeaToolStripMenuItem
-            // 
-            this.archaeaToolStripMenuItem.Name = "archaeaToolStripMenuItem";
-            this.archaeaToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
-            this.archaeaToolStripMenuItem.Text = "Archaea";
-            this.archaeaToolStripMenuItem.Click += new System.EventHandler(this.OnClickChangeArchaea);
-            // 
-            // oreniaToolStripMenuItem
-            // 
-            this.oreniaToolStripMenuItem.Name = "oreniaToolStripMenuItem";
-            this.oreniaToolStripMenuItem.Size = new System.Drawing.Size(165, 22);
-            this.oreniaToolStripMenuItem.Text = "Orenia";
-            this.oreniaToolStripMenuItem.Click += new System.EventHandler(this.OnClickChangeOrenia);
-            // 
             // markDiffToolStripMenuItem
             // 
             this.markDiffToolStripMenuItem.CheckOnClick = true;
@@ -361,10 +327,7 @@ namespace UoFiddler.Plugin.Compare.UserControls
         private System.Windows.Forms.ToolStripMenuItem showMap1ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showMap2ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem terMurToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem oreniaToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tokunoToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem archaeaPrimaToolStripMenuItem;
-        private System.Windows.Forms.ToolStripMenuItem archaeaToolStripMenuItem;
         private System.Windows.Forms.ToolStrip toolStrip1;
         private System.Windows.Forms.ToolStripButton toolStripButton1;
         private System.Windows.Forms.ToolStripButton toolStripButton2;

@@ -2,11 +2,14 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
+using Ultima.Helpers;
 
 namespace Ultima
 {
     public sealed class Map
     {
+        public static System.Collections.Generic.List<Map> Maps { get; private set; } = new System.Collections.Generic.List<Map>();
+        public string SizeLabel { get; private set; }
         private TileMatrix _tiles;
         private readonly int _mapId;
         private readonly string _path;
@@ -22,15 +25,168 @@ namespace Ultima
             }
         }
 
+
+        /// <summary>
+        /// Scans the configured MulPath entries and/or RootDir to discover map files and builds Map objects.
+        /// This will look at Files.MulPath for entries like "map0.mul" / "map0legacymul.uop" and use the
+        /// directory where those files are configured. If entries are relative filenames the Files.RootDir is used.
+        /// </summary>
+        public static void LoadMapsFromMulPath()
+        {
+            Maps.Clear();
+
+            if (Files.MulPath == null || Files.MulPath.Count == 0)
+            {
+                // fallback to RootDir
+                if (!string.IsNullOrEmpty(Files.RootDir))
+                {
+                    LoadMapsFromFolder(Files.RootDir);
+                }
+
+                return;
+            }
+
+            var dirs = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
+
+            foreach (var kv in Files.MulPath)
+            {
+                string key = kv.Key?.ToLowerInvariant() ?? string.Empty;
+                if (!key.StartsWith("map"))
+                {
+                    continue;
+                }
+
+                string val = kv.Value;
+                if (string.IsNullOrEmpty(val))
+                {
+                    // relative name -> use RootDir
+                    if (!string.IsNullOrEmpty(Files.RootDir))
+                    {
+                        dirs.Add(Files.RootDir);
+                    }
+
+                    continue;
+                }
+
+                // val may be a filename only or a full path
+                string dir = Path.GetDirectoryName(val);
+                if (string.IsNullOrEmpty(dir))
+                {
+                    // relative name -> use RootDir
+                    if (!string.IsNullOrEmpty(Files.RootDir))
+                    {
+                        dirs.Add(Files.RootDir);
+                    }
+                }
+                else
+                {
+                    dirs.Add(dir);
+                }
+            }
+
+            // Always include RootDir so we scan any map*.mul present there even if not listed in MulPath
+            if (!string.IsNullOrEmpty(Files.RootDir))
+            {
+                dirs.Add(Files.RootDir);
+            }
+
+            foreach (var d in dirs)
+            {
+                try
+                {
+                    LoadMapsFromFolder(d);
+                }
+                catch
+                {
+                    // ignore IO errors per-folder
+                }
+            }
+        }
+
+        /// <summary>
+        /// Scans the given folder for map files (mapN.mul / mapNlegacymul.uop) and builds Map objects.
+        /// </summary>
+        public static void LoadMapsFromFolder(string folder)
+        {
+            Maps.Clear();
+
+            if (string.IsNullOrEmpty(folder) || !Directory.Exists(folder))
+            {
+                return;
+            }
+
+            var files = new System.Collections.Generic.List<string>();
+            try
+            {
+                files.AddRange(Directory.GetFiles(folder, "map*.mul", SearchOption.TopDirectoryOnly));
+                files.AddRange(Directory.GetFiles(folder, "map*legacymul.uop", SearchOption.TopDirectoryOnly));
+            }
+            catch
+            {
+                // ignore IO errors
+            }
+
+            var indices = new System.Collections.Generic.HashSet<int>();
+
+            foreach (var f in files)
+            {
+                var name = Path.GetFileNameWithoutExtension(f).ToLowerInvariant();
+
+                // handle names like map0, map1legacymul
+                if (!name.StartsWith("map"))
+                {
+                    continue;
+                }
+
+                int pos = 3;
+                int len = name.Length;
+                var digits = new System.Text.StringBuilder();
+                while (pos < len && char.IsDigit(name[pos]))
+                {
+                    digits.Append(name[pos]);
+                    pos++;
+                }
+
+                if (digits.Length == 0)
+                {
+                    continue;
+                }
+
+                if (int.TryParse(digits.ToString(), out int idx))
+                {
+                    indices.Add(idx);
+                }
+            }
+
+            var sorted = new System.Collections.Generic.List<int>(indices);
+            sorted.Sort();
+
+            foreach (int idx in sorted)
+            {
+                var map = new Map(folder, idx, idx);
+                Maps.Add(map);
+            }
+        }
+
+        public static Map GetMapByFileIndex(int index)
+        {
+            foreach (var m in Maps)
+            {
+                if (m.FileIndex == index)
+                {
+                    return m;
+                }
+            }
+
+            return null;
+        }
+
         public static Map Felucca = new Map(0, 0, 6144, 4096);
         public static Map Trammel = new Map(0, 1, 6144, 4096);
         public static readonly Map Ilshenar = new Map(2, 2, 2304, 1600);
         public static readonly Map Malas = new Map(3, 3, 2560, 2048);
         public static readonly Map Tokuno = new Map(4, 4, 1448, 1448);
         public static readonly Map TerMur = new Map(5, 5, 1280, 4096);
-        public static readonly Map Orenia = new Map(6, 6, 6144, 4096);
-        public static readonly Map ArchaeaPrima = new Map(7, 7, 6144, 4096);
-        public static readonly Map Archaea = new Map(8, 8, 6144, 4096);
 
         public static Map Custom;
 
@@ -46,6 +202,7 @@ namespace Ultima
             Width = width;
             Height = height;
             _path = null;
+            SizeLabel = $"{Width}x{Height}";
         }
 
         public Map(string path, int fileIndex, int mapId, int width, int height)
@@ -55,6 +212,42 @@ namespace Ultima
             Width = width;
             Height = height;
             _path = path;
+            SizeLabel = $"{Width}x{Height}";
+        }
+
+        public Map(string path, int fileIndex, int mapId)
+        {
+            FileIndex = fileIndex;
+            _mapId = mapId;
+            _path = path;
+
+            if (MapSizeDetector.TryDetectMapSize(fileIndex, path, out int w, out int h))
+            {
+                Width = w;
+                Height = h;
+                SizeLabel = $"{Width}x{Height} (detected)";
+            }
+            else
+            {
+                // Fallback to known defaults for common map ids to avoid mis-rendering
+                switch (mapId)
+                {
+                    case 0: // Felucca
+                        Width = 6144; Height = 4096; SizeLabel = $"{Width}x{Height} (default)"; break;
+                    case 1: // Trammel
+                        Width = 6144; Height = 4096; SizeLabel = $"{Width}x{Height} (default)"; break;
+                    case 2: // Ilshenar
+                        Width = 2304; Height = 1600; SizeLabel = $"{Width}x{Height} (default)"; break;
+                    case 3: // Malas
+                        Width = 2560; Height = 2048; SizeLabel = $"{Width}x{Height} (default)"; break;
+                    case 4: // Tokuno
+                        Width = 1448; Height = 1448; SizeLabel = $"{Width}x{Height} (default)"; break;
+                    case 5: // Ter Mur
+                        Width = 1280; Height = 4096; SizeLabel = $"{Width}x{Height} (default)"; break;
+                    default:
+                        Width = 0; Height = 0; SizeLabel = "unknown"; break;
+                }
+            }
         }
 
         /// <summary>
@@ -68,9 +261,6 @@ namespace Ultima
             Malas.Tiles.CloseStreams();
             Tokuno.Tiles.CloseStreams();
             TerMur.Tiles.CloseStreams();
-            Orenia.Tiles.CloseStreams();
-            ArchaeaPrima.Tiles.CloseStreams();
-            Archaea.Tiles.CloseStreams();
 
             Felucca.Tiles.StaticIndexInit = false;
             Trammel.Tiles.StaticIndexInit = false;
@@ -78,22 +268,19 @@ namespace Ultima
             Malas.Tiles.StaticIndexInit = false;
             Tokuno.Tiles.StaticIndexInit = false;
             TerMur.Tiles.StaticIndexInit = false;
-            Orenia.Tiles.StaticIndexInit = false;
-            ArchaeaPrima.Tiles.StaticIndexInit = false;
-            Archaea.Tiles.StaticIndexInit = false;
 
-            Felucca._cache = Trammel._cache = Ilshenar._cache = Malas._cache = Tokuno._cache = TerMur._cache = Orenia._cache = ArchaeaPrima._cache = Archaea._cache = null;
-            Felucca._tiles = Trammel._tiles = Ilshenar._tiles = Malas._tiles = Tokuno._tiles = TerMur._tiles = Orenia._tiles = ArchaeaPrima._tiles = Archaea._tiles = null;
+            Felucca._cache = Trammel._cache = Ilshenar._cache = Malas._cache = Tokuno._cache = TerMur._cache = null;
+            Felucca._tiles = Trammel._tiles = Ilshenar._tiles = Malas._tiles = Tokuno._tiles = TerMur._tiles = null;
             Felucca._cacheNoStatics =
                 Trammel._cacheNoStatics =
-                Ilshenar._cacheNoStatics = Malas._cacheNoStatics = Tokuno._cacheNoStatics = TerMur._cacheNoStatics = Orenia._cacheNoStatics = ArchaeaPrima._cacheNoStatics = Archaea._cacheNoStatics = null;
+                Ilshenar._cacheNoStatics = Malas._cacheNoStatics = Tokuno._cacheNoStatics = TerMur._cacheNoStatics = null;
             Felucca._cacheNoPatch =
                 Trammel._cacheNoPatch =
-                Ilshenar._cacheNoPatch = Malas._cacheNoPatch = Tokuno._cacheNoPatch = TerMur._cacheNoPatch = Orenia._cacheNoPatch = ArchaeaPrima._cacheNoPatch = Archaea._cacheNoPatch = null;
+                Ilshenar._cacheNoPatch = Malas._cacheNoPatch = Tokuno._cacheNoPatch = TerMur._cacheNoPatch = null;
             Felucca._cacheNoStaticsNoPatch =
                 Trammel._cacheNoStaticsNoPatch =
                 Ilshenar._cacheNoStaticsNoPatch =
-                Malas._cacheNoStaticsNoPatch = Tokuno._cacheNoStaticsNoPatch = TerMur._cacheNoStaticsNoPatch = Orenia._cacheNoStaticsNoPatch = ArchaeaPrima._cacheNoStaticsNoPatch = Archaea._cacheNoStaticsNoPatch = null;
+                Malas._cacheNoStaticsNoPatch = Tokuno._cacheNoStaticsNoPatch = TerMur._cacheNoStaticsNoPatch = null;
         }
 
         public void ResetCache()

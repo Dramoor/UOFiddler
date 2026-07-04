@@ -43,6 +43,155 @@ namespace UoFiddler.Controls.UserControls
             pictureBox.MouseWheel += OnMouseWheel;
         }
 
+        private void LoadMapNamesFromAppData()
+        {
+            try
+            {
+                var appPath = Options.AppDataPath;
+
+                string file = null;
+                string profile = null;
+                if (!string.IsNullOrEmpty(Options.ProfileName))
+                    profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
+
+                if (!string.IsNullOrEmpty(profile))
+                    file = Path.Combine(appPath, $"Mapnames_{profile}.xml");
+
+                if (!File.Exists(file))
+                    file = Path.Combine(appPath, "Mapnames.xml");
+
+                //file = Path.Combine(appPath, "Mapnames.xml");
+                if (!File.Exists(file))
+                {
+                    // build default names from discovered maps
+                    var max = Map.Maps.Count > 0 ? Map.Maps[Map.Maps.Count - 1].FileIndex : -1;
+                    if (max < 0)
+                    {
+                        return;
+                    }
+
+                    var names = new string[max + 1];
+                    foreach (var m in Map.Maps)
+                    {
+                        names[m.FileIndex] = $"Map {m.FileIndex} ({m.SizeLabel})";
+                    }
+
+                    Options.MapNames = names;
+                    return;
+                }
+
+                // Inform MapSizeDetector about which Mapnames.xml file (profile-specific) is being used
+                try
+                {
+                    Ultima.Helpers.MapSizeDetector.MapNamesPathOverride = file;
+                }
+                catch
+                {
+                    // ignore if unable to set override (should not happen)
+                }
+
+                var doc = System.Xml.Linq.XDocument.Load(file);
+                var elems = doc.Root?.Elements("map");
+
+                int maxidx = -1;
+                var mapNames = new System.Collections.Generic.Dictionary<int, string>();
+                if (elems != null)
+                {
+                    foreach (var el in elems)
+                    {
+                        var idxAttr = el.Attribute("index");
+                        var nameAttr = el.Attribute("name");
+                        if (idxAttr == null || nameAttr == null) continue;
+                        if (int.TryParse(idxAttr.Value, out int idx))
+                        {
+                            mapNames[idx] = nameAttr.Value;
+                            if (idx > maxidx) maxidx = idx;
+                        }
+                    }
+                }
+
+                if (maxidx >= 0)
+                {
+                    var names = new string[maxidx + 1];
+                    for (int i = 0; i <= maxidx; ++i)
+                    {
+                        if (mapNames.ContainsKey(i))
+                        {
+                            names[i] = mapNames[i];
+                        }
+                        else
+                        {
+                            var m = Map.GetMapByFileIndex(i);
+                            names[i] = m != null ? $"Map {i} ({m.SizeLabel})" : $"Map {i}";
+                        }
+                    }
+
+                    Options.MapNames = names;
+                }
+            }
+            catch
+            {
+                // ignore errors and leave existing names
+            }
+        }
+
+        private void BuildMapMenu()
+        {
+            // Remove predefined static map items from the context menu
+            try
+            {
+                var toRemove = new[]
+                {
+                    feluccaToolStripMenuItem,
+                    trammelToolStripMenuItem,
+                    ilshenarToolStripMenuItem,
+                    malasToolStripMenuItem,
+                    tokunoToolStripMenuItem,
+                    terMurToolStripMenuItem,
+                };
+
+                foreach (var item in toRemove)
+                {
+                    if (contextMenuStrip1.Items.Contains(item))
+                    {
+                        contextMenuStrip1.Items.Remove(item);
+                    }
+                }
+
+                // Find insertion point (after toolStripSeparator2)
+                int insert = contextMenuStrip1.Items.IndexOf(toolStripSeparator2) + 1;
+
+                foreach (var map in Map.Maps)
+                {
+                    string display = map.SizeLabel ?? $"Map {map.FileIndex}";
+                    string name = (Options.MapNames.Length > map.FileIndex && !string.IsNullOrEmpty(Options.MapNames[map.FileIndex]))
+                        ? Options.MapNames[map.FileIndex]
+                        : $"Map {map.FileIndex} ({display})";
+
+                    var mi = new ToolStripMenuItem(name) { Tag = map.FileIndex };
+                    mi.Click += OnDynamicMapClick;
+                    contextMenuStrip1.Items.Insert(insert++, mi);
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        private void OnDynamicMapClick(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem mi && mi.Tag is int idx)
+            {
+                var map = Map.GetMapByFileIndex(idx);
+                if (map == null) return;
+
+                CurrentMap = map;
+                _currentMapId = idx;
+                ChangeMap();
+            }
+        }
+
         private static MapControl _refMarker;
         public static double Zoom = 1;
 
@@ -96,15 +245,42 @@ namespace UoFiddler.Controls.UserControls
             Options.LoadedUltimaClass["Map"] = true;
             Options.LoadedUltimaClass["RadarColor"] = true;
 
-            CurrentMap = Map.Felucca;
-            feluccaToolStripMenuItem.Checked = true;
-            trammelToolStripMenuItem.Checked = false;
-            ilshenarToolStripMenuItem.Checked = false;
-            malasToolStripMenuItem.Checked = false;
-            tokunoToolStripMenuItem.Checked = false;
-            PreloadMap.Visible = true;
-            ChangeMapNames();
-            ZoomLabel.Text = $"Zoom: {Zoom}";
+            if (Options.UseDynamicMapLoading)
+            {
+                // dynamic mode: load map names first (so size overrides are available), then discover maps
+                LoadMapNamesFromAppData();
+                Map.LoadMapsFromMulPath();
+                BuildMapMenu();
+
+                if (Map.Maps.Count > 0)
+                {
+                    CurrentMap = Map.Maps[0];
+                    _currentMapId = CurrentMap.FileIndex;
+                }
+                else
+                {
+                    CurrentMap = Map.Felucca;
+                    _currentMapId = 0;
+                }
+
+                PreloadMap.Visible = true;
+                ZoomLabel.Text = $"Zoom: {Zoom}";
+                SizeLabel.Text = $"Size: {CurrentMap?.SizeLabel ?? "unknown"}";
+            }
+            else
+            {
+                // legacy fixed maps
+                CurrentMap = Map.Felucca;
+                feluccaToolStripMenuItem.Checked = true;
+                trammelToolStripMenuItem.Checked = false;
+                ilshenarToolStripMenuItem.Checked = false;
+                malasToolStripMenuItem.Checked = false;
+                tokunoToolStripMenuItem.Checked = false;
+                PreloadMap.Visible = true;
+                ChangeMapNames();
+                ZoomLabel.Text = $"Zoom: {Zoom}";
+                SizeLabel.Text = $"Size: {CurrentMap?.SizeLabel ?? "unknown"}";
+            }
             SetScrollBarValues();
             Refresh();
             pictureBox.Invalidate();
@@ -161,9 +337,6 @@ namespace UoFiddler.Controls.UserControls
             malasToolStripMenuItem.Text = Options.MapNames[3];
             tokunoToolStripMenuItem.Text = Options.MapNames[4];
             terMurToolStripMenuItem.Text = Options.MapNames[5];
-            oreniaToolStripMenuItem.Text = Options.MapNames[6];
-            archaeaPrimaToolStripMenuItem.Text = Options.MapNames[7];
-            archaeaToolStripMenuItem.Text = Options.MapNames[8];
 
             if (OverlayObjectTree.Nodes.Count <= 0)
             {
@@ -200,12 +373,20 @@ namespace UoFiddler.Controls.UserControls
 
         private void ZoomMap(ref Bitmap bmp0)
         {
-            Bitmap bmp1 = new Bitmap((int)(_map.Width * Zoom), (int)(_map.Height * Zoom));
-            Graphics graph = Graphics.FromImage(bmp1);
-            graph.InterpolationMode = InterpolationMode.NearestNeighbor;
-            graph.PixelOffsetMode = PixelOffsetMode.Half;
-            graph.DrawImage(bmp0, new Rectangle(0, 0, bmp1.Width, bmp1.Height));
-            graph.Dispose();
+            int newW = Math.Max(1, (int)(_map.Width * Zoom));
+            int newH = Math.Max(1, (int)(_map.Height * Zoom));
+
+            // create bitmap with the same 16bpp format used elsewhere to avoid format conversion artifacts
+            Bitmap bmp1 = new Bitmap(newW, newH, PixelFormat.Format16bppRgb555);
+            using (Graphics graph = Graphics.FromImage(bmp1))
+            {
+                graph.InterpolationMode = InterpolationMode.NearestNeighbor;
+                // avoid half-pixel offsets that can introduce seam lines when scaling
+                graph.PixelOffsetMode = PixelOffsetMode.None;
+                graph.CompositingMode = System.Drawing.Drawing2D.CompositingMode.SourceCopy;
+                graph.DrawImage(bmp0, new Rectangle(0, 0, bmp1.Width, bmp1.Height));
+            }
+
             bmp0 = bmp1;
         }
 
@@ -280,6 +461,7 @@ namespace UoFiddler.Controls.UserControls
         {
             PreloadMap.Visible = !CurrentMap.IsCached(showStaticsToolStripMenuItem1.Checked);
             SetScrollBarValues();
+            SizeLabel.Text = $"Size: {CurrentMap?.SizeLabel ?? "unknown"}";
             pictureBox.Invalidate();
         }
 
@@ -291,9 +473,6 @@ namespace UoFiddler.Controls.UserControls
             ilshenarToolStripMenuItem.Checked = false;
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
-            oreniaToolStripMenuItem.Checked = false;
-            archaeaPrimaToolStripMenuItem.Checked = false;
-            archaeaToolStripMenuItem.Checked = false;
         }
 
         private void ChangeMapFelucca(object sender, EventArgs e)
@@ -379,49 +558,6 @@ namespace UoFiddler.Controls.UserControls
             _currentMapId = 5;
             ChangeMap();
         }
-
-        private void ChangeMapOrenia(object sender, EventArgs e)
-        {
-            if (oreniaToolStripMenuItem.Checked)
-            {
-                return;
-            }
-
-            ResetCheckedMap();
-            oreniaToolStripMenuItem.Checked = true;
-            CurrentMap = Map.Orenia;
-            _currentMapId = 6;
-            ChangeMap();
-        }
-
-        private void ChangeMapArchaeaPrima(object sender, EventArgs e)
-        {
-            if (archaeaPrimaToolStripMenuItem.Checked)
-            {
-                return;
-            }
-
-            ResetCheckedMap();
-            archaeaPrimaToolStripMenuItem.Checked = true;
-            CurrentMap = Map.ArchaeaPrima;
-            _currentMapId = 7;
-            ChangeMap();
-        }
-
-        private void ChangeMapArchaea(object sender, EventArgs e)
-        {
-            if (archaeaToolStripMenuItem.Checked)
-            {
-                return;
-            }
-
-            ResetCheckedMap();
-            archaeaToolStripMenuItem.Checked = true;
-            CurrentMap = Map.Archaea;
-            _currentMapId = 8;
-            ChangeMap();
-        }
-
         private void OnMouseDown(object sender, MouseEventArgs e)
         {
             if (PreloadWorker.IsBusy)
@@ -544,18 +680,6 @@ namespace UoFiddler.Controls.UserControls
                 case 5:
                     terMurToolStripMenuItem.Checked = true;
                     CurrentMap = Map.TerMur;
-                    break;
-                case 6:
-                    oreniaToolStripMenuItem.Checked = true;
-                    CurrentMap = Map.Orenia;
-                    break;
-                case 7:
-                    archaeaPrimaToolStripMenuItem.Checked = true;
-                    CurrentMap = Map.ArchaeaPrima;
-                    break;
-                case 8:
-                    archaeaToolStripMenuItem.Checked = true;
-                    CurrentMap = Map.Archaea;
                     break;
             }
         }

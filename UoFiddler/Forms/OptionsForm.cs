@@ -71,6 +71,7 @@ namespace UoFiddler.Forms
             checkBoxNewMapSize.Checked = Map.Felucca.Width == 7168;
             checkBoxuseDiff.Checked = Map.UseDiff;
             checkBoxPolSoundIdOffset.Checked = Options.PolSoundIdOffset;
+            checkBoxUseDynamicMapLoading.Checked = Options.UseDynamicMapLoading;
             numericUpDownItemSizeWidth.Value = Options.ArtItemSizeWidth;
             numericUpDownItemSizeHeight.Value = Options.ArtItemSizeHeight;
             checkBoxItemClip.Checked = Options.ArtItemClip;
@@ -118,6 +119,16 @@ namespace UoFiddler.Forms
             {
                 Map.UseDiff = checkBoxuseDiff.Checked;
                 ControlEvents.FireMapDiffChangeEvent();
+            }
+
+            if (checkBoxUseDynamicMapLoading.Checked != Options.UseDynamicMapLoading)
+            {
+                Options.UseDynamicMapLoading = checkBoxUseDynamicMapLoading.Checked;
+
+                // Notify map UI to refresh map list/names
+                _updateMapTabAction();
+                ControlEvents.FireMapNameChangeEvent();
+                ControlEvents.FireMapSizeChangeEvent();
             }
 
             if (numericUpDownItemSizeWidth.Value != Options.ArtItemSizeWidth

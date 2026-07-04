@@ -48,9 +48,12 @@ namespace UoFiddler.Forms
             numericUpDownItemSizeWidth = new System.Windows.Forms.NumericUpDown();
             checkBoxCacheData = new System.Windows.Forms.CheckBox();
             groupBox2 = new System.Windows.Forms.GroupBox();
+            checkBoxSaveUop = new System.Windows.Forms.CheckBox();
+            checkBoxNewClilocFormat = new System.Windows.Forms.CheckBox();
             checkBoxPolSoundIdOffset = new System.Windows.Forms.CheckBox();
             checkBoxuseDiff = new System.Windows.Forms.CheckBox();
             checkBoxNewMapSize = new System.Windows.Forms.CheckBox();
+            checkBoxUseDynamicMapLoading = new System.Windows.Forms.CheckBox();
             buttonApply = new System.Windows.Forms.Button();
             toolTip1 = new System.Windows.Forms.ToolTip(components);
             label2 = new System.Windows.Forms.Label();
@@ -82,7 +85,6 @@ namespace UoFiddler.Forms
             TileSelectionColorComboBox = new System.Windows.Forms.ComboBox();
             TileFocusColorComboBox = new System.Windows.Forms.ComboBox();
             buttonClose = new System.Windows.Forms.Button();
-            checkBoxNewClilocFormat = new System.Windows.Forms.CheckBox();
             groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)numericUpDownItemSizeHeight).BeginInit();
             ((System.ComponentModel.ISupportInitialize)numericUpDownItemSizeWidth).BeginInit();
@@ -99,18 +101,18 @@ namespace UoFiddler.Forms
             groupBox1.Controls.Add(checkBoxItemClip);
             groupBox1.Controls.Add(label1);
             groupBox1.Controls.Add(numericUpDownItemSizeWidth);
-            groupBox1.Location = new System.Drawing.Point(16, 164);
+            groupBox1.Location = new System.Drawing.Point(16, 317);
             groupBox1.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             groupBox1.Name = "groupBox1";
             groupBox1.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            groupBox1.Size = new System.Drawing.Size(258, 130);
+            groupBox1.Size = new System.Drawing.Size(486, 87);
             groupBox1.TabIndex = 1;
             groupBox1.TabStop = false;
             groupBox1.Text = "Item Tab";
             // 
             // checkBoxOverrideBackgroundColorFromTile
             // 
-            checkBoxOverrideBackgroundColorFromTile.Location = new System.Drawing.Point(10, 80);
+            checkBoxOverrideBackgroundColorFromTile.Location = new System.Drawing.Point(253, 22);
             checkBoxOverrideBackgroundColorFromTile.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             checkBoxOverrideBackgroundColorFromTile.Name = "checkBoxOverrideBackgroundColorFromTile";
             checkBoxOverrideBackgroundColorFromTile.Size = new System.Drawing.Size(225, 36);
@@ -133,7 +135,7 @@ namespace UoFiddler.Forms
             // checkBoxItemClip
             // 
             checkBoxItemClip.AutoSize = true;
-            checkBoxItemClip.Location = new System.Drawing.Point(10, 54);
+            checkBoxItemClip.Location = new System.Drawing.Point(8, 55);
             checkBoxItemClip.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             checkBoxItemClip.Name = "checkBoxItemClip";
             checkBoxItemClip.Size = new System.Drawing.Size(74, 19);
@@ -179,19 +181,48 @@ namespace UoFiddler.Forms
             // 
             // groupBox2
             // 
+            groupBox2.Controls.Add(checkBoxSaveUop);
             groupBox2.Controls.Add(checkBoxNewClilocFormat);
+            groupBox2.Controls.Add(label8);
+            groupBox2.Controls.Add(argstext);
             groupBox2.Controls.Add(checkBoxPolSoundIdOffset);
             groupBox2.Controls.Add(checkBoxuseDiff);
+            groupBox2.Controls.Add(label7);
+            groupBox2.Controls.Add(cmdtext);
             groupBox2.Controls.Add(checkBoxNewMapSize);
+            groupBox2.Controls.Add(checkBoxUseDynamicMapLoading);
             groupBox2.Controls.Add(checkBoxCacheData);
             groupBox2.Location = new System.Drawing.Point(16, 6);
             groupBox2.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             groupBox2.Name = "groupBox2";
             groupBox2.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            groupBox2.Size = new System.Drawing.Size(258, 157);
+            groupBox2.Size = new System.Drawing.Size(258, 305);
             groupBox2.TabIndex = 3;
             groupBox2.TabStop = false;
             groupBox2.Text = "Misc";
+            // 
+            // checkBoxSaveUop
+            // 
+            checkBoxSaveUop.AutoSize = true;
+            checkBoxSaveUop.Location = new System.Drawing.Point(7, 173);
+            checkBoxSaveUop.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            checkBoxSaveUop.Name = "checkBoxSaveUop";
+            checkBoxSaveUop.Size = new System.Drawing.Size(156, 19);
+            checkBoxSaveUop.TabIndex = 18;
+            checkBoxSaveUop.Text = "Create UOP when saving";
+            checkBoxSaveUop.UseVisualStyleBackColor = true;
+            // 
+            // checkBoxNewClilocFormat
+            // 
+            checkBoxNewClilocFormat.AutoSize = true;
+            checkBoxNewClilocFormat.Location = new System.Drawing.Point(7, 123);
+            checkBoxNewClilocFormat.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            checkBoxNewClilocFormat.Name = "checkBoxNewClilocFormat";
+            checkBoxNewClilocFormat.Size = new System.Drawing.Size(120, 19);
+            checkBoxNewClilocFormat.TabIndex = 8;
+            checkBoxNewClilocFormat.Text = "New cliloc format";
+            toolTip1.SetToolTip(checkBoxNewClilocFormat, "For client version 7.0.104 and newer this needs to be checked. It allows reading of new cliloc format. This option has only partial support so saving file will only produce old cliloc format.");
+            checkBoxNewClilocFormat.UseVisualStyleBackColor = true;
             // 
             // checkBoxPolSoundIdOffset
             // 
@@ -229,9 +260,21 @@ namespace UoFiddler.Forms
             toolTip1.SetToolTip(checkBoxNewMapSize, "NewMapSize Felucca/Trammel width 7168?");
             checkBoxNewMapSize.UseVisualStyleBackColor = true;
             // 
+            // checkBoxUseDynamicMapLoading
+            // 
+            checkBoxUseDynamicMapLoading.AutoSize = true;
+            checkBoxUseDynamicMapLoading.Location = new System.Drawing.Point(7, 148);
+            checkBoxUseDynamicMapLoading.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            checkBoxUseDynamicMapLoading.Name = "checkBoxUseDynamicMapLoading";
+            checkBoxUseDynamicMapLoading.Size = new System.Drawing.Size(238, 19);
+            checkBoxUseDynamicMapLoading.TabIndex = 9;
+            checkBoxUseDynamicMapLoading.Text = "Dynamic Map Loading (Mapnames.xml)";
+            toolTip1.SetToolTip(checkBoxUseDynamicMapLoading, "When checked, maps are discovered from configured mul paths and names are read from Mapnames.xml in AppData.");
+            checkBoxUseDynamicMapLoading.UseVisualStyleBackColor = true;
+            // 
             // buttonApply
             // 
-            buttonApply.Location = new System.Drawing.Point(321, 463);
+            buttonApply.Location = new System.Drawing.Point(316, 570);
             buttonApply.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             buttonApply.Name = "buttonApply";
             buttonApply.Size = new System.Drawing.Size(88, 27);
@@ -298,7 +341,7 @@ namespace UoFiddler.Forms
             // label7
             // 
             label7.AutoSize = true;
-            label7.Location = new System.Drawing.Point(7, 211);
+            label7.Location = new System.Drawing.Point(7, 247);
             label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             label7.Name = "label7";
             label7.Size = new System.Drawing.Size(33, 15);
@@ -309,7 +352,7 @@ namespace UoFiddler.Forms
             // label8
             // 
             label8.AutoSize = true;
-            label8.Location = new System.Drawing.Point(7, 241);
+            label8.Location = new System.Drawing.Point(7, 277);
             label8.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             label8.Name = "label8";
             label8.Size = new System.Drawing.Size(31, 15);
@@ -334,7 +377,7 @@ namespace UoFiddler.Forms
             FocusColorLabel.Location = new System.Drawing.Point(14, 25);
             FocusColorLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             FocusColorLabel.Name = "FocusColorLabel";
-            FocusColorLabel.Size = new System.Drawing.Size(59, 15);
+            FocusColorLabel.Size = new System.Drawing.Size(60, 15);
             FocusColorLabel.TabIndex = 11;
             FocusColorLabel.Text = "Tile Focus";
             toolTip1.SetToolTip(FocusColorLabel, "ItemSize controls the size of images in items tab");
@@ -345,7 +388,7 @@ namespace UoFiddler.Forms
             SelectedColorLabel.Location = new System.Drawing.Point(14, 57);
             SelectedColorLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             SelectedColorLabel.Name = "SelectedColorLabel";
-            SelectedColorLabel.Size = new System.Drawing.Size(76, 15);
+            SelectedColorLabel.Size = new System.Drawing.Size(77, 15);
             SelectedColorLabel.TabIndex = 14;
             SelectedColorLabel.Text = "Tile Selection";
             toolTip1.SetToolTip(SelectedColorLabel, "ItemSize controls the size of images in items tab");
@@ -354,10 +397,6 @@ namespace UoFiddler.Forms
             // 
             groupBox3.Controls.Add(label9);
             groupBox3.Controls.Add(map5Nametext);
-            groupBox3.Controls.Add(label8);
-            groupBox3.Controls.Add(argstext);
-            groupBox3.Controls.Add(label7);
-            groupBox3.Controls.Add(cmdtext);
             groupBox3.Controls.Add(label6);
             groupBox3.Controls.Add(map4Nametext);
             groupBox3.Controls.Add(label5);
@@ -372,7 +411,7 @@ namespace UoFiddler.Forms
             groupBox3.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             groupBox3.Name = "groupBox3";
             groupBox3.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            groupBox3.Size = new System.Drawing.Size(220, 288);
+            groupBox3.Size = new System.Drawing.Size(220, 305);
             groupBox3.TabIndex = 5;
             groupBox3.TabStop = false;
             groupBox3.Text = "Map";
@@ -387,7 +426,7 @@ namespace UoFiddler.Forms
             // 
             // argstext
             // 
-            argstext.Location = new System.Drawing.Point(89, 238);
+            argstext.Location = new System.Drawing.Point(89, 274);
             argstext.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             argstext.Name = "argstext";
             argstext.Size = new System.Drawing.Size(116, 23);
@@ -395,7 +434,7 @@ namespace UoFiddler.Forms
             // 
             // cmdtext
             // 
-            cmdtext.Location = new System.Drawing.Point(89, 208);
+            cmdtext.Location = new System.Drawing.Point(89, 244);
             cmdtext.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             cmdtext.Name = "cmdtext";
             cmdtext.Size = new System.Drawing.Size(116, 23);
@@ -446,18 +485,7 @@ namespace UoFiddler.Forms
             groupBox4.Controls.Add(button2);
             groupBox4.Controls.Add(textBoxOutputPath);
             groupBox4.Controls.Add(label10);
-            // 
-            // checkBoxSaveUop
-            // 
-            checkBoxSaveUop = new System.Windows.Forms.CheckBox();
-            checkBoxSaveUop.AutoSize = true;
-            checkBoxSaveUop.Location = new System.Drawing.Point(16, 462);
-            checkBoxSaveUop.Name = "checkBoxSaveUop";
-            checkBoxSaveUop.Size = new System.Drawing.Size(140, 19);
-            checkBoxSaveUop.TabIndex = 18;
-            checkBoxSaveUop.Text = "Create UOP when saving";
-            checkBoxSaveUop.UseVisualStyleBackColor = true;
-            groupBox4.Location = new System.Drawing.Point(16, 405);
+            groupBox4.Location = new System.Drawing.Point(16, 513);
             groupBox4.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             groupBox4.Name = "groupBox4";
             groupBox4.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -503,7 +531,7 @@ namespace UoFiddler.Forms
             ColorsGroupBox.Controls.Add(TileSelectionColorComboBox);
             ColorsGroupBox.Controls.Add(FocusColorLabel);
             ColorsGroupBox.Controls.Add(TileFocusColorComboBox);
-            ColorsGroupBox.Location = new System.Drawing.Point(16, 301);
+            ColorsGroupBox.Location = new System.Drawing.Point(16, 410);
             ColorsGroupBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             ColorsGroupBox.Name = "ColorsGroupBox";
             ColorsGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -554,7 +582,7 @@ namespace UoFiddler.Forms
             // 
             // buttonClose
             // 
-            buttonClose.Location = new System.Drawing.Point(415, 463);
+            buttonClose.Location = new System.Drawing.Point(414, 570);
             buttonClose.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             buttonClose.Name = "buttonClose";
             buttonClose.Size = new System.Drawing.Size(88, 27);
@@ -563,35 +591,11 @@ namespace UoFiddler.Forms
             buttonClose.UseVisualStyleBackColor = true;
             buttonClose.Click += OnClickClose;
             // 
-            // checkBoxNewClilocFormat
-            // 
-            checkBoxNewClilocFormat.AutoSize = true;
-            checkBoxNewClilocFormat.Location = new System.Drawing.Point(7, 123);
-            checkBoxNewClilocFormat.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            checkBoxNewClilocFormat.Name = "checkBoxNewClilocFormat";
-            checkBoxNewClilocFormat.Size = new System.Drawing.Size(120, 19);
-            checkBoxNewClilocFormat.TabIndex = 8;
-            checkBoxNewClilocFormat.Text = "New cliloc format";
-            toolTip1.SetToolTip(checkBoxNewClilocFormat, "For client version 7.0.104 and newer this needs to be checked. It allows reading of new cliloc format. This option has only partial support so saving file will only produce old cliloc format.");
-            checkBoxNewClilocFormat.UseVisualStyleBackColor = true;
-            // 
-            // checkBoxSaveUop
-            // 
-            checkBoxSaveUop.AutoSize = true;
-            checkBoxSaveUop.Location = new System.Drawing.Point(16, 462);
-            checkBoxSaveUop.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            checkBoxSaveUop.Name = "checkBoxSaveUop";
-            checkBoxSaveUop.Size = new System.Drawing.Size(158, 19);
-            checkBoxSaveUop.TabIndex = 18;
-            checkBoxSaveUop.Text = "Create UOP when saving";
-            checkBoxSaveUop.UseVisualStyleBackColor = true;
-            // 
             // OptionsForm
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(518, 501);
-            Controls.Add(checkBoxSaveUop);
+            ClientSize = new System.Drawing.Size(521, 609);
             Controls.Add(buttonClose);
             Controls.Add(ColorsGroupBox);
             Controls.Add(groupBox4);
@@ -662,6 +666,7 @@ namespace UoFiddler.Forms
         private System.Windows.Forms.Label FocusColorLabel;
         private System.Windows.Forms.ComboBox TileFocusColorComboBox;
         private System.Windows.Forms.CheckBox checkBoxPolSoundIdOffset;
+        private System.Windows.Forms.CheckBox checkBoxUseDynamicMapLoading;
         private System.Windows.Forms.Button buttonClose;
         private System.Windows.Forms.CheckBox checkboxRemoveTileBorder;
         private System.Windows.Forms.CheckBox checkBoxOverrideBackgroundColorFromTile;

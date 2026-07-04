@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<maps>
+	<map index="0" name="Felucca" width="6144" height="4096"/>
+	<map index="1" name="Trammel" width="6144" height="4096"/>
+	<map index="2" name="Ilshenar" width="2304" height="1600"/>
+	<map index="3" name="Malas" width="2560" height="2048"/>
+	<map index="4" name="Tokuno" width="1448" height="1448"/>
+	<map index="5" name="Ter Mur" width="1280" height="4096"/>
+	<!-- Add more entries for additional map files (map6, map7, ... ) -->
+</maps>

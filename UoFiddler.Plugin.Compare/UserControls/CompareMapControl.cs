@@ -49,9 +49,6 @@ namespace UoFiddler.Plugin.Compare.UserControls
             malasToolStripMenuItem.Checked = false;
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
-            oreniaToolStripMenuItem.Checked = false;
-            archaeaPrimaToolStripMenuItem.Checked = false;
-            archaeaToolStripMenuItem.Checked = false;
             showDifferencesToolStripMenuItem.Checked = true;
             showMap1ToolStripMenuItem.Checked = true;
             showMap2ToolStripMenuItem.Checked = false;
@@ -117,9 +114,6 @@ namespace UoFiddler.Plugin.Compare.UserControls
             malasToolStripMenuItem.Text = Options.MapNames[3];
             tokunoToolStripMenuItem.Text = Options.MapNames[4];
             terMurToolStripMenuItem.Text = Options.MapNames[5];
-            oreniaToolStripMenuItem.Text = Options.MapNames[6];
-            archaeaPrimaToolStripMenuItem.Text = Options.MapNames[7];
-            archaeaToolStripMenuItem.Text = Options.MapNames[8];
         }
 
         private static int Round(int x)
@@ -541,9 +535,6 @@ namespace UoFiddler.Plugin.Compare.UserControls
             ilshenarToolStripMenuItem.Checked = false;
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
-            oreniaToolStripMenuItem.Checked = false;
-            archaeaPrimaToolStripMenuItem.Checked = false;
-            archaeaToolStripMenuItem.Checked = false;
         }
 
         private void OnClickChangeFelucca(object sender, EventArgs e)
@@ -647,59 +638,6 @@ namespace UoFiddler.Plugin.Compare.UserControls
 
             ChangeMap();
         }
-
-        private void OnClickChangeOrenia(object sender, EventArgs e)
-        {
-            if (oreniaToolStripMenuItem.Checked)
-            {
-                return;
-            }
-
-            ResetCheckedMap();
-
-            oreniaToolStripMenuItem.Checked = true;
-
-            _originalMap = Map.Orenia;
-            _currentMapId = 6;
-
-            ChangeMap();
-        }
-
-        private void OnClickChangeArchaeaPrima(object sender, EventArgs e)
-        {
-            if (archaeaPrimaToolStripMenuItem.Checked)
-            {
-                return;
-            }
-
-            ResetCheckedMap();
-
-            archaeaPrimaToolStripMenuItem.Checked = true;
-
-            _originalMap = Map.ArchaeaPrima;
-            _currentMapId = 7;
-
-            ChangeMap();
-        }
-
-        private void OnClickChangeArchaea(object sender, EventArgs e)
-        {
-            if (archaeaToolStripMenuItem.Checked)
-            {
-                return;
-            }
-
-            ResetCheckedMap();
-
-            archaeaToolStripMenuItem.Checked = true;
-
-            _originalMap = Map.Archaea;
-            _currentMapId = 8;
-
-            ChangeMap();
-        }
-
-
         private void OnClickShowDiff(object sender, EventArgs e)
         {
             pictureBox.Invalidate();

@@ -69,6 +69,7 @@ namespace Ultima
             "gumpart.mul",
             "gumpidx.mul",
             "gumpartlegacymul.uop",
+            "multicollection.uop",
             "hues.mul",
             "light.mul",
             "lightidx.mul",
