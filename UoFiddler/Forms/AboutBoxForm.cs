@@ -47,6 +47,33 @@ namespace UoFiddler.Forms
             });
         }
 
+        private void OnClickSourceLink(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://github.com/polserver/UOFiddler",
+                UseShellExecute = true
+            });
+        }
+
+        private void OnClickDSourceLink(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://github.com/Dramoor/UOFiddler",
+                UseShellExecute = true
+            });
+        }
+
+        private void OnClickEventineLink(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://uoeventine.net/",
+                UseShellExecute = true
+            });
+        }
+
         private void OnChangeFormState(object sender, EventArgs e)
         {
             FiddlerOptions.StoreFormState = checkBoxFormState.Checked;

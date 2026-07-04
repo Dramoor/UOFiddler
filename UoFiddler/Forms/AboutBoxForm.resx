@@ -118,7 +118,13 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 4.17.8
+    <value>Version 5.0.0
+- Updated an option to set save to uop which will allow saving as uop for art/gump/sound settings. Check marking will create the mul and uops in the output directory.
+- Items tab will now show the Graphic in hex and decimal on the main tab.
+- You can edit the cliloc text directly in the tiledata tab for each item. This will not save the cliloc, only add the string in for easier naming.
+- The generic flag has been renamed Stackable to match what it does for easier understanding and usage.
+
+Version 4.17.8
 - Fix for reading older artidx.mul files that were probably edited with mulpatcher or some other tool.
 
 Version 4.17.7

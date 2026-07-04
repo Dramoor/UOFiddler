@@ -43,6 +43,9 @@ namespace UoFiddler.Forms
             checkBoxCheckOnStart = new System.Windows.Forms.CheckBox();
             button1 = new System.Windows.Forms.Button();
             linkLabel1 = new System.Windows.Forms.LinkLabel();
+            linkLabel2 = new System.Windows.Forms.LinkLabel();
+            linkLabel3 = new System.Windows.Forms.LinkLabel();
+            linkLabel4 = new System.Windows.Forms.LinkLabel();
             label1 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
@@ -50,6 +53,8 @@ namespace UoFiddler.Forms
             label5 = new System.Windows.Forms.Label();
             label6 = new System.Windows.Forms.Label();
             label7 = new System.Windows.Forms.Label();
+            label8 = new System.Windows.Forms.Label();
+            label9 = new System.Windows.Forms.Label();
             checkBoxFormState = new System.Windows.Forms.CheckBox();
             SuspendLayout();
             // 
@@ -97,8 +102,44 @@ namespace UoFiddler.Forms
             linkLabel1.Size = new System.Drawing.Size(91, 15);
             linkLabel1.TabIndex = 4;
             linkLabel1.TabStop = true;
-            linkLabel1.Text = "Visit HomePage";
+            linkLabel1.Text = "Pol Server";
             linkLabel1.LinkClicked += OnClickLink;
+            // 
+            // linkLabel2
+            // 
+            linkLabel2.AutoSize = true;
+            linkLabel2.Location = new System.Drawing.Point(74, 10);
+            linkLabel2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            linkLabel2.Name = "linkLabel2";
+            linkLabel2.Size = new System.Drawing.Size(91, 15);
+            linkLabel2.TabIndex = 4;
+            linkLabel2.TabStop = true;
+            linkLabel2.Text = "Fiddler Source";
+            linkLabel2.LinkClicked += OnClickSourceLink;
+            // 
+            // linkLabel3
+            // 
+            linkLabel3.AutoSize = true;
+            linkLabel3.Location = new System.Drawing.Point(159, 10);
+            linkLabel3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            linkLabel3.Name = "linkLabel3";
+            linkLabel3.Size = new System.Drawing.Size(91, 15);
+            linkLabel3.TabIndex = 4;
+            linkLabel3.TabStop = true;
+            linkLabel3.Text = "Dramoor Source";
+            linkLabel3.LinkClicked += OnClickDSourceLink;
+            // 
+            // linkLabel4
+            // 
+            linkLabel4.AutoSize = true;
+            linkLabel4.Location = new System.Drawing.Point(254, 10);
+            linkLabel4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            linkLabel4.Name = "linkLabel4";
+            linkLabel4.Size = new System.Drawing.Size(91, 15);
+            linkLabel4.TabIndex = 4;
+            linkLabel4.TabStop = true;
+            linkLabel4.Text = "UO Eventine";
+            linkLabel4.LinkClicked += OnClickEventineLink;
             // 
             // label1
             // 
@@ -141,13 +182,36 @@ namespace UoFiddler.Forms
             label4.Name = "label4";
             label4.Size = new System.Drawing.Size(250, 15);
             label4.TabIndex = 8;
-            label4.Text = "MuadDib, Soulblighter, Nibbio, Andreew, Ares";
+            label4.Text = "MuadDib, Soulblighter, Nibbio, Andreew, Ares, AsYlum-";
+
+
+            // 
+            // label8
+            // 
+            label8.AutoSize = true;
+            label8.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold);
+            label8.Location = new System.Drawing.Point(19, 375);
+            label8.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            label8.Name = "label8";
+            label8.Size = new System.Drawing.Size(121, 13);
+            label8.TabIndex = 7;
+            label8.Text = "Modded By:";
+            // 
+            // label9
+            // 
+            label9.AutoSize = true;
+            label9.Location = new System.Drawing.Point(48, 390);
+            label9.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            label9.Name = "label9";
+            label9.Size = new System.Drawing.Size(250, 15);
+            label9.TabIndex = 8;
+            label9.Text = "Dramoor of UO Eventine";
             // 
             // label5
             // 
             label5.AutoSize = true;
             label5.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold);
-            label5.Location = new System.Drawing.Point(22, 375);
+            label5.Location = new System.Drawing.Point(22, 414);
             label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             label5.Name = "label5";
             label5.Size = new System.Drawing.Size(95, 13);
@@ -157,7 +221,7 @@ namespace UoFiddler.Forms
             // label6
             // 
             label6.AutoSize = true;
-            label6.Location = new System.Drawing.Point(48, 390);
+            label6.Location = new System.Drawing.Point(48, 429);
             label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             label6.Name = "label6";
             label6.Size = new System.Drawing.Size(367, 15);
@@ -167,7 +231,7 @@ namespace UoFiddler.Forms
             // label7
             // 
             label7.AutoSize = true;
-            label7.Location = new System.Drawing.Point(48, 405);
+            label7.Location = new System.Drawing.Point(48, 444);
             label7.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             label7.Name = "label7";
             label7.Size = new System.Drawing.Size(253, 15);
@@ -177,7 +241,7 @@ namespace UoFiddler.Forms
             // checkBoxFormState
             // 
             checkBoxFormState.AutoSize = true;
-            checkBoxFormState.Location = new System.Drawing.Point(15, 457);
+            checkBoxFormState.Location = new System.Drawing.Point(15, 496);
             checkBoxFormState.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             checkBoxFormState.Name = "checkBoxFormState";
             checkBoxFormState.Size = new System.Drawing.Size(109, 19);
@@ -190,8 +254,10 @@ namespace UoFiddler.Forms
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            ClientSize = new System.Drawing.Size(504, 521);
-            Controls.Add(checkBoxFormState);
+            ClientSize = new System.Drawing.Size(504, 481);
+            //Controls.Add(checkBoxFormState);
+            Controls.Add(label9);
+            Controls.Add(label8);
             Controls.Add(label7);
             Controls.Add(label6);
             Controls.Add(label5);
@@ -200,8 +266,11 @@ namespace UoFiddler.Forms
             Controls.Add(label2);
             Controls.Add(label1);
             Controls.Add(linkLabel1);
-            Controls.Add(button1);
-            Controls.Add(checkBoxCheckOnStart);
+            Controls.Add(linkLabel2);
+            Controls.Add(linkLabel3);
+            Controls.Add(linkLabel4);
+            //Controls.Add(button1);
+            //Controls.Add(checkBoxCheckOnStart);
             Controls.Add(richTextBox1);
             DoubleBuffered = true;
             FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
@@ -229,7 +298,12 @@ namespace UoFiddler.Forms
         private System.Windows.Forms.Label label5;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.Label label7;
+        private System.Windows.Forms.Label label8;
+        private System.Windows.Forms.Label label9;
         private System.Windows.Forms.LinkLabel linkLabel1;
+        private System.Windows.Forms.LinkLabel linkLabel2;
+        private System.Windows.Forms.LinkLabel linkLabel3;
+        private System.Windows.Forms.LinkLabel linkLabel4;
         private System.Windows.Forms.RichTextBox richTextBox1;
     }
 }
