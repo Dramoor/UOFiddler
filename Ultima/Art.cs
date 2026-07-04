@@ -990,7 +990,7 @@ namespace Ultima
             try
             {
                 // always create the .uop next to the mul files being written
-                string uopPath = Path.Combine(path, "artlegacymul.uop");
+                string uopPath = Path.Combine(path, "artLegacyMUL.uop");
                 if (!string.IsNullOrEmpty(uopPath))
                 {
                     bool saveUop = false;
