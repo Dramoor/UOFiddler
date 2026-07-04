@@ -386,44 +386,16 @@ namespace UoFiddler.Controls.UserControls
             string fileName = null;
             string profile = null;
             if (!string.IsNullOrEmpty(Options.ProfileName))
-            {
                 profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
-            }
 
             if (!string.IsNullOrEmpty(profile))
-            {
-                /*
-                string profileFileRoot = Path.Combine(Files.RootDir, $"Animationlist_{profile}.xml");
-                if (File.Exists(profileFileRoot))
-                    fileName = profileFileRoot;
+                fileName = Path.Combine(Options.AppDataPath, $"Animationlist_{profile}.xml");
 
-                if (fileName == null)
-                {
-                    string profileFileApp = Path.Combine(Options.AppDataPath, $"Animationlist_{profile}.xml");
-                    if (File.Exists(profileFileApp))
-                        fileName = profileFileApp;
-                }
-                */
+            if (!File.Exists(fileName))
+                fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
 
-                fileName = Path.Combine(Files.RootDir, $"Animationlist_{profile}.xml");
-
-                if (!File.Exists(fileName))
-                    fileName = Path.Combine(Options.AppDataPath, $"Animationlist_{profile}.xml");
-            }
-
-            if (fileName == null)
-            {
-
-                fileName = Path.Combine(Files.RootDir, "Animationlist.xml");
-
-                if (!File.Exists(fileName))
-                    fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
-
-                if (!File.Exists(fileName))
-                {
-                    return false;
-                }
-            }
+            if (!File.Exists(fileName))
+                return false;
 
             TreeViewMobs.BeginUpdate();
             try

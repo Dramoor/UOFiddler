@@ -3,6 +3,8 @@ using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
 using Ultima.Helpers;
+using System.Reflection;
+using System;
 
 namespace Ultima
 {     
@@ -187,6 +189,229 @@ namespace Ultima
             short height = (short)(_validBuffer[2] | (_validBuffer[3] << 8));
 
             return width > 0 && height > 0;
+        }
+
+        // --- Embedded UOP creation (adapted from LegacyMulFileConverter.ToUop) ---
+        private struct IdxEntry
+        {
+            public int Id;
+            public int Offset;
+            public int Size;
+            public int Extra;
+        }
+
+        private struct TableEntry
+        {
+            public long Offset;
+            public int HeaderLength;
+            public int Size;
+            public int DecompressedSize;
+            public ulong Identifier;
+            public uint Hash;
+            public short CompressionFlag;
+            public bool Compressed;
+        }
+
+        private static readonly byte[] _emptyUopTableEntry = new byte[8 + 4 + 4 + 4 + 8 + 4 + 2];
+
+        private static void CreateUopFromStreams(Stream mulStream, Stream idxStream, string outFile)
+        {
+            if (mulStream == null || idxStream == null || string.IsNullOrEmpty(outFile))
+                return;
+
+            const long firstTable = 0x200;
+            const int tableSize = 0x64;
+
+            idxStream.Position = 0;
+            mulStream.Position = 0;
+            using (var reader = new BinaryReader(mulStream, System.Text.Encoding.Default, true))
+            using (var readerIdx = new BinaryReader(idxStream, System.Text.Encoding.Default, true))
+            using (var writer = new BinaryWriter(new FileStream(outFile, FileMode.Create, FileAccess.Write, FileShare.None)))
+            {
+                var idxEntries = new System.Collections.Generic.List<IdxEntry>();
+
+                int idxEntryCount = (int)(readerIdx.BaseStream.Length / 12);
+                for (int i = 0; i < idxEntryCount; ++i)
+                {
+                    int offset = readerIdx.ReadInt32();
+
+                    if (offset < 0)
+                    {
+                        readerIdx.BaseStream.Seek(8, SeekOrigin.Current);
+                        continue;
+                    }
+
+                    IdxEntry e = new IdxEntry
+                    {
+                        Id = i,
+                        Offset = offset,
+                        Size = readerIdx.ReadInt32(),
+                        Extra = readerIdx.ReadInt32()
+                    };
+
+                    idxEntries.Add(e);
+                }
+
+                // File header
+                writer.Write(0x50594D); // MYP
+                writer.Write(5); // version
+                writer.Write(0xFD23EC43); // format timestamp?
+                writer.Write(firstTable); // first table
+                writer.Write(tableSize); // table size
+                writer.Write(idxEntries.Count); // file count
+                writer.Write(0); // modified count?
+                writer.Write(0);
+                writer.Write(0);
+
+                // Padding
+                for (int i = 0x28; i < firstTable; ++i)
+                {
+                    writer.Write((byte)0);
+                }
+
+                int tableCount = (int)System.Math.Ceiling((double)idxEntries.Count / tableSize);
+                TableEntry[] tableEntries = new TableEntry[tableSize];
+
+                string[] hashFormat = new string[] { "build/artlegacymul/{0:00000000}.tga", string.Empty };
+
+                for (int t = 0; t < tableCount; ++t)
+                {
+                    long thisTable = writer.BaseStream.Position;
+
+                    int idxStart = t * tableSize;
+                    int idxEnd = System.Math.Min((t + 1) * tableSize, idxEntries.Count);
+
+                    // Table header
+                    writer.Write(idxEnd - idxStart);
+                    writer.Write((long)0); // next table, filled in later
+                    writer.Seek(34 * tableSize, SeekOrigin.Current); // table entries, filled in later
+
+                    // Data
+                    int tableIdx = 0;
+
+                    for (int j = idxStart; j < idxEnd; ++j, ++tableIdx)
+                    {
+                        reader.BaseStream.Seek(idxEntries[j].Offset, SeekOrigin.Begin);
+                        byte[] data = reader.ReadBytes(idxEntries[j].Size);
+
+                        tableEntries[tableIdx].Offset = writer.BaseStream.Position;
+                        tableEntries[tableIdx].DecompressedSize = data.Length;
+                        tableEntries[tableIdx].CompressionFlag = (short)CompressionFlag.None;
+
+                        tableEntries[tableIdx].Identifier = HashLittle2(string.Format(hashFormat[0], idxEntries[j].Id));
+                        tableEntries[tableIdx].Size = data.Length;
+                        tableEntries[tableIdx].Hash = HashAdler32(data);
+                        writer.Write(data);
+                    }
+
+                    long nextTable = writer.BaseStream.Position;
+
+                    // Go back and fix table header
+                    if (t < tableCount - 1)
+                    {
+                        writer.BaseStream.Seek(thisTable + 4, SeekOrigin.Begin);
+                        writer.Write(nextTable);
+                    }
+                    else
+                    {
+                        writer.BaseStream.Seek(thisTable + 12, SeekOrigin.Begin);
+                        // No need to fix the next table address, it's the last
+                    }
+
+                    // Table entries
+                    tableIdx = 0;
+
+                    for (int j = idxStart; j < idxEnd; ++j, ++tableIdx)
+                    {
+                        writer.Write(tableEntries[tableIdx].Offset);
+                        writer.Write(0); // header length
+                        writer.Write(tableEntries[tableIdx].Size); // compressed size
+                        writer.Write(tableEntries[tableIdx].DecompressedSize); // decompressed size
+                        writer.Write(tableEntries[tableIdx].Identifier);
+                        writer.Write(tableEntries[tableIdx].Hash);
+                        writer.Write(tableEntries[tableIdx].CompressionFlag); // compression method
+                    }
+
+                    // Fill remainder with empty entries
+                    for (; tableIdx < tableSize; ++tableIdx)
+                    {
+                        writer.Write(_emptyUopTableEntry);
+                    }
+
+                    writer.BaseStream.Seek(nextTable, SeekOrigin.Begin);
+                }
+            }
+        }
+
+        private static ulong HashLittle2(string s)
+        {
+            int length = s.Length;
+
+            uint a, b, c;
+            a = b = c = 0xDEADBEEF + (uint)length;
+
+            int k = 0;
+
+            while (length > 12)
+            {
+                a += (uint)s[k] + ((uint)s[k + 1] << 8) + ((uint)s[k + 2] << 16) + ((uint)s[k + 3] << 24);
+                b += (uint)s[k + 4] + ((uint)s[k + 5] << 8) + ((uint)s[k + 6] << 16) + ((uint)s[k + 7] << 24);
+                c += (uint)s[k + 8] + ((uint)s[k + 9] << 8) + ((uint)s[k + 10] << 16) + ((uint)s[k + 11] << 24);
+
+                // scramble
+                c = c ^ b; c -= (b << 14) | (b >> 18);
+                a = a ^ c; a -= (c << 11) | (c >> 21);
+                b = b ^ a; b -= (a << 25) | (a >> 7);
+                c = c ^ b; c -= (b << 16) | (b >> 16);
+                a = a ^ c; a -= (c << 4) | (c >> 28);
+                b = b ^ a; b -= (a << 14) | (a >> 18);
+                c = c ^ b; c -= (b << 24) | (b >> 8);
+
+                k += 12;
+                length -= 12;
+            }
+
+            // tail
+            uint aa = a, bb = b, cc = c;
+            switch (length)
+            {
+                case 12: cc += (uint)s[k + 11] << 24; goto case 11;
+                case 11: cc += (uint)s[k + 10] << 16; goto case 10;
+                case 10: cc += (uint)s[k + 9] << 8; goto case 9;
+                case 9: cc += (uint)s[k + 8]; goto case 8;
+                case 8: bb += (uint)s[k + 7] << 24; goto case 7;
+                case 7: bb += (uint)s[k + 6] << 16; goto case 6;
+                case 6: bb += (uint)s[k + 5] << 8; goto case 5;
+                case 5: bb += (uint)s[k + 4]; goto case 4;
+                case 4: aa += (uint)s[k + 3] << 24; goto case 3;
+                case 3: aa += (uint)s[k + 2] << 16; goto case 2;
+                case 2: aa += (uint)s[k + 1] << 8; goto case 1;
+                case 1: aa += (uint)s[k]; break;
+            }
+
+            cc = (cc ^ bb) - ((bb >> 18) ^ (bb << 14));
+            uint ecx = (cc ^ aa) - ((aa >> 21) ^ (aa << 11));
+            bb = (bb ^ ecx) - ((ecx >> 7) ^ (ecx << 25));
+            aa = (aa ^ bb) - ((bb >> 16) ^ (bb << 16));
+            cc = (cc ^ aa) - ((aa >> 28) ^ (aa << 4));
+            bb = (bb ^ cc) - ((cc >> 18) ^ (cc << 14));
+            aa = (aa ^ bb) - ((bb >> 8) ^ (bb << 24));
+
+            return ((ulong)bb << 32) | cc;
+        }
+
+        private static uint HashAdler32(byte[] d)
+        {
+            uint a = 1;
+            uint b = 0;
+
+            for (int i = 0; i < d.Length; i++)
+            {
+                a = (a + d[i]) % 65521;
+                b = (b + a) % 65521;
+            }
+
+            return (b << 16) | a;
         }
 
         /// <summary>
@@ -750,7 +975,104 @@ namespace Ultima
 
                     memidx.WriteTo(fsidx);
                     memmul.WriteTo(fsmul);
+
+                    // ensure files are flushed and closed so conversion can open them
+                    try
+                    {
+                        fsidx.Flush();
+                        fsmul.Flush();
+                        fsidx.Close();
+                        fsmul.Close();
+                    }
+                    catch { }
                 }
+            // If a legacy UOP target exists in the configured MulPath, try to auto-create/overwrite it
+            try
+            {
+                // always create the .uop next to the mul files being written
+                string uopPath = Path.Combine(path, "artlegacymul.uop");
+                if (!string.IsNullOrEmpty(uopPath))
+                {
+                    // Attempt to find the UOP packer type in already loaded assemblies
+                    Type convType = null;
+                    foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                    {
+                        convType = a.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
+                        if (convType != null) break;
+                    }
+
+                    // If not loaded, try loading the plugin DLL from the application's plugins folder
+                    if (convType == null)
+                    {
+                        string possible = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "UOPPacker.dll");
+                        if (File.Exists(possible))
+                        {
+                            var asm = Assembly.LoadFrom(possible);
+                            convType = asm.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
+                        }
+                    }
+
+                    bool invoked = false;
+                    if (convType != null)
+                    {
+                        MethodInfo toUop = convType.GetMethod("ToUop", BindingFlags.Public | BindingFlags.Static);
+                        if (toUop != null)
+                        {
+                            // Determine FileType enum value from the converter assembly
+                            Type fileTypeEnum = convType.Assembly.GetType("UoFiddler.Plugin.UopPacker.Classes.FileType");
+                            object fileTypeVal = null;
+                            if (fileTypeEnum != null)
+                            {
+                                fileTypeVal = Enum.Parse(fileTypeEnum, "ArtLegacyMul");
+                            }
+                            // Invoke ToUop(inMul, inIdx, outUop, FileType.ArtLegacyMul, 0, CompressionFlag.None)
+                            // Last parameter is Ultima.CompressionFlag which is shared from this assembly
+                            try
+                            {
+                                toUop.Invoke(null, new object[] { mul, idx, uopPath, fileTypeVal, 0, CompressionFlag.None });
+                                invoked = true;
+                            }
+                            catch (Exception ex)
+                            {
+                                // record failure to invoke plugin converter
+                                try
+                                {
+                                    string logFile = Path.Combine(path, "uop_plugin_error.log");
+                                    File.AppendAllText(logFile, ex + System.Environment.NewLine + "----" + System.Environment.NewLine);
+                                }
+                                catch { }
+                            }
+                        }
+                    }
+
+                    // If plugin converter not available or invocation failed, use embedded conversion on the written files
+                    if (!invoked)
+                    {
+                        try
+                        {
+                            using (var fileMul = new FileStream(mul, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            using (var fileIdx = new FileStream(idx, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            {
+                                CreateUopFromStreams(fileMul, fileIdx, uopPath);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // write diagnostic to app folder where files were saved
+                            try
+                            {
+                                string logFile = Path.Combine(path, "uop_create_error.log");
+                                File.AppendAllText(logFile, ex + System.Environment.NewLine + "----" + System.Environment.NewLine);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                // conversion failure should not prevent normal save; swallow exceptions
+            }
             }
         }
 
