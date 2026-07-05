@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.0.2
+    <value>Version 5.0.3
+- Can now export vds to H L and P formats. Also can remap frames in menu. 
+		
+Version 5.0.2
 - Added ability to load and save MultiCollection.UOP files. This requires the save UOP files checked in the options.
 
 Version 5.0.1

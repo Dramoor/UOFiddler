@@ -24,6 +24,182 @@ namespace Ultima
             InitializeCache();
         }
 
+        // Overload to allow forcing the VD anim type header (0/1/2). Pass animType >= 0 to force, otherwise use default logic.
+        public static void ExportToVD(int fileType, int body, string file, int animType)
+        {
+            ExportToVD(fileType, body, file, animType, null);
+        }
+
+        // Overload to allow forcing the VD anim type header and selecting specific actions to include.
+        // actionsToInclude: null or empty = include all actions. Otherwise include only these action indices.
+        public static void ExportToVD(int fileType, int body, string file, int animType, int[] actionsToInclude)
+        {
+            AnimIdx[] cache = GetCache(fileType);
+            GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
+            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
+            using (var bin = new BinaryWriter(fs))
+            {
+                bin.Write((short)6);
+                int animLength = Animations.GetAnimLength(body, fileType);
+                int currType;
+                if (animType >= 0)
+                {
+                    currType = animType;
+                }
+                else
+                {
+                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                }
+
+                bin.Write((short)currType);
+                long indexPos = bin.BaseStream.Position;
+                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+
+                // Normalize actionsToInclude into a HashSet for quick checks
+                System.Collections.Generic.HashSet<int> includeSet = null;
+                if (actionsToInclude != null && actionsToInclude.Length > 0)
+                {
+                    includeSet = new System.Collections.Generic.HashSet<int>(actionsToInclude);
+                }
+
+                for (int i = index; i < index + (animLength * 5); i++)
+                {
+                    int action = (i - index) / 5; // which action this entry belongs to
+
+                    // If includeSet is specified and this action is not included, write empty entry (-1s)
+                    if (includeSet != null && !includeSet.Contains(action))
+                    {
+                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        indexPos = bin.BaseStream.Position;
+                        continue;
+                    }
+
+                    AnimIdx anim;
+                    if (cache != null)
+                    {
+                        anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                    }
+                    else
+                    {
+                        anim = cache[i] = new AnimIdx(i, fileIndex);
+                    }
+
+                    if (anim == null)
+                    {
+                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        indexPos = bin.BaseStream.Position;
+                    }
+                    else
+                    {
+                        anim.ExportToVD(bin, ref indexPos, ref animPos);
+                    }
+                }
+            }
+        }
+
+        // Export with remapping: targetToSourceMap[targetAction] = sourceAction (or -1 for none)
+        public static void ExportToVDRemap(int fileType, int body, string file, int animType, int[] targetToSourceMap)
+        {
+            AnimIdx[] cache = GetCache(fileType);
+            GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
+            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
+            using (var bin = new BinaryWriter(fs))
+            {
+                bin.Write((short)6);
+                int animLength = Animations.GetAnimLength(body, fileType);
+                int currType;
+                if (animType >= 0)
+                {
+                    currType = animType;
+                }
+                else
+                {
+                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                }
+
+                bin.Write((short)currType);
+                long indexPos = bin.BaseStream.Position;
+                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+
+                for (int i = index; i < index + (animLength * 5); i++)
+                {
+                    int action = (i - index) / 5;
+                    int directionOffset = (i - index) % 5;
+
+                    if (targetToSourceMap == null || targetToSourceMap.Length != animLength)
+                    {
+                        // fallback to default behavior for this entry
+                        AnimIdx anim;
+                        if (cache != null)
+                        {
+                            anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                        }
+                        else
+                        {
+                            anim = cache[i] = new AnimIdx(i, fileIndex);
+                        }
+
+                        if (anim == null)
+                        {
+                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                            bin.Write(-1);
+                            bin.Write(-1);
+                            bin.Write(-1);
+                            indexPos = bin.BaseStream.Position;
+                        }
+                        else
+                        {
+                            anim.ExportToVD(bin, ref indexPos, ref animPos);
+                        }
+
+                        continue;
+                    }
+
+                    int srcAction = targetToSourceMap[action];
+                    if (srcAction < 0 || srcAction >= animLength)
+                    {
+                        // write empty entry
+                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        indexPos = bin.BaseStream.Position;
+                        continue;
+                    }
+
+                    int srcIndex = index + (srcAction * 5) + directionOffset;
+                    AnimIdx srcAnim;
+                    if (cache != null)
+                    {
+                        srcAnim = cache[srcIndex] != null ? cache[srcIndex] : cache[srcIndex] = new AnimIdx(srcIndex, fileIndex);
+                    }
+                    else
+                    {
+                        srcAnim = cache[srcIndex] = new AnimIdx(srcIndex, fileIndex);
+                    }
+
+                    if (srcAnim == null)
+                    {
+                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        indexPos = bin.BaseStream.Position;
+                    }
+                    else
+                    {
+                        srcAnim.ExportToVD(bin, ref indexPos, ref animPos);
+                    }
+                }
+            }
+        }
+
         private static void InitializeCache()
         {
             if (_fileIndex.IdxLength > 0)
