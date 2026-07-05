@@ -22,6 +22,7 @@ using UoFiddler.Controls.Classes;
 using UoFiddler.Controls.Forms;
 using UoFiddler.Controls.Helpers;
 using UoFiddler.Controls.UserControls.TileView;
+using System.Reflection;
 
 namespace UoFiddler.Controls.UserControls
 {
@@ -322,6 +323,7 @@ namespace UoFiddler.Controls.UserControls
         }
 
         private Color _backgroundColorItem = Color.White;
+        private static bool _didSimulateClilocInit = false;
 
         private void ChangeBackgroundColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -400,6 +402,20 @@ namespace UoFiddler.Controls.UserControls
 
             var sb = new StringBuilder();
             sb.AppendLine($"Name: {item.Name}");
+            // Also show related Cliloc text for this item (use same calculation as TileData). Show only the text.
+            try
+            {
+                int clilocNumberHeader = graphic < 0x4000 ? 1020000 + graphic : 1078872 + graphic;
+                string clilocTextHeader = ClilocControl.GetStringFromLoaded(clilocNumberHeader);
+                if (!string.IsNullOrWhiteSpace(clilocTextHeader))
+                {
+                    sb.AppendLine($"Cliloc: {clilocTextHeader}");
+                }
+            }
+            catch
+            {
+                // ignore if cliloc cannot be loaded
+            }
             sb.AppendLine($"Graphic: 0x{graphic:X4} ({graphic})");
             sb.AppendLine($"Height/Capacity: {item.Height}");
             sb.AppendLine($"Weight: {item.Weight}");
@@ -422,7 +438,10 @@ namespace UoFiddler.Controls.UserControls
             }
 
             DetailTextBox.Clear();
+            // Append basic tile info
             DetailTextBox.AppendText(sb.ToString());
+
+            // cliloc already included in the header above when available
         }
 
         private void ChangeBackgroundColorToolStripMenuItemDetail_Click(object sender, EventArgs e)
@@ -759,6 +778,136 @@ namespace UoFiddler.Controls.UserControls
             {
                 RadarColorControl.Select(_selectedGraphicId, false);
             }
+        }
+
+        private void OnClickSelectAllTabs(object sender, EventArgs e)
+        {
+            if (_selectedGraphicId < 0)
+            {
+                return;
+            }
+
+            // Select in TileData and RadarColor
+            TileDataControl.Select(_selectedGraphicId, false);
+            RadarColorControl.Select(_selectedGraphicId, false);
+
+            // Calculate cliloc number and select in Cliloc control
+            try
+            {
+                int clilocNumber = _selectedGraphicId < 0x4000 ? 1020000 + _selectedGraphicId : 1078872 + _selectedGraphicId;
+
+                // Only once after loading, simulate selecting the Cliloc tab (temporarily) so it initializes as if clicked.
+                try
+                {
+                    if (!_didSimulateClilocInit && !ClilocControl.IsControlLoaded)
+                    {
+                        foreach (Form f in Application.OpenForms)
+                        {
+                            var tab = FindControlRecursive(f, typeof(TabControl)) as TabControl;
+                            if (tab == null)
+                            {
+                                continue;
+                            }
+
+                            TabPage clilocPage = null;
+                            foreach (TabPage p in tab.TabPages)
+                            {
+                                if (string.Equals(p.Name, "ClilocTab", StringComparison.Ordinal) ||
+                                    (!string.IsNullOrEmpty(p.Text) && p.Text.IndexOf("CliLoc", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                                    (p.Tag is int tag && tag == 10))
+                                {
+                                    clilocPage = p;
+                                    break;
+                                }
+                            }
+
+                            if (clilocPage != null)
+                            {
+                                var previous = tab.SelectedTab;
+                                try
+                                {
+                                    tab.SelectedTab = clilocPage; // simulate click
+                                    Application.DoEvents();
+                                }
+                                finally
+                                {
+                                    // restore previous tab so UI stays where user was
+                                    try
+                                    {
+                                        if (previous != null && tab.TabPages.Contains(previous))
+                                        {
+                                            tab.SelectedTab = previous;
+                                            Application.DoEvents();
+                                        }
+                                    }
+                                    catch
+                                    {
+                                        // ignore
+                                    }
+                                }
+
+                                _didSimulateClilocInit = true;
+                                break;
+                            }
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                // Ensure the Cliloc control is initialized in background without changing UI selection
+                ClilocControl.EnsureLoaded();
+
+                // Apply selection; pending selection is handled by ClilocControl
+                ClilocControl.Select(clilocNumber);
+                // Also attempt to select related gump (male) if available
+                try
+                {
+                    var itemData = TileData.ItemTable[_selectedGraphicId];
+                    if (itemData.Animation > 0)
+                    {
+                        int gumpId = itemData.Animation + _maleGumpOffset;
+                        if (GumpControl.HasGumpId(gumpId))
+                        {
+                            SelectInGumpsTab(_selectedGraphicId);
+                        }
+                    }
+                }
+                catch
+                {
+                    // ignore gump selection errors
+                }
+            }
+            catch
+            {
+                // ignore selection errors
+            }
+        }
+
+        private static Control FindControlRecursive(Control parent, Type type)
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+
+            if (parent.GetType() == type)
+            {
+                return parent;
+            }
+
+            foreach (Control c in parent.Controls)
+            {
+                var found = FindControlRecursive(c, type);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
         }
 
         private void OnClick_SaveAllBmp(object sender, EventArgs e)

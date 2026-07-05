@@ -9,9 +9,9 @@
 		<AssemblyTitle>UoFiddler</AssemblyTitle>
 		<Product>UoFiddler</Product>
 		<Copyright>Copyright © 2025</Copyright>
-		<AssemblyVersion>5.0.5</AssemblyVersion>
-		<FileVersion>5.0.5</FileVersion>
-		<Version>5.0.5</Version>
+		<AssemblyVersion>5.0.6</AssemblyVersion>
+		<FileVersion>5.0.6</FileVersion>
+		<Version>5.0.6</Version>
 		<GenerateResourceUsePreserializedResources>true</GenerateResourceUsePreserializedResources>
 	</PropertyGroup>
 	<PropertyGroup>

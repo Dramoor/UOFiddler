@@ -28,8 +28,16 @@ namespace UoFiddler.Controls.UserControls
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
 
             _source = new BindingSource();
+            _refMarker = this;
             FindEntry.TextBox.PreviewKeyDown += FindEntry_PreviewKeyDown;
         }
+
+        /// <summary>
+        /// Returns true if a ClilocControl instance exists and is loaded.
+        /// </summary>
+        public static bool IsControlLoaded => _refMarker != null && _refMarker._loaded;
+
+        private static ClilocControl _refMarker;
 
         // Provide programmatic access to cliloc data for other controls
         public static string GetStringFromLoaded(int number)
@@ -112,6 +120,7 @@ namespace UoFiddler.Controls.UserControls
 
         private static StringList _cliloc;
         private static BindingSource _source;
+        private static int? _pendingSelectNumber;
         private int _lang;
         private SortOrder _sortOrder;
         private int _sortColumn;
@@ -228,12 +237,153 @@ namespace UoFiddler.Controls.UserControls
 
             _loaded = true;
 
+            // If there was a pending selection request before this control loaded, apply it now
+            if (_pendingSelectNumber.HasValue)
+            {
+                ApplyPendingSelection();
+            }
+
             Cursor.Current = Cursors.Default;
+        }
+
+        private void ApplyPendingSelection()
+        {
+            if (!_pendingSelectNumber.HasValue)
+            {
+                return;
+            }
+
+            int number = _pendingSelectNumber.Value;
+            for (int i = 0; i < dataGridView1.Rows.Count; ++i)
+            {
+                var cellValue = dataGridView1.Rows[i].Cells[0].Value;
+                if (cellValue is int val && val == number)
+                {
+                    dataGridView1.ClearSelection();
+                    dataGridView1.Rows[i].Selected = true;
+                    dataGridView1.FirstDisplayedScrollingRowIndex = i;
+                    _pendingSelectNumber = null;
+                    return;
+                }
+            }
         }
 
         private void OnFilePathChangeEvent()
         {
             Reload();
+        }
+
+        /// <summary>
+        /// Select a cliloc entry by its number and make it visible in the grid
+        /// </summary>
+        /// <param name="number">cliloc number</param>
+        public static void Select(int number)
+        {
+            // Ensure cliloc data is loaded (this will initialize _cliloc if null)
+            GetStringFromLoaded(1);
+
+            // Store pending selection so any ClilocControl instance that loads will apply it
+            _pendingSelectNumber = number;
+
+            // If we already have an instance and it's loaded, apply selection immediately
+            if (_refMarker != null && _refMarker._loaded)
+            {
+                _refMarker.ApplyPendingSelection();
+            }
+        }
+
+        private static Control FindControlRecursive(Control parent, Type type)
+        {
+            if (parent == null)
+            {
+                return null;
+            }
+
+            if (parent.GetType() == type)
+            {
+                return parent;
+            }
+
+            foreach (Control c in parent.Controls)
+            {
+                var found = FindControlRecursive(c, type);
+                if (found != null)
+                {
+                    return found;
+                }
+            }
+
+            return null;
+        }
+
+        /// <summary>
+        /// Ensure cliloc data and a ClilocControl instance are loaded (creates a hidden control on the Cliloc tab if needed).
+        /// </summary>
+        public static void EnsureLoaded()
+        {
+            // Make sure the underlying cliloc data is loaded
+            GetStringFromLoaded(1);
+
+            if (_refMarker != null && _refMarker._loaded)
+            {
+                return;
+            }
+
+            // Try to find an existing control instance in any open form
+            foreach (Form f in Application.OpenForms)
+            {
+                var found = FindControlRecursive(f, typeof(ClilocControl)) as ClilocControl;
+                if (found != null)
+                {
+                    _refMarker = found;
+
+                    // Do not force OnLoad here: let the control apply pending selection when it naturally loads
+
+                    return;
+                }
+            }
+
+            // If not found, try to locate the main TabControl and Cliloc tab to create a hidden control
+            foreach (Form f in Application.OpenForms)
+            {
+                var tab = FindControlRecursive(f, typeof(TabControl)) as TabControl;
+                if (tab == null)
+                {
+                    continue;
+                }
+
+                TabPage clilocPage = null;
+                foreach (TabPage p in tab.TabPages)
+                {
+                    if (string.Equals(p.Name, "ClilocTab", StringComparison.Ordinal) ||
+                        (!string.IsNullOrEmpty(p.Text) && p.Text.IndexOf("CliLoc", StringComparison.OrdinalIgnoreCase) >= 0) ||
+                        (p.Tag is int tag && tag == 10))
+                    {
+                        clilocPage = p;
+                        break;
+                    }
+                }
+
+                if (clilocPage != null)
+                {
+                    try
+                    {
+                        var ctrl = new ClilocControl();
+                        ctrl.Visible = false;
+                        ctrl.Dock = DockStyle.Fill;
+                        clilocPage.Controls.Add(ctrl);
+
+                        // Do not invoke OnLoad on the hidden control; ensure underlying data is loaded only
+                        _refMarker = ctrl;
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
+                    return;
+                }
+            }
         }
 
         private void TestCustomLang(string what)

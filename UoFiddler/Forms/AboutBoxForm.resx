@@ -118,7 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.0.5
+    <value>Version 5.0.0.6
+- Added ability to right click a tile in items tab and select "select in all tabs" which should select in cliloc, gumps, radarcol, and tiledata tabs. This should make easier to get to all at once. 
+- Added the cliloc name for each item to load in the items tab area to show under Name. 
+
+Version 5.0.5
 - Tiledata misc settings now has a Copy These Setttings check box that can be set to copy whatever you set for a tiledata when you click save, and pastes into next to help speed up editing tiledata.
 		
 Version 5.0.4
