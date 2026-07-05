@@ -258,6 +258,10 @@ namespace UoFiddler.Classes
             sorter.Sort();
             foreach (string key in sorter)
             {
+                // Skip keys that are managed from RootDir only (art/gumpart/maps)
+                if (Files.IsManagedFromRoot(key))
+                    continue;
+
                 XmlElement path = dom.CreateElement("Paths");
                 path.SetAttribute("key", key);
                 path.SetAttribute("value", Files.MulPath[key]);
@@ -478,12 +482,22 @@ namespace UoFiddler.Classes
             if (elem != null)
             {
                 Files.RootDir = elem.GetAttribute("path");
+                // Treat the loaded RootDir as an explicit user selection: set MulPath from it and lock
+                Files.SetMulPath(Files.RootDir);
             }
 
             foreach (XmlElement xPath in xOptions.SelectNodes("Paths"))
             {
-                string key = xPath.GetAttribute("key");
-                Files.MulPath[key] = xPath.GetAttribute("value");
+                string key = xPath.GetAttribute("key")?.ToLower() ?? string.Empty;
+                string value = xPath.GetAttribute("value");
+
+                // Do not allow the profile to override art/gumpart/map file locations. We will only check RootDir for these.
+                if (key == "artlegacymul.uop" || key == "art.mul" || key == "artidx.mul" ||
+                    key == "gumpartlegacymul.uop" || key == "gumpart.mul" || key == "gumpidx.mul" ||
+                    key.StartsWith("map"))
+                    continue;
+
+                Files.MulPath[key] = value;
             }
 
             foreach (XmlElement xTab in xOptions.SelectNodes("TabView"))

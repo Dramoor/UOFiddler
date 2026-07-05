@@ -33,65 +33,89 @@ namespace Ultima
 
             _mulPath = null;
 
-            if (Files.MulPath == null)
+            // If the user locked MulPath, only check Files.RootDir for the requested files.
+            if (Files.MulPathLocked)
             {
-                Files.LoadMulPath();
-            }
-
-            if (Files.MulPath.Count > 0)
-            {
-                idxPath = Files.MulPath[idxFile.ToLower()];
-                _mulPath = Files.MulPath[mulFile.ToLower()];
-
-                if (!string.IsNullOrEmpty(uopFile) && Files.MulPath.ContainsKey(uopFile.ToLower()))
+                if (!string.IsNullOrEmpty(Files.RootDir))
                 {
-                    uopPath = Files.MulPath[uopFile.ToLower()];
-                }
+                    var candidateIdx = Path.Combine(Files.RootDir, idxFile);
+                    var candidateMul = Path.Combine(Files.RootDir, mulFile);
+                    var candidateUop = string.IsNullOrEmpty(uopFile) ? null : Path.Combine(Files.RootDir, uopFile);
 
-                if (string.IsNullOrEmpty(idxPath))
-                {
-                    idxPath = null;
-                }
-                else
-                {
-                    if (string.IsNullOrEmpty(Path.GetDirectoryName(idxPath)))
+                    idxPath = File.Exists(candidateIdx) ? candidateIdx : null;
+                    // prefer uop if present in root
+                    if (!string.IsNullOrEmpty(candidateUop) && File.Exists(candidateUop))
                     {
-                        idxPath = Path.Combine(Files.RootDir, idxPath);
+                        _mulPath = candidateUop;
+                    }
+                    else
+                    {
+                        _mulPath = File.Exists(candidateMul) ? candidateMul : null;
+                    }
+                }
+            }
+            else
+            {
+                if (Files.MulPath == null)
+                {
+                    Files.LoadMulPath();
+                }
+
+                if (Files.MulPath.Count > 0)
+                {
+                    idxPath = Files.MulPath[idxFile.ToLower()];
+                    _mulPath = Files.MulPath[mulFile.ToLower()];
+
+                    if (!string.IsNullOrEmpty(uopFile) && Files.MulPath.ContainsKey(uopFile.ToLower()))
+                    {
+                        uopPath = Files.MulPath[uopFile.ToLower()];
                     }
 
-                    if (!File.Exists(idxPath))
+                    if (string.IsNullOrEmpty(idxPath))
                     {
                         idxPath = null;
                     }
-                }
-
-                if (string.IsNullOrEmpty(_mulPath))
-                {
-                    _mulPath = null;
-                }
-                else
-                {
-                    if (string.IsNullOrEmpty(Path.GetDirectoryName(_mulPath)))
+                    else
                     {
-                        _mulPath = Path.Combine(Files.RootDir, _mulPath);
+                        if (string.IsNullOrEmpty(Path.GetDirectoryName(idxPath)))
+                        {
+                            idxPath = Path.Combine(Files.RootDir, idxPath);
+                        }
+
+                        if (!File.Exists(idxPath))
+                        {
+                            idxPath = null;
+                        }
                     }
 
-                    if (!File.Exists(_mulPath))
+                    if (string.IsNullOrEmpty(_mulPath))
                     {
                         _mulPath = null;
                     }
-                }
-
-                if (!string.IsNullOrEmpty(uopPath))
-                {
-                    if (string.IsNullOrEmpty(Path.GetDirectoryName(uopPath)))
+                    else
                     {
-                        uopPath = Path.Combine(Files.RootDir, uopPath);
+                        if (string.IsNullOrEmpty(Path.GetDirectoryName(_mulPath)))
+                        {
+                            _mulPath = Path.Combine(Files.RootDir, _mulPath);
+                        }
+
+                        if (!File.Exists(_mulPath))
+                        {
+                            _mulPath = null;
+                        }
                     }
 
-                    if (File.Exists(uopPath))
+                    if (!string.IsNullOrEmpty(uopPath))
                     {
-                        _mulPath = uopPath;
+                        if (string.IsNullOrEmpty(Path.GetDirectoryName(uopPath)))
+                        {
+                            uopPath = Path.Combine(Files.RootDir, uopPath);
+                        }
+
+                        if (File.Exists(uopPath))
+                        {
+                            _mulPath = uopPath;
+                        }
                     }
                 }
             }
@@ -137,47 +161,59 @@ namespace Ultima
         {
             string idxPath = null;
             _mulPath = null;
-
-            if (Files.MulPath == null)
+            if (Files.MulPathLocked)
             {
-                Files.LoadMulPath();
-            }
-
-            if (Files.MulPath.Count > 0)
-            {
-                idxPath = Files.MulPath[idxFile.ToLower()];
-                _mulPath = Files.MulPath[mulFile.ToLower()];
-                if (string.IsNullOrEmpty(idxPath))
+                if (!string.IsNullOrEmpty(Files.RootDir))
                 {
-                    idxPath = null;
+                    var candidateIdx = Path.Combine(Files.RootDir, idxFile);
+                    var candidateMul = Path.Combine(Files.RootDir, mulFile);
+                    idxPath = File.Exists(candidateIdx) ? candidateIdx : null;
+                    _mulPath = File.Exists(candidateMul) ? candidateMul : null;
                 }
-                else
+            }
+            else
+            {
+                if (Files.MulPath == null)
                 {
-                    if (string.IsNullOrEmpty(Path.GetDirectoryName(idxPath)))
-                    {
-                        idxPath = Path.Combine(Files.RootDir, idxPath);
-                    }
+                    Files.LoadMulPath();
+                }
 
-                    if (!File.Exists(idxPath))
+                if (Files.MulPath.Count > 0)
+                {
+                    idxPath = Files.MulPath[idxFile.ToLower()];
+                    _mulPath = Files.MulPath[mulFile.ToLower()];
+                    if (string.IsNullOrEmpty(idxPath))
                     {
                         idxPath = null;
                     }
-                }
-
-                if (string.IsNullOrEmpty(_mulPath))
-                {
-                    _mulPath = null;
-                }
-                else
-                {
-                    if (string.IsNullOrEmpty(Path.GetDirectoryName(_mulPath)))
+                    else
                     {
-                        _mulPath = Path.Combine(Files.RootDir, _mulPath);
+                        if (string.IsNullOrEmpty(Path.GetDirectoryName(idxPath)))
+                        {
+                            idxPath = Path.Combine(Files.RootDir, idxPath);
+                        }
+
+                        if (!File.Exists(idxPath))
+                        {
+                            idxPath = null;
+                        }
                     }
 
-                    if (!File.Exists(_mulPath))
+                    if (string.IsNullOrEmpty(_mulPath))
                     {
                         _mulPath = null;
+                    }
+                    else
+                    {
+                        if (string.IsNullOrEmpty(Path.GetDirectoryName(_mulPath)))
+                        {
+                            _mulPath = Path.Combine(Files.RootDir, _mulPath);
+                        }
+
+                        if (!File.Exists(_mulPath))
+                        {
+                            _mulPath = null;
+                        }
                     }
                 }
             }

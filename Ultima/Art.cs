@@ -10,8 +10,7 @@ namespace Ultima
 {     
     public static class Art
     {
-        private static FileIndex _fileIndex = new FileIndex(
-        "Artidx.mul", "Art.mul", "artLegacyMUL.uop", 0x14000, 4, ".tga", 0x13FDC, false);
+        private static FileIndex _fileIndex;
         private static Bitmap[] _cache;
         private static bool[] _removed;
         private static readonly Dictionary<int, bool> _patched = new Dictionary<int, bool>();
@@ -34,6 +33,8 @@ namespace Ultima
         {
             _cache = new Bitmap[0x14000];
             _removed = new bool[0x14000];
+
+            InitializeFileIndex();
         }
 
         public static int GetMaxItemId()
@@ -90,12 +91,34 @@ namespace Ultima
         /// </summary>
         public static void Reload()
         {
-            _fileIndex = new FileIndex(
-                "Artidx.mul", "Art.mul", "artLegacyMUL.uop", 0x14000, 4, ".tga", 0x13FDC, false);
+            InitializeFileIndex();
             _cache = new Bitmap[0x14000];
             _removed = new bool[0x14000];
             _patched.Clear();
             Modified = false;
+        }
+
+        private static void InitializeFileIndex()
+        {
+            try
+            {
+                // Ensure MulPath is loaded
+                Files.LoadMulPath();
+
+                const string idxKey = "artidx.mul";
+                const string mulKey = "art.mul";
+                const string uopKey = "artlegacymul.uop";
+
+                // Always resolve art files from Files.RootDir only. Do not attempt to register or
+                // store art paths in MulPath. FileIndex will, when MulPathLocked is true, look
+                // for the requested files inside Files.RootDir only.
+                _fileIndex = new FileIndex(idxKey, mulKey, uopKey, 0x14000, 4, ".tga", 0x13FDC, false);
+            }
+            catch
+            {
+                // On failure leave _fileIndex null so callers gracefully handle missing data
+                _fileIndex = null;
+            }
         }
 
         /// <summary>

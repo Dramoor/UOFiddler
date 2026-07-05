@@ -27,79 +27,25 @@ namespace Ultima
 
 
         /// <summary>
-        /// Scans the configured MulPath entries and/or RootDir to discover map files and builds Map objects.
-        /// This will look at Files.MulPath for entries like "map0.mul" / "map0legacymul.uop" and use the
-        /// directory where those files are configured. If entries are relative filenames the Files.RootDir is used.
+        /// Scans the configured RootDir to discover map files and builds Map objects.
+        /// Maps are always resolved from Files.RootDir only; do not consult Files.MulPath or other locations.
         /// </summary>
         public static void LoadMapsFromMulPath()
         {
             Maps.Clear();
 
-            if (Files.MulPath == null || Files.MulPath.Count == 0)
+            if (string.IsNullOrEmpty(Files.RootDir))
             {
-                // fallback to RootDir
-                if (!string.IsNullOrEmpty(Files.RootDir))
-                {
-                    LoadMapsFromFolder(Files.RootDir);
-                }
-
                 return;
             }
 
-            var dirs = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-
-            foreach (var kv in Files.MulPath)
+            try
             {
-                string key = kv.Key?.ToLowerInvariant() ?? string.Empty;
-                if (!key.StartsWith("map"))
-                {
-                    continue;
-                }
-
-                string val = kv.Value;
-                if (string.IsNullOrEmpty(val))
-                {
-                    // relative name -> use RootDir
-                    if (!string.IsNullOrEmpty(Files.RootDir))
-                    {
-                        dirs.Add(Files.RootDir);
-                    }
-
-                    continue;
-                }
-
-                // val may be a filename only or a full path
-                string dir = Path.GetDirectoryName(val);
-                if (string.IsNullOrEmpty(dir))
-                {
-                    // relative name -> use RootDir
-                    if (!string.IsNullOrEmpty(Files.RootDir))
-                    {
-                        dirs.Add(Files.RootDir);
-                    }
-                }
-                else
-                {
-                    dirs.Add(dir);
-                }
+                LoadMapsFromFolder(Files.RootDir);
             }
-
-            // Always include RootDir so we scan any map*.mul present there even if not listed in MulPath
-            if (!string.IsNullOrEmpty(Files.RootDir))
+            catch
             {
-                dirs.Add(Files.RootDir);
-            }
-
-            foreach (var d in dirs)
-            {
-                try
-                {
-                    LoadMapsFromFolder(d);
-                }
-                catch
-                {
-                    // ignore IO errors per-folder
-                }
+                // ignore IO errors
             }
         }
 

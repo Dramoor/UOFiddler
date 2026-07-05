@@ -26,6 +26,17 @@ namespace Ultima
         public static Dictionary<string, string> MulPath { get; set; }
 
         /// <summary>
+        /// Keys that were manually set and should not be overwritten by automatic discovery
+        /// </summary>
+        private static HashSet<string> _manualMulPathKeys = new HashSet<string>();
+
+        /// <summary>
+        /// When true, automatic discovery will not modify MulPath or RootDir. Set when the user explicitly
+        /// chooses a path so it will never be changed unless unlocked.
+        /// </summary>
+        public static bool MulPathLocked { get; private set; } = false;
+
+        /// <summary>
         /// Gets a list of paths to the Client's data files.
         /// </summary>
         public static string Directory { get; private set; }
@@ -155,6 +166,80 @@ namespace Ultima
             "verdata.mul"
         };
 
+        private static readonly HashSet<string> _artKeys = new HashSet<string>(System.StringComparer.OrdinalIgnoreCase)
+        {
+            "art.mul",
+            "artidx.mul",
+            "artlegacymul.uop",
+            "gumpart.mul",
+            "gumpidx.mul",
+            "gumpartlegacymul.uop",
+            "body.def",
+            "bodyconv.def",
+            "client.exe",
+            "cliloc.custom1",
+            "cliloc.custom2",
+            "cliloc.deu",
+            "cliloc.enu",
+            "animdata.mul",
+            "equipconv.def",
+            "gump.def",
+            "mobtypes.txt",
+            "multicollection.uop",
+            "multi.idx",
+            "multi.mul",
+            "radarcol.mul",
+            "skillgrp.mul",
+            "skills.idx",
+            "skills.mul",
+            "speech.mul",
+            "sound.def",
+            "sound.mul",
+            "soundidx.mul",
+            "soundlegacymul.uop",
+            "hues.mul",
+            "light.mul",
+            "lightidx.mul",
+            "mainmisc.uop",
+            "multimap.rle",
+            "fonts.mul",
+            "unifont.mul",
+            "unifont1.mul",
+            "unifont2.mul",
+            "unifont3.mul",
+            "unifont4.mul",
+            "unifont5.mul",
+            "unifont6.mul",
+            "unifont7.mul",
+            "unifont8.mul",
+            "unifont9.mul",
+            "unifont10.mul",
+            "unifont11.mul",
+            "unifont12.mul",
+            "texidx.mul",
+            "texmaps.mul",
+            "tiledata.mul",
+            "uotd.exe",
+            "verdata.mul"
+        };
+
+        /// <summary>
+        /// Returns true if the given MulPath key is managed only from RootDir (art, gumpart, map files)
+        /// and therefore should not be shown or saved in the Paths UI.
+        /// </summary>
+        /// <param name="key"></param>
+        /// <returns></returns>
+        public static bool IsManagedFromRoot(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return false;
+            string k = key.ToLowerInvariant();
+            if (_artKeys.Contains(k)) return true;
+            if (k.StartsWith("map")) return true;
+            if (k.StartsWith("sta")) return true;
+            if (k.StartsWith("anim")) return true;
+            return false;
+        }
+
         static Files()
         {
             Directory = LoadDirectory();
@@ -174,15 +259,59 @@ namespace Ultima
         /// </summary>
         public static void LoadMulPath()
         {
-            MulPath = new Dictionary<string, string>();
+            // If the user has explicitly locked their chosen mul path, do not alter anything
+            if (MulPathLocked)
+            {
+                return;
+            }
+            if (MulPath == null)
+            {
+                MulPath = new Dictionary<string, string>();
+            }
+
+            // Ensure art/gumpart/map keys are not kept in MulPath so they don't appear in Paths UI
+            List<string> keysToRemove = new List<string>();
+            foreach (string key in MulPath.Keys)
+            {
+                if (string.IsNullOrEmpty(key))
+                    continue;
+
+                string normalizedKey = key.ToLowerInvariant();
+                if (_artKeys.Contains(normalizedKey) || normalizedKey.StartsWith("map") || normalizedKey.StartsWith("sta") || normalizedKey.StartsWith("anim"))
+                {
+                    keysToRemove.Add(key);
+                }
+            }
+
+            foreach (string key in keysToRemove)
+            {
+                MulPath.Remove(key);
+            }
+
             RootDir = Directory ?? string.Empty;
 
             foreach (string file in _uoFiles)
             {
+                string key = file.ToLower();
+                // Do not include art/map/sta/anim files in MulPath - always resolve them from RootDir only
+                if (_artKeys.Contains(file) || key.StartsWith("map") || key.StartsWith("sta") || key.StartsWith("anim"))
+                {
+                    continue;
+                }
+
+                // If key was manually set previously, do not overwrite it
+                if (_manualMulPathKeys.Contains(key))
+                {
+                    // ensure the key exists in the dictionary
+                    if (!MulPath.ContainsKey(key))
+                        MulPath[key] = MulPath.ContainsKey(key) ? MulPath[key] : string.Empty;
+                    continue;
+                }
+
                 string filePath = Path.Combine(RootDir, file);
 
                 // store keys in lowercase to match GetFilePath lookup which uses file.ToLower()
-                MulPath[file.ToLower()] = File.Exists(filePath) ? file : string.Empty;
+                MulPath[key] = File.Exists(filePath) ? file : string.Empty;
             }
         }
 
@@ -193,14 +322,18 @@ namespace Ultima
         public static void SetMulPath(string path)
         {
             RootDir = path;
-
             foreach (string file in _uoFiles)
             {
-                string filePath;
                 string key = file.ToLower();
 
+                // Do not touch art/gumpart/map/sta/anim keys here; they are always resolved from RootDir only
+                if (_artKeys.Contains(file) || key.StartsWith("map") || key.StartsWith("sta") || key.StartsWith("anim"))
+                    continue;
+
+                string filePath;
+
                 // file was set
-                if (!string.IsNullOrEmpty(MulPath[key]))
+                if (MulPath.ContainsKey(key) && !string.IsNullOrEmpty(MulPath[key]))
                 {
                     // and was relative like "art.mul"
                     if (string.IsNullOrEmpty(Path.GetDirectoryName(MulPath[key])))
@@ -224,6 +357,37 @@ namespace Ultima
                 filePath = Path.Combine(RootDir, file);
                 MulPath[key] = File.Exists(filePath) ? filePath : string.Empty;
             }
+
+            // The user explicitly set a root path; treat all current MulPath keys (except art files)
+            // as manually set so automatic discovery won't override them later.
+            List<string> keysToRemove = new List<string>();
+            foreach (string key in MulPath.Keys)
+            {
+                if (string.IsNullOrEmpty(key))
+                    continue;
+
+                string normalizedKey = key.ToLowerInvariant();
+                if (_artKeys.Contains(normalizedKey) || normalizedKey.StartsWith("map"))
+                {
+                    keysToRemove.Add(key);
+                }
+            }
+
+            foreach (string key in keysToRemove)
+            {
+                MulPath.Remove(key);
+            }
+
+            foreach (string key in MulPath.Keys)
+            {
+                if (string.IsNullOrEmpty(key))
+                    continue;
+
+                _manualMulPathKeys.Add(key.ToLowerInvariant());
+            }
+
+            // Lock overall MulPath since the user explicitly set the root path
+            MulPathLocked = true;
         }
 
         /// <summary>
@@ -233,7 +397,41 @@ namespace Ultima
         /// <param name="key"></param>
         public static void SetMulPath(string path, string key)
         {
-            MulPath[key.ToLower()] = path;
+            if (string.IsNullOrEmpty(key)) return;
+            string k = key.ToLowerInvariant();
+
+            // Do not allow setting keys that are managed from RootDir only
+            if (IsManagedFromRoot(k))
+            {
+                // ignore attempts to set these per-file paths; they are resolved from RootDir only
+                return;
+            }
+
+            MulPath[k] = path;
+            // Mark this key as manually set so automatic discovery won't override it
+            _manualMulPathKeys.Add(k);
+            // Lock overall MulPath since a specific key was explicitly set by the user
+            MulPathLocked = true;
+        }
+
+        /// <summary>
+        /// Marks a previously set MulPath key as manual (locked) so it won't be auto-overwritten
+        /// </summary>
+        /// <param name="key"></param>
+        public static void LockMulPathKey(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            _manualMulPathKeys.Add(key.ToLower());
+        }
+
+        /// <summary>
+        /// Unlocks a MulPath key so it can be auto-updated again
+        /// </summary>
+        /// <param name="key"></param>
+        public static void UnlockMulPathKey(string key)
+        {
+            if (string.IsNullOrEmpty(key)) return;
+            _manualMulPathKeys.Remove(key.ToLower());
         }
 
         /// <summary>
@@ -244,7 +442,18 @@ namespace Ultima
         /// </returns>
         public static string GetFilePath(string file)
         {
-            if (MulPath.Count == 0)
+            if (string.IsNullOrEmpty(file)) return null;
+
+            // If this key is managed from RootDir only, look there directly
+            if (IsManagedFromRoot(file))
+            {
+                if (string.IsNullOrEmpty(RootDir)) return null;
+
+                var candidate = Path.Combine(RootDir, file);
+                return File.Exists(candidate) ? candidate : null;
+            }
+
+            if (MulPath == null || MulPath.Count == 0)
             {
                 return null;
             }

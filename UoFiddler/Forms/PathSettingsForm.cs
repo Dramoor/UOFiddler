@@ -145,6 +145,17 @@ namespace UoFiddler.Forms
             List<PropertyDescriptor> properties = new List<PropertyDescriptor>();
             foreach (DictionaryEntry e in _dictionary)
             {
+                try
+                {
+                    var key = e.Key?.ToString() ?? string.Empty;
+                    if (Ultima.Files.IsManagedFromRoot(key))
+                        continue; // skip art/gumpart/map/body/client keys
+                }
+                catch
+                {
+                    // ignore and include by default
+                }
+
                 properties.Add(new DictionaryPropertyDescriptor(_dictionary, e.Key));
             }
 
