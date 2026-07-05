@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.0.0.6
+    <value>Version 5.1.0
+- Only need to set rootpath now. It will auto load all the files from that folder. Maps (muls and uops) and facet muls will dynamically load in case of customs and bonus maps or facet files. 
+
+Version 5.0.0.6
 - Added ability to right click a tile in items tab and select "select in all tabs" which should select in cliloc, gumps, radarcol, and tiledata tabs. This should make easier to get to all at once. 
 - Added the cliloc name for each item to load in the items tab area to show under Name. 
 
