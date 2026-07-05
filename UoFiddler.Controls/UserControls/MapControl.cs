@@ -245,42 +245,25 @@ namespace UoFiddler.Controls.UserControls
             Options.LoadedUltimaClass["Map"] = true;
             Options.LoadedUltimaClass["RadarColor"] = true;
 
-            if (Options.UseDynamicMapLoading)
+            // Always use dynamic map loading
+            LoadMapNamesFromAppData();
+            Map.LoadMapsFromMulPath();
+            BuildMapMenu();
+
+            if (Map.Maps.Count > 0)
             {
-                // dynamic mode: load map names first (so size overrides are available), then discover maps
-                LoadMapNamesFromAppData();
-                Map.LoadMapsFromMulPath();
-                BuildMapMenu();
-
-                if (Map.Maps.Count > 0)
-                {
-                    CurrentMap = Map.Maps[0];
-                    _currentMapId = CurrentMap.FileIndex;
-                }
-                else
-                {
-                    CurrentMap = Map.Felucca;
-                    _currentMapId = 0;
-                }
-
-                PreloadMap.Visible = true;
-                ZoomLabel.Text = $"Zoom: {Zoom}";
-                SizeLabel.Text = $"Size: {CurrentMap?.SizeLabel ?? "unknown"}";
+                CurrentMap = Map.Maps[0];
+                _currentMapId = CurrentMap.FileIndex;
             }
             else
             {
-                // legacy fixed maps
                 CurrentMap = Map.Felucca;
-                feluccaToolStripMenuItem.Checked = true;
-                trammelToolStripMenuItem.Checked = false;
-                ilshenarToolStripMenuItem.Checked = false;
-                malasToolStripMenuItem.Checked = false;
-                tokunoToolStripMenuItem.Checked = false;
-                PreloadMap.Visible = true;
-                ChangeMapNames();
-                ZoomLabel.Text = $"Zoom: {Zoom}";
-                SizeLabel.Text = $"Size: {CurrentMap?.SizeLabel ?? "unknown"}";
+                _currentMapId = 0;
             }
+
+            PreloadMap.Visible = true;
+            ZoomLabel.Text = $"Zoom: {Zoom}";
+            SizeLabel.Text = $"Size: {CurrentMap?.SizeLabel ?? "unknown"}";
             SetScrollBarValues();
             Refresh();
             pictureBox.Invalidate();

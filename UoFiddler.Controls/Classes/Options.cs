@@ -208,11 +208,7 @@ namespace UoFiddler.Controls.Classes
         public static string AppDataPath { get; set; }
         public static string OutputPath { get; set; }
         public static string ProfileName { get; set; }
-        /// <summary>
-        /// When true, load maps dynamically from configured mul paths or folders and use Mapnames.xml for names.
-        /// When false, use the legacy fixed map set (Felucca, Trammel, ...).
-        /// </summary>
-        public static bool UseDynamicMapLoading { get; set; } = false;
+        // Dynamic map loading is always enabled; no runtime toggle required.
         public static Color TileFocusColor { get; set; } = Color.DarkRed;
         public static Color TileSelectionColor { get; set; } = Color.DodgerBlue;
         public static bool OverrideBackgroundColorFromTile { get; set; }

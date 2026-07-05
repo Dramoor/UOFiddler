@@ -179,11 +179,7 @@ namespace UoFiddler.Classes
             elem = dom.CreateElement("UseMapDiff");
             elem.SetAttribute("active", Map.UseDiff.ToString());
             sr.AppendChild(elem);
-            comment = dom.CreateComment("UseDynamicMapLoading should load maps dynamically from mul paths and use Mapnames.xml");
-            sr.AppendChild(comment);
-            elem = dom.CreateElement("UseDynamicMapLoading");
-            elem.SetAttribute("active", Options.UseDynamicMapLoading.ToString());
-            sr.AppendChild(elem);
+            // UseDynamicMapLoading removed - dynamic loading always in effect
             comment = dom.CreateComment("Offset Sound Ids by 1 (POL specific setting)");
             sr.AppendChild(comment);
             elem = dom.CreateElement("PolSoundIdOffset");
@@ -400,11 +396,7 @@ namespace UoFiddler.Classes
                 Map.StartUpSetDiff(bool.Parse(elem.GetAttribute("active")));
             }
 
-            elem = (XmlElement)xOptions.SelectSingleNode("UseDynamicMapLoading");
-            if (elem != null)
-            {
-                Options.UseDynamicMapLoading = bool.Parse(elem.GetAttribute("active"));
-            }
+            // UseDynamicMapLoading removed - dynamic loading always in effect
 
             elem = (XmlElement)xOptions.SelectSingleNode("PolSoundIdOffset");
             if (elem != null)

@@ -53,7 +53,7 @@ namespace UoFiddler.Forms
             checkBoxPolSoundIdOffset = new System.Windows.Forms.CheckBox();
             checkBoxuseDiff = new System.Windows.Forms.CheckBox();
             checkBoxNewMapSize = new System.Windows.Forms.CheckBox();
-            checkBoxUseDynamicMapLoading = new System.Windows.Forms.CheckBox();
+            // checkBoxUseDynamicMapLoading removed - dynamic map loading always enabled
             buttonApply = new System.Windows.Forms.Button();
             toolTip1 = new System.Windows.Forms.ToolTip(components);
             label2 = new System.Windows.Forms.Label();
@@ -190,7 +190,6 @@ namespace UoFiddler.Forms
             groupBox2.Controls.Add(label7);
             groupBox2.Controls.Add(cmdtext);
             groupBox2.Controls.Add(checkBoxNewMapSize);
-            groupBox2.Controls.Add(checkBoxUseDynamicMapLoading);
             groupBox2.Controls.Add(checkBoxCacheData);
             groupBox2.Location = new System.Drawing.Point(16, 6);
             groupBox2.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
@@ -262,15 +261,7 @@ namespace UoFiddler.Forms
             // 
             // checkBoxUseDynamicMapLoading
             // 
-            checkBoxUseDynamicMapLoading.AutoSize = true;
-            checkBoxUseDynamicMapLoading.Location = new System.Drawing.Point(7, 148);
-            checkBoxUseDynamicMapLoading.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            checkBoxUseDynamicMapLoading.Name = "checkBoxUseDynamicMapLoading";
-            checkBoxUseDynamicMapLoading.Size = new System.Drawing.Size(238, 19);
-            checkBoxUseDynamicMapLoading.TabIndex = 9;
-            checkBoxUseDynamicMapLoading.Text = "Dynamic Map Loading (Mapnames.xml)";
-            toolTip1.SetToolTip(checkBoxUseDynamicMapLoading, "When checked, maps are discovered from configured mul paths and names are read from Mapnames.xml in AppData.");
-            checkBoxUseDynamicMapLoading.UseVisualStyleBackColor = true;
+            // checkBoxUseDynamicMapLoading removed
             // 
             // buttonApply
             // 
@@ -666,7 +657,7 @@ namespace UoFiddler.Forms
         private System.Windows.Forms.Label FocusColorLabel;
         private System.Windows.Forms.ComboBox TileFocusColorComboBox;
         private System.Windows.Forms.CheckBox checkBoxPolSoundIdOffset;
-        private System.Windows.Forms.CheckBox checkBoxUseDynamicMapLoading;
+        // checkBoxUseDynamicMapLoading removed
         private System.Windows.Forms.Button buttonClose;
         private System.Windows.Forms.CheckBox checkboxRemoveTileBorder;
         private System.Windows.Forms.CheckBox checkBoxOverrideBackgroundColorFromTile;
