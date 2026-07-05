@@ -28,12 +28,8 @@ namespace UoFiddler.Controls.UserControls
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
 
             multiMapToolStripMenuItem.Tag = -1;
-            facet00ToolStripMenuItem.Tag = 0;
-            facet01ToolStripMenuItem.Tag = 1;
-            facet02ToolStripMenuItem.Tag = 2;
-            facet03ToolStripMenuItem.Tag = 3;
-            facet04ToolStripMenuItem.Tag = 4;
-            facet05ToolStripMenuItem.Tag = 5;
+            // dynamically populate facet entries found in Files.RootDir
+            PopulateFacetMenuItems();
         }
 
         private bool _moving;
@@ -57,39 +53,8 @@ namespace UoFiddler.Controls.UserControls
             }
 
             _moving = false;
-            ToolStripMenuItem strip;
-            if (multiMapToolStripMenuItem.Checked)
-            {
-                strip = multiMapToolStripMenuItem;
-            }
-            else if (facet00ToolStripMenuItem.Checked)
-            {
-                strip = facet00ToolStripMenuItem;
-            }
-            else if (facet01ToolStripMenuItem.Checked)
-            {
-                strip = facet01ToolStripMenuItem;
-            }
-            else if (facet02ToolStripMenuItem.Checked)
-            {
-                strip = facet02ToolStripMenuItem;
-            }
-            else if (facet03ToolStripMenuItem.Checked)
-            {
-                strip = facet03ToolStripMenuItem;
-            }
-            else if (facet04ToolStripMenuItem.Checked)
-            {
-                strip = facet04ToolStripMenuItem;
-            }
-            else if (facet05ToolStripMenuItem.Checked)
-            {
-                strip = facet05ToolStripMenuItem;
-            }
-            else
-            {
-                return;
-            }
+            ToolStripMenuItem strip = GetCheckedFacetMenuItem();
+            if (strip == null) return;
 
             strip.Checked = false;
             ShowImage(strip, EventArgs.Empty);
@@ -157,6 +122,60 @@ namespace UoFiddler.Controls.UserControls
                 _moving = false;
                 Cursor = Cursors.Default;
             }
+        }
+
+        private void PopulateFacetMenuItems()
+        {
+            // remove existing dynamic facet items (keep MultiMap as first)
+            var items = toolStripDropDownButton1.DropDownItems;
+            // clear all except first (MultiMap)
+            for (int i = items.Count - 1; i >= 0; --i)
+            {
+                if (items[i] != multiMapToolStripMenuItem)
+                {
+                    items.RemoveAt(i);
+                }
+            }
+
+            // find facet*.mul files in RootDir
+            if (string.IsNullOrEmpty(Ultima.Files.RootDir)) return;
+            try
+            {
+                var files = Directory.GetFiles(Ultima.Files.RootDir, "facet*.mul");
+                foreach (var f in files)
+                {
+                    string name = Path.GetFileNameWithoutExtension(f); // e.g. facet00
+                    if (!name.StartsWith("facet", StringComparison.OrdinalIgnoreCase))
+                        continue;
+
+                    string numPart = name.Substring(5); // after 'facet'
+                    if (!int.TryParse(numPart, out int id))
+                        continue;
+
+                    var menu = new ToolStripMenuItem
+                    {
+                        Text = name.Replace("facet", "Facet"),
+                        Tag = id
+                    };
+                    menu.Click += ShowImage;
+                    toolStripDropDownButton1.DropDownItems.Add(menu);
+                }
+            }
+            catch
+            {
+                // ignore errors
+            }
+        }
+
+        private ToolStripMenuItem GetCheckedFacetMenuItem()
+        {
+            foreach (ToolStripItem item in toolStripDropDownButton1.DropDownItems)
+            {
+                if (item is ToolStripMenuItem m && m.Checked)
+                    return m;
+            }
+
+            return null;
         }
 
         private void OnMouseMove(object sender, MouseEventArgs e)
@@ -231,33 +250,9 @@ namespace UoFiddler.Controls.UserControls
             {
                 return "MultiMap";
             }
-
-            if (facet00ToolStripMenuItem.Checked)
-            {
-                return "Facet00";
-            }
-            if (facet01ToolStripMenuItem.Checked)
-            {
-                return "Facet01";
-            }
-            if (facet02ToolStripMenuItem.Checked)
-            {
-                return "Facet02";
-            }
-            if (facet03ToolStripMenuItem.Checked)
-            {
-                return "Facet03";
-            }
-            if (facet04ToolStripMenuItem.Checked)
-            {
-                return "Facet04";
-            }
-            if (facet05ToolStripMenuItem.Checked)
-            {
-                return "Facet05";
-            }
-
-            return "Unk";
+            var item = GetCheckedFacetMenuItem();
+            if (item == null) return "Unk";
+            return item.Text.Replace(" ", "");
         }
 
         private void ShowImage(object sender, EventArgs e)
@@ -274,19 +269,18 @@ namespace UoFiddler.Controls.UserControls
 
             Cursor.Current = Cursors.WaitCursor;
 
-            multiMapToolStripMenuItem.Checked =
-                facet00ToolStripMenuItem.Checked =
-                facet01ToolStripMenuItem.Checked =
-                facet02ToolStripMenuItem.Checked =
-                facet03ToolStripMenuItem.Checked =
-                facet04ToolStripMenuItem.Checked =
-                facet05ToolStripMenuItem.Checked = false;
+
+            // uncheck all items in the first dropdown (Load..)
+            foreach (ToolStripItem item in toolStripDropDownButton1.DropDownItems)
+            {
+                if (item is ToolStripMenuItem menuItem)
+                    menuItem.Checked = false;
+            }
 
             strip.Checked = true;
 
-            pictureBox.Image = (int)strip.Tag == -1
-                ? Ultima.MultiMap.GetMultiMap()
-                : Ultima.MultiMap.GetFacetImage((int)strip.Tag);
+            int tag = strip.Tag is int ? (int)strip.Tag : -1;
+            pictureBox.Image = tag == -1 ? Ultima.MultiMap.GetMultiMap() : Ultima.MultiMap.GetFacetImage(tag);
 
             if (pictureBox.Image != null)
             {

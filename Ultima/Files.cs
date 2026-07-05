@@ -235,6 +235,7 @@ namespace Ultima
             string k = key.ToLowerInvariant();
             if (_artKeys.Contains(k)) return true;
             if (k.StartsWith("map")) return true;
+            if (k.StartsWith("facet")) return true;
             if (k.StartsWith("sta")) return true;
             if (k.StartsWith("anim")) return true;
             return false;

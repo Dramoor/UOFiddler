@@ -147,7 +147,8 @@ namespace Ultima
         /// <returns>Bitmap</returns>
         public static unsafe Bitmap GetFacetImage(int id)
         {
-            string path = Files.GetFilePath($"facet0{id}.mul");
+            // support facet files with two-digit or more numeric suffixes (facet00, facet05, facet12, ...)
+            string path = Files.GetFilePath($"facet{id:00}.mul");
             if (path == null)
             {
                 return null;
