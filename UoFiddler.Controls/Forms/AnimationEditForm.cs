@@ -15,6 +15,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.ComponentModel;
 using System.Windows.Media.Imaging;
 using Ultima;
 using UoFiddler.Controls.Classes;
@@ -420,6 +421,269 @@ namespace UoFiddler.Controls.Forms
 
             AnimationPictureBox.Invalidate();
             SetPaletteBox();
+        }
+
+        private void ContextMenuStripTreeView_Opening(object sender, CancelEventArgs e)
+        {
+            // select tree node under mouse so actions apply to the clicked node
+            try
+            {
+                var pt = AnimationListTreeView.PointToClient(Control.MousePosition);
+                var node = AnimationListTreeView.GetNodeAt(pt);
+                if (node != null)
+                {
+                    AnimationListTreeView.SelectedNode = node;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            // populate dynamic submenu entries for copying whole action (all directions)
+            try
+            {
+                copyToFrameToolStripMenuItem.DropDownItems.Clear();
+                forceCopyToFrameToolStripMenuItem.DropDownItems.Clear();
+
+                if (_fileType == 0)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                int animLength = Animations.GetAnimLength(_currentBody, _fileType);
+                if (animLength <= 0)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                for (int action = 0; action < animLength; ++action)
+                {
+                    string text = action.ToString("D2") + " ";
+                    // append name if available — choose correct anim-name set: 13->animal (0), 22->monster (1), otherwise people (2)
+                    if (_animNames != null && _animNames.Length > 0)
+                    {
+                        int nameSet = animLength == 13 ? 0 : animLength == 22 ? 1 : 2;
+                        if (nameSet >= 0 && nameSet < _animNames.Length && action < _animNames[nameSet].Length)
+                        {
+                            text += _animNames[nameSet][action];
+                        }
+                    }
+
+                    // determine if target action is empty across all directions
+                    bool targetEmpty = true;
+                    for (int d = 0; d < 5; ++d)
+                    {
+                        AnimIdx targetAnim = AnimationEdit.GetAnimation(_fileType, _currentBody, action, d);
+                        if (targetAnim != null && targetAnim.Frames != null && targetAnim.Frames.Count > 0)
+                        {
+                            targetEmpty = false;
+                            break;
+                        }
+                    }
+
+                    var item = new ToolStripMenuItem(text) { Tag = action };
+                    item.Enabled = targetEmpty; // only enable if empty
+                    item.Click += CopyAction_Click;
+                    copyToFrameToolStripMenuItem.DropDownItems.Add(item);
+
+                    var force = new ToolStripMenuItem(text) { Tag = action };
+                    force.Click += ForceCopyAction_Click;
+                    forceCopyToFrameToolStripMenuItem.DropDownItems.Add(force);
+                }
+            }
+            catch
+            {
+                // swallow errors to avoid breaking context menu
+            }
+        }
+
+        // Previous per-frame copy handlers replaced with action-level copy
+        private void CopyAction_Click(object sender, EventArgs e)
+        {
+            if (!(sender is ToolStripMenuItem itm))
+                return;
+
+            int targetAction = (int)itm.Tag;
+            int sourceAction = _currentAction;
+
+            if (sourceAction == targetAction)
+                return;
+
+            // Ensure source has data
+            bool hasSource = false;
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                if (src != null && src.Frames != null && src.Frames.Count > 0)
+                {
+                    hasSource = true;
+                    break;
+                }
+            }
+
+            if (!hasSource)
+            {
+                MessageBox.Show("Source action has no frames.", "Copy action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // For normal copy, ensure target is empty across directions
+            bool targetEmpty = true;
+            for (int d = 0; d < 5; ++d)
+            {
+                var tgt = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
+                if (tgt != null && tgt.Frames != null && tgt.Frames.Count > 0)
+                {
+                    targetEmpty = false;
+                    break;
+                }
+            }
+
+            if (!targetEmpty)
+            {
+                MessageBox.Show("Target action is not empty. Use 'Force copy action' to overwrite.", "Copy action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // perform copy across directions
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                var tgt = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
+                if (tgt == null)
+                    continue;
+
+                if (src == null || src.Frames == null || src.Frames.Count == 0)
+                {
+                    // ensure target is empty as well
+                    tgt.ClearFrames();
+                    continue;
+                }
+
+                // Replace target palette with a copy of source palette so indices match
+                if (src.Palette != null)
+                {
+                    var palCopy = new ushort[src.Palette.Length];
+                    System.Array.Copy(src.Palette, palCopy, src.Palette.Length);
+                    tgt.ReplacePalette(palCopy);
+                }
+
+                // clear target then add frames recreated from source bitmaps
+                tgt.ClearFrames();
+                Bitmap[] srcBits = src.GetFrames();
+                for (int f = 0; f < src.Frames.Count; ++f)
+                {
+                    if (srcBits == null || f >= srcBits.Length || srcBits[f] == null)
+                        continue;
+
+                    var sf = src.Frames[f];
+                    // AddFrame will create FrameEdit using tgt.Palette (we replaced it above)
+                    tgt.AddFrame(new Bitmap(srcBits[f]), sf.Center.X, sf.Center.Y);
+                }
+            }
+
+            Options.ChangedUltimaClass["Animations"] = true;
+            // update tree node color for target action to indicate it now has frames
+            try
+            {
+                TreeNode parent = GetNode(_currentBody);
+                if (parent != null && parent.Nodes.Count > targetAction)
+                {
+                    parent.Nodes[targetAction].ForeColor = Color.Black;
+                    parent.ForeColor = Color.Black;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            AfterSelectTreeView(null, null);
+            AnimationPictureBox.Invalidate();
+        }
+
+        private void ForceCopyAction_Click(object sender, EventArgs e)
+        {
+            if (!(sender is ToolStripMenuItem itm))
+                return;
+
+            int targetAction = (int)itm.Tag;
+            int sourceAction = _currentAction;
+
+            if (sourceAction == targetAction)
+                return;
+
+            // Ensure source has data
+            bool hasSource = false;
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                if (src != null && src.Frames != null && src.Frames.Count > 0)
+                {
+                    hasSource = true;
+                    break;
+                }
+            }
+
+            if (!hasSource)
+            {
+                MessageBox.Show("Source action has no frames.", "Force copy action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // perform copy (overwrite) across directions
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                var tgt = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
+                if (tgt == null)
+                    continue;
+
+                if (src == null || src.Frames == null || src.Frames.Count == 0)
+                {
+                    tgt.ClearFrames();
+                    continue;
+                }
+
+                if (src.Palette != null)
+                {
+                    var palCopy = new ushort[src.Palette.Length];
+                    System.Array.Copy(src.Palette, palCopy, src.Palette.Length);
+                    tgt.ReplacePalette(palCopy);
+                }
+
+                tgt.ClearFrames();
+                Bitmap[] srcBits = src.GetFrames();
+                for (int f = 0; f < src.Frames.Count; ++f)
+                {
+                    if (srcBits == null || f >= srcBits.Length || srcBits[f] == null)
+                        continue;
+
+                    var sf = src.Frames[f];
+                    tgt.AddFrame(new Bitmap(srcBits[f]), sf.Center.X, sf.Center.Y);
+                }
+            }
+
+            Options.ChangedUltimaClass["Animations"] = true;
+            // update tree node color for target action to indicate it now has frames
+            try
+            {
+                TreeNode parent = GetNode(_currentBody);
+                if (parent != null && parent.Nodes.Count > targetAction)
+                {
+                    parent.Nodes[targetAction].ForeColor = Color.Black;
+                    parent.ForeColor = Color.Black;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            AfterSelectTreeView(null, null);
+            AnimationPictureBox.Invalidate();
         }
 
         private void DrawFrameItem(object sender, DrawListViewItemEventArgs e)

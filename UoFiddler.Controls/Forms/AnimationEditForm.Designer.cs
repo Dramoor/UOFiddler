@@ -62,6 +62,8 @@
             fromImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             FramesListView = new System.Windows.Forms.ListView();
             ContextMenuStripListView = new System.Windows.Forms.ContextMenuStrip(components);
+            copyToFrameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            forceCopyToFrameToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             allDirectionsAddToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             allDirectionsAddWithCanvasToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             addDirectionsAddWithCanvasUniqueImageToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -226,7 +228,8 @@
             // ContextMenuStripTreeView
             // 
             ContextMenuStripTreeView.ImageScalingSize = new System.Drawing.Size(20, 20);
-            ContextMenuStripTreeView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addToolStripMenuItem, removeToolStripMenuItem, extractImagesToolStripMenuItem1, importToolStripMenuItem1, exportToolStripMenuItem1 });
+            ContextMenuStripTreeView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addToolStripMenuItem, removeToolStripMenuItem, extractImagesToolStripMenuItem1, importToolStripMenuItem1, exportToolStripMenuItem1, copyToFrameToolStripMenuItem, forceCopyToFrameToolStripMenuItem });
+            ContextMenuStripTreeView.Opening += ContextMenuStripTreeView_Opening;
             ContextMenuStripTreeView.Name = "contextMenuStrip2";
             ContextMenuStripTreeView.Size = new System.Drawing.Size(157, 114);
             // 
@@ -486,6 +489,7 @@
             ContextMenuStripListView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { allDirectionsAddToolStripMenuItem, allDirectionsAddWithCanvasToolStripMenuItem, addDirectionsAddWithCanvasUniqueImageToolStripMenuItem, allDirectionsAddWithCanvasKRframeEditorColorCorrectorToolStripMenuItem, addToolStripMenuItem1, addWithCanvasToolStripMenuItem, replaceToolStripMenuItem, removeToolStripMenuItem1 });
             ContextMenuStripListView.Name = "contextMenuStrip1";
             ContextMenuStripListView.Size = new System.Drawing.Size(413, 180);
+            // ContextMenuStripListView.Opening handled for frames; copy action moved to tree view
             // 
             // allDirectionsAddToolStripMenuItem
             // 
@@ -552,6 +556,18 @@
             removeToolStripMenuItem1.Size = new System.Drawing.Size(412, 22);
             removeToolStripMenuItem1.Text = "Remove";
             removeToolStripMenuItem1.Click += OnClickRemoveFrame;
+            // 
+            // copyToFrameToolStripMenuItem
+            // 
+            copyToFrameToolStripMenuItem.Name = "copyToFrameToolStripMenuItem";
+            copyToFrameToolStripMenuItem.Size = new System.Drawing.Size(412, 22);
+            copyToFrameToolStripMenuItem.Text = "Copy action to...";
+            // 
+            // forceCopyToFrameToolStripMenuItem
+            // 
+            forceCopyToFrameToolStripMenuItem.Name = "forceCopyToFrameToolStripMenuItem";
+            forceCopyToFrameToolStripMenuItem.Size = new System.Drawing.Size(412, 22);
+            forceCopyToFrameToolStripMenuItem.Text = "Force copy action to... (overwrite)";
             // 
             // panel2
             // 
@@ -1603,6 +1619,8 @@
         private System.Windows.Forms.PictureBox AnimationPictureBox;
         private System.Windows.Forms.ToolStripMenuItem asJpgToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem asPngToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyToFrameToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem forceCopyToFrameToolStripMenuItem;
         private System.Windows.Forms.ProgressBar ProgressBar;
         private System.Windows.Forms.Panel panel1;
         private System.Windows.Forms.Panel panel2;

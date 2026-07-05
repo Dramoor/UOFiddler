@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.0.3
+    <value>Version 5.0.4
+- Added in ability to right click action in animation edit and copy to different empty action. Can also force overwrite one in a separate action.
+
+Version 5.0.3
 - Can now export vds to H L and P formats. Also can remap frames in menu. 
 		
 Version 5.0.2
