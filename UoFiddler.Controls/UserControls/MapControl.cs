@@ -813,16 +813,27 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
-            if (PreloadWorker.IsBusy)
+            // Guard against null workers/controls when paint is called early
+            if (PreloadWorker != null && PreloadWorker.IsBusy)
             {
                 e.Graphics.DrawString("Preloading map. Please wait...", SystemFonts.DefaultFont, Brushes.Black, 60, 60);
                 return;
             }
 
+            if (CurrentMap == null)
+            {
+                // nothing to draw yet
+                e.Graphics.DrawString("No map loaded", SystemFonts.DefaultFont, Brushes.Black, 60, 60);
+                return;
+            }
+
             _map = CurrentMap.GetImage(hScrollBar.Value >> 3, vScrollBar.Value >> 3,
                 (int)((e.ClipRectangle.Width / Zoom) + 8) >> 3, (int)((e.ClipRectangle.Height / Zoom) + 8) >> 3,
-                showStaticsToolStripMenuItem1.Checked);
-            MessageLabel.Text = CurrentMap.Tiles.AllFilesExist() ? "" : "One of map files is missing!";
+                showStaticsToolStripMenuItem1?.Checked ?? false);
+            if (MessageLabel != null)
+            {
+                MessageLabel.Text = CurrentMap.Tiles.AllFilesExist() ? "" : "One of map files is missing!";
+            }
             ZoomMap(ref _map);
             e.Graphics.DrawImageUnscaledAndClipped(_map, e.ClipRectangle);
 
@@ -1067,47 +1078,21 @@ namespace UoFiddler.Controls.UserControls
 
         private void AddOverlayGroups()
         {
-            TreeNode node = new TreeNode(Options.MapNames[0])
+            // Ensure MapNames is valid
+            if (Options.MapNames == null || Options.MapNames.Length == 0)
             {
-                Tag = 0
-            };
-            OverlayObjectTree.Nodes.Add(node);
+                Options.MapNames = new[] { "Map 0" };
+            }
 
-            node = new TreeNode(Options.MapNames[1])
+            for (int i = 0; i < Options.MapNames.Length; ++i)
             {
-                Tag = 1
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[2])
-            {
-                Tag = 2
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[3])
-            {
-                Tag = 3
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[4])
-            {
-                Tag = 4
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[5])
-            {
-                Tag = 5
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[6])
-            {
-                Tag = 6
-            };
-            OverlayObjectTree.Nodes.Add(node);
+                string name = string.IsNullOrEmpty(Options.MapNames[i]) ? $"Map {i}" : Options.MapNames[i];
+                TreeNode node = new TreeNode(name)
+                {
+                    Tag = i
+                };
+                OverlayObjectTree.Nodes.Add(node);
+            }
         }
 
         public static void SaveMapOverlays()
