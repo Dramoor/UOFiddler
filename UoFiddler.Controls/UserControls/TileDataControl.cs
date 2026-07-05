@@ -91,6 +91,8 @@ namespace UoFiddler.Controls.UserControls
         }
 
         private static TileDataControl _refMarker;
+        private ItemData? _savedItemTemplate;
+        private LandData? _savedLandTemplate;
         private bool _changingIndex;
         // use ClilocControl's shared data instead of a private StringList
 
@@ -656,6 +658,39 @@ namespace UoFiddler.Controls.UserControls
                 checkedListBox1.SetItemChecked(i - 1, (data.Flags & (TileFlag)enumValues.GetValue(i)) != 0);
             }
             _changingIndex = false;
+
+            // If user opted to reuse settings, apply saved template to UI
+            if (useTheseSettingsToolStripMenuItem.Checked && _savedItemTemplate.HasValue)
+            {
+                _changingIndex = true;
+                ItemData s = _savedItemTemplate.Value;
+                string name = s.Name ?? string.Empty;
+                if (name.Length > 20)
+                {
+                    name = name.Substring(0, 20);
+                }
+                textBoxName.Text = name;
+                textBoxAnim.Text = s.Animation.ToString();
+                textBoxWeight.Text = s.Weight.ToString();
+                textBoxQuality.Text = s.Quality.ToString();
+                textBoxQuantity.Text = s.Quantity.ToString();
+                textBoxHue.Text = s.Hue.ToString();
+                textBoxStackOff.Text = s.StackingOffset.ToString();
+                textBoxValue.Text = s.Value.ToString();
+                textBoxHeigth.Text = s.Height.ToString();
+                textBoxUnk1.Text = s.MiscData.ToString();
+                textBoxUnk2.Text = s.Unk2.ToString();
+                textBoxUnk3.Text = s.Unk3.ToString();
+
+                Array enumVals = Enum.GetValues(typeof(TileFlag));
+                int maxLen = Art.IsUOAHS() ? enumVals.Length : (enumVals.Length / 2) + 1;
+                for (int i = 1; i < maxLen; ++i)
+                {
+                    checkedListBox1.SetItemChecked(i - 1, (s.Flags & (TileFlag)enumVals.GetValue(i)) != 0);
+                }
+
+                _changingIndex = false;
+            }
         }
 
         private void AfterSelectTreeViewLand(object sender, TreeViewEventArgs e)
@@ -698,6 +733,24 @@ namespace UoFiddler.Controls.UserControls
             }
 
             _changingIndex = false;
+
+            // If user opted to reuse settings, apply saved land template to UI
+            if (useTheseSettingsToolStripMenuItem.Checked && _savedLandTemplate.HasValue)
+            {
+                _changingIndex = true;
+                LandData s = _savedLandTemplate.Value;
+                textBoxTexID.Text = s.TextureId.ToString();
+                textBoxNameLand.Text = s.Name ?? string.Empty;
+
+                Array enumVals = Enum.GetValues(typeof(TileFlag));
+                int maxLen = Art.IsUOAHS() ? enumVals.Length : (enumVals.Length / 2) + 1;
+                for (int i = 1; i < maxLen; ++i)
+                {
+                    checkedListBox2.SetItemChecked(i - 1, (s.Flags & (TileFlag)enumVals.GetValue(i)) != 0);
+                }
+
+                _changingIndex = false;
+            }
         }
 
         private void OnClickSaveTiledata(object sender, EventArgs e)
@@ -795,6 +848,10 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 TileData.ItemTable[index] = item;
+                if (useTheseSettingsToolStripMenuItem.Checked)
+                {
+                    _savedItemTemplate = item;
+                }
                 treeViewItem.SelectedNode.ForeColor = Color.Red;
                 Options.ChangedUltimaClass["TileData"] = true;
                 ControlEvents.FireTileDataChangeEvent(this, index + 0x4000);
@@ -839,6 +896,10 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 TileData.LandTable[index] = land;
+                if (useTheseSettingsToolStripMenuItem.Checked)
+                {
+                    _savedLandTemplate = land;
+                }
                 Options.ChangedUltimaClass["TileData"] = true;
                 ControlEvents.FireTileDataChangeEvent(this, index);
                 treeViewLand.SelectedNode.ForeColor = Color.Red;
@@ -855,6 +916,11 @@ namespace UoFiddler.Controls.UserControls
         private void SaveDirectlyOnChangesToolStripMenuItemOnCheckedChanged(object sender, EventArgs eventArgs)
         {
             Options.TileDataDirectlySaveOnChange = saveDirectlyOnChangesToolStripMenuItem.Checked;
+        }
+
+        private void UseTheseSettingsToolStripMenuItemOnCheckedChanged(object sender, EventArgs e)
+        {
+            // No-op: option is represented by the menu item's checked state only
         }
 
         private void OnTextChangedItemAnim(object sender, EventArgs e)

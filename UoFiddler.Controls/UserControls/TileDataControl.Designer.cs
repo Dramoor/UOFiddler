@@ -938,7 +938,6 @@ namespace UoFiddler.Controls.UserControls
             // MainToolStrip
             // 
             MainToolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            MainToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { toolStripLabel1, searchByIdToolStripTextBox, toolStripLabel2, searchByNameToolStripTextBox, searchByNameToolStripButton, toolStripSeparator5, toolStripDropDownButton1, toolStripSeparator1, toolStripButton1, toolStripButton5, toolStripSeparator2, toolStripButton4, toolStripButton3 });
             MainToolStrip.Location = new System.Drawing.Point(0, 0);
             MainToolStrip.Name = "MainToolStrip";
             MainToolStrip.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
@@ -988,7 +987,6 @@ namespace UoFiddler.Controls.UserControls
             // toolStripDropDownButton1
             // 
             toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { memorySaveWarningToolStripMenuItem, saveDirectlyOnChangesToolStripMenuItem, setFilterToolStripMenuItem, toolStripSeparator4, setTextureOnDoubleClickToolStripMenuItem, setTexturesToolStripMenuItem });
             toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
             toolStripDropDownButton1.Name = "toolStripDropDownButton1";
             toolStripDropDownButton1.Size = new System.Drawing.Size(45, 22);
@@ -1009,6 +1007,14 @@ namespace UoFiddler.Controls.UserControls
             saveDirectlyOnChangesToolStripMenuItem.Name = "saveDirectlyOnChangesToolStripMenuItem";
             saveDirectlyOnChangesToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
             saveDirectlyOnChangesToolStripMenuItem.Text = "Save directly on changes";
+            // 
+            // useTheseSettingsToolStripMenuItem
+            // 
+            useTheseSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            useTheseSettingsToolStripMenuItem.CheckOnClick = true;
+            useTheseSettingsToolStripMenuItem.Name = "useTheseSettingsToolStripMenuItem";
+            useTheseSettingsToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
+            useTheseSettingsToolStripMenuItem.Text = "Copy These Settings";
             // 
             // setFilterToolStripMenuItem
             // 
@@ -1035,6 +1041,9 @@ namespace UoFiddler.Controls.UserControls
             setTexturesToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
             setTexturesToolStripMenuItem.Text = "Set Textures";
             setTexturesToolStripMenuItem.Click += SetTextureMenuItem_Click;
+
+            // Now that all drop-down items exist, add them to the Misc drop-down
+            toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { memorySaveWarningToolStripMenuItem, saveDirectlyOnChangesToolStripMenuItem, useTheseSettingsToolStripMenuItem, setFilterToolStripMenuItem, toolStripSeparator4, setTextureOnDoubleClickToolStripMenuItem, setTexturesToolStripMenuItem });
             // 
             // toolStripSeparator1
             // 
@@ -1072,6 +1081,8 @@ namespace UoFiddler.Controls.UserControls
             toolStripButton4.Size = new System.Drawing.Size(84, 22);
             toolStripButton4.Text = "Save Changes";
             toolStripButton4.Click += OnClickSaveChanges;
+
+            // (removed previous top-right checkbox; using menu item in Misc)
             // 
             // toolStripButton3
             // 
@@ -1081,6 +1092,9 @@ namespace UoFiddler.Controls.UserControls
             toolStripButton3.Size = new System.Drawing.Size(79, 22);
             toolStripButton3.Text = "Save Tiledata";
             toolStripButton3.Click += OnClickSaveTiledata;
+
+            // Add toolstrip items after all items have been created
+            MainToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { toolStripLabel1, searchByIdToolStripTextBox, toolStripLabel2, searchByNameToolStripTextBox, searchByNameToolStripButton, toolStripSeparator5, toolStripDropDownButton1, toolStripSeparator1, toolStripButton1, toolStripButton5, toolStripSeparator2, toolStripButton4, toolStripButton3 });
             // 
             // TileDataControl
             // 
@@ -1196,6 +1210,8 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.TreeView treeViewItem;
         private System.Windows.Forms.TreeView treeViewLand;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
+        private System.Windows.Forms.ToolStripMenuItem useTheseSettingsToolStripMenuItem;
+        // useTheseSettings is exposed as a ToolStripMenuItem in Misc
         private System.Windows.Forms.ToolStripMenuItem selectInGumpsTabMaleToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectInGumpsTabFemaleToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem setTexturesToolStripMenuItem;
