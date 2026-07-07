@@ -93,6 +93,7 @@ namespace UoFiddler.Controls.UserControls
         private static TileDataControl _refMarker;
         private ItemData? _savedItemTemplate;
         private LandData? _savedLandTemplate;
+        private string _savedCliloc;
         private bool _changingIndex;
         // use ClilocControl's shared data instead of a private StringList
 
@@ -682,6 +683,12 @@ namespace UoFiddler.Controls.UserControls
                 textBoxUnk2.Text = s.Unk2.ToString();
                 textBoxUnk3.Text = s.Unk3.ToString();
 
+                // apply saved cliloc text if present
+                if (!string.IsNullOrEmpty(_savedCliloc))
+                {
+                    textBoxCliloc.Text = _savedCliloc;
+                }
+
                 Array enumVals = Enum.GetValues(typeof(TileFlag));
                 int maxLen = Art.IsUOAHS() ? enumVals.Length : (enumVals.Length / 2) + 1;
                 for (int i = 1; i < maxLen; ++i)
@@ -851,6 +858,15 @@ namespace UoFiddler.Controls.UserControls
                 if (useTheseSettingsToolStripMenuItem.Checked)
                 {
                     _savedItemTemplate = item;
+                    // also save current cliloc text for template reuse
+                    try
+                    {
+                        _savedCliloc = textBoxCliloc.Text ?? string.Empty;
+                    }
+                    catch
+                    {
+                        _savedCliloc = string.Empty;
+                    }
                 }
                 treeViewItem.SelectedNode.ForeColor = Color.Red;
                 Options.ChangedUltimaClass["TileData"] = true;
