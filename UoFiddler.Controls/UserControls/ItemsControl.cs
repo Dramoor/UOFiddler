@@ -129,24 +129,28 @@ namespace UoFiddler.Controls.UserControls
         /// <returns></returns>
         public static bool SearchName(string name, bool next)
         {
-            int index = 0;
-            if (next)
+            if (!RefMarker.IsLoaded)
             {
-                if (RefMarker._selectedGraphicId >= 0)
-                {
-                    index = RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) + 1;
-                }
+                RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+            }
 
-                if (index >= RefMarker._itemList.Count)
-                {
-                    index = 0;
-                }
+            var count = RefMarker._itemList.Count;
+            if (count == 0)
+            {
+                return false;
             }
 
             var searchMethod = SearchHelper.GetSearchMethod();
 
-            for (int i = index; i < RefMarker._itemList.Count; ++i)
+            // Determine start index (current selection). If nothing selected, start at 0.
+            int start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : 0;
+
+            // Cycle through the list once in the requested direction (next or previous)
+            for (int k = 1; k <= count; ++k)
             {
+                int i = next ? (start + k) % count : (start - k) % count;
+                if (i < 0) i += count;
+
                 var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
                 if (searchResult.HasErrors)
                 {
@@ -1356,10 +1360,15 @@ namespace UoFiddler.Controls.UserControls
         {
             SearchName(searchByNameToolStripTextBox.Text, false);
         }
-
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
         {
             SearchName(searchByNameToolStripTextBox.Text, true);
         }
+
+        private void SearchByNamePrevToolStripButton_Click(object sender, EventArgs e)
+        {
+            SearchName(searchByNameToolStripTextBox.Text, false);
+        }
+
     }
 }
