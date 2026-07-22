@@ -1998,8 +1998,13 @@ namespace UoFiddler.Controls.Forms
                         targetToSourceMap = new int[chosenMap.Count];
                         for (int t = 0; t < chosenMap.Count; t++)
                         {
-                            var selObj = chosenMap[t].SelectedItem as MapItem;
-                            if (selObj == null || selObj.Index < 0) targetToSourceMap[t] = -1; else targetToSourceMap[t] = selObj.Index;
+                            // Be defensive: treat the first entry ("None"), no selection, or any negative index as an empty action
+                            var combo = chosenMap[t];
+                            var selObj = combo.SelectedItem as MapItem;
+                            if (combo.SelectedIndex <= 0 || selObj == null || selObj.Index < 0)
+                                targetToSourceMap[t] = -1;
+                            else
+                                targetToSourceMap[t] = selObj.Index;
                         }
                     }
 
