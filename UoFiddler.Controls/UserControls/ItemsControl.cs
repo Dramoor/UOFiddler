@@ -113,12 +113,53 @@ namespace UoFiddler.Controls.UserControls
             {
                 return false;
             }
-
             // we have to invalidate focus so it will scroll to item
             RefMarker.ItemsTileView.FocusIndex = -1;
             RefMarker.SelectedGraphicId = graphic;
 
             return true;
+        }
+
+        /// <summary>
+        /// Searches for items by layer and selects the next/previous matching item
+        /// </summary>
+        /// <param name="layer">layer number to search for</param>
+        /// <param name="next">true = search forward, false = search backward</param>
+        /// <returns>true if found</returns>
+        public static bool SearchByLayer(int layer, bool next)
+        {
+            if (!RefMarker.IsLoaded)
+            {
+                RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+            }
+
+            var count = RefMarker._itemList.Count;
+            if (count == 0)
+            {
+                return false;
+            }
+
+            int start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : 0;
+
+            for (int k = 1; k <= count; ++k)
+            {
+                int i = next ? (start + k) % count : (start - k) % count;
+                if (i < 0) i += count;
+
+                var id = RefMarker._itemList[i];
+                var item = TileData.ItemTable[id];
+                // For ItemData, 'Quality' stores the layer for wearable items
+                // Only consider items that are wearable, weapon or armor
+                var relevantFlags = TileFlag.Wearable | TileFlag.Weapon | TileFlag.Armor;
+                if (item.Quality == layer && (item.Flags & relevantFlags) != 0)
+                {
+                    RefMarker.ItemsTileView.FocusIndex = -1;
+                    RefMarker.SelectedGraphicId = id;
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         /// <summary>
@@ -1363,6 +1404,33 @@ namespace UoFiddler.Controls.UserControls
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
         {
             SearchName(searchByNameToolStripTextBox.Text, true);
+        }
+
+        private void SearchByLayerTextBox_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                if (int.TryParse(layerToolStripTextBox.Text, out int layer))
+                {
+                    SearchByLayer(layer, true);
+                }
+            }
+        }
+
+        private void LayerNextToolStripButton_Click(object sender, EventArgs e)
+        {
+            if (int.TryParse(layerToolStripTextBox.Text, out int layer))
+            {
+                SearchByLayer(layer, true);
+            }
+        }
+
+        private void LayerPrevToolStripButton_Click(object sender, EventArgs e)
+        {
+            if (int.TryParse(layerToolStripTextBox.Text, out int layer))
+            {
+                SearchByLayer(layer, false);
+            }
         }
 
         private void SearchByNamePrevToolStripButton_Click(object sender, EventArgs e)
