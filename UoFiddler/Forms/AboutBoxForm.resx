@@ -119,6 +119,8 @@
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
     <value>Version 5.1.4
+- Can select in the misc tab on items search by layer and can then search every item in the items tab with the layer selected. 
+
 - Exporting item,gump,texture,landtile/animation vds images will use decimal instead of hexidecimal for the file name.
 	
 - Can now select multiple items in the items tab with ctrl or ranges with shift. 

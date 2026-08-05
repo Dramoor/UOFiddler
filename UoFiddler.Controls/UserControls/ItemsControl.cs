@@ -168,7 +168,7 @@ namespace UoFiddler.Controls.UserControls
         /// <param name="name"></param>
         /// <param name="next">starting from current selected</param>
         /// <returns></returns>
-        public static bool SearchName(string name, bool next)
+        public static bool SearchName(string name, bool next, bool fromStart = false)
         {
             if (!RefMarker.IsLoaded)
             {
@@ -183,8 +183,16 @@ namespace UoFiddler.Controls.UserControls
 
             var searchMethod = SearchHelper.GetSearchMethod();
 
-            // Determine start index (current selection). If nothing selected, start at 0.
-            int start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : 0;
+            // Determine start index (current selection). If fromStart==true or nothing selected, start before first item (-1)
+            int start;
+            if (fromStart)
+            {
+                start = -1;
+            }
+            else
+            {
+                start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : -1;
+            }
 
             // Cycle through the list once in the requested direction (next or previous)
             for (int k = 1; k <= count; ++k)
@@ -234,6 +242,20 @@ namespace UoFiddler.Controls.UserControls
             if (!IsLoaded) // only once
             {
                 Plugin.PluginEvents.FireModifyItemShowContextMenuEvent(TileViewContextMenuStrip);
+            }
+
+            // Initialize visibility of layer search controls based on misc menu setting
+            try
+            {
+                var showLayer = showLayerSearchToolStripMenuItem != null && showLayerSearchToolStripMenuItem.Checked;
+                toolStripLabelLayer.Visible = showLayer;
+                layerToolStripTextBox.Visible = showLayer;
+                layerPrevToolStripButton.Visible = showLayer;
+                layerNextToolStripButton.Visible = showLayer;
+            }
+            catch
+            {
+                // ignore when designer context
             }
 
             UpdateTileView();
@@ -369,6 +391,18 @@ namespace UoFiddler.Controls.UserControls
 
         private Color _backgroundColorItem = Color.White;
         private static bool _didSimulateClilocInit = false;
+
+        private void ShowLayerSearchToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem mi)
+            {
+                bool show = mi.Checked;
+                toolStripLabelLayer.Visible = show;
+                layerToolStripTextBox.Visible = show;
+                layerPrevToolStripButton.Visible = show;
+                layerNextToolStripButton.Visible = show;
+            }
+        }
 
         private void ChangeBackgroundColorToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -1428,7 +1462,8 @@ namespace UoFiddler.Controls.UserControls
 
         private void SearchByNameToolStripTextBox_KeyUp(object sender, KeyEventArgs e)
         {
-            SearchName(searchByNameToolStripTextBox.Text, false);
+            // Start search forward from beginning when typing in the search box so initial match is the first matching item
+            SearchName(searchByNameToolStripTextBox.Text, true, true);
         }
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
         {
