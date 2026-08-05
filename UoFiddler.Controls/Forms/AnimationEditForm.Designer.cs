@@ -326,8 +326,8 @@
             AnimationFileToolStrip.Text = "toolStrip1";
             // 
             // SelectFileToolStripComboBox
-            // 
-            SelectFileToolStripComboBox.Items.AddRange(new object[] { "Choose anim file", "anim", "anim2", "anim3", "anim4", "anim5" });
+            // Default items are populated at runtime in OnLoad; keep placeholder for designer
+            SelectFileToolStripComboBox.Items.AddRange(new object[] { "Choose anim file" });
             SelectFileToolStripComboBox.Name = "SelectFileToolStripComboBox";
             SelectFileToolStripComboBox.Size = new System.Drawing.Size(140, 25);
             SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged;

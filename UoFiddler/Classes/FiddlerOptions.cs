@@ -83,6 +83,7 @@ namespace UoFiddler.Classes
             DirectoryInfo di = new DirectoryInfo(Application.StartupPath);
             MoveFiles(di.GetFiles("Options_default.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Animationlist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
+            MoveFiles(di.GetFiles("AnimMap.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Mapnames.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Multilist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
 

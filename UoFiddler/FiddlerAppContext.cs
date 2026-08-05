@@ -44,6 +44,17 @@ namespace UoFiddler
                 return;
             }
 
+            // Provide Animations with AppData and Profile info so it can load AnimMap_{profile}.xml from AppData
+            try
+            {
+                Ultima.Animations.AppDataPath = Options.AppDataPath;
+                Ultima.Animations.ProfileName = Options.ProfileName;
+            }
+            catch
+            {
+                // ignore if unable to set (keeps separation between UI and Ultima)
+            }
+
             if (FiddlerOptions.UpdateCheckOnStart)
             {
                 _logger.Information("Update check. Current version is {Version}", FiddlerOptions.AppVersion);

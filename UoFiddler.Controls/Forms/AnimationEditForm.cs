@@ -34,6 +34,7 @@ namespace UoFiddler.Controls.Forms
         private static readonly int[] _animCx = new int[5];
         private static readonly int[] _animCy = new int[5];
         private bool _loaded;
+        private bool _suspendFileComboEvents;
         private int _fileType;
         private int _currentAction;
         private int _currentBody;
@@ -200,6 +201,69 @@ namespace UoFiddler.Controls.Forms
         private void OnLoad(object sender, EventArgs e)
         {
             Options.LoadedUltimaClass["AnimationEdit"] = true;
+
+            // Ensure Animations and AnimationEdit have reloaded and discovered any animN files
+            try
+            {
+                Ultima.Animations.Reload();
+            }
+            catch
+            {
+                // ignore reload errors
+            }
+
+            try
+            {
+                AnimationEdit.Reload();
+            }
+            catch
+            {
+                // ignore
+            }
+            // Populate file selection combo dynamically based on available anim files
+            try
+            {
+                // Temporarily detach event handler to avoid recursive SelectedIndexChanged calls
+                SelectFileToolStripComboBox.SelectedIndexChanged -= OnAnimChanged;
+
+                SelectFileToolStripComboBox.Items.Clear();
+                SelectFileToolStripComboBox.Items.Add("Choose anim file");
+
+                int maxType = 5;
+                var types = Ultima.Animations.GetAvailableFileTypes();
+                int found = 0;
+                if (types != null)
+                {
+                    foreach (var t in types)
+                    {
+                        if (t > found) found = t;
+                    }
+                }
+
+                if (found > 0) maxType = found;
+
+                for (int i = 1; i <= maxType; ++i)
+                {
+                    if (i == 1)
+                        SelectFileToolStripComboBox.Items.Add("anim");
+                    else
+                        SelectFileToolStripComboBox.Items.Add($"anim{i}");
+                }
+
+                // Ensure selection is valid (defaults to 0)
+                if (_fileType >= 0 && _fileType <= maxType)
+                    SelectFileToolStripComboBox.SelectedIndex = _fileType;
+                else
+                    SelectFileToolStripComboBox.SelectedIndex = 0;
+
+                // Re-attach handler
+                SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged;
+            }
+            catch
+            {
+                // ignore and leave designer defaults
+                try { SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged; } catch { }
+            }
 
             AnimationListTreeView.BeginUpdate();
             try

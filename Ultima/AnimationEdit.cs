@@ -18,6 +18,8 @@ namespace Ultima
         private static AnimIdx[] _animCache3;
         private static AnimIdx[] _animCache4;
         private static AnimIdx[] _animCache5;
+        // Additional caches for dynamically discovered anim files (anim6..)
+        private static readonly Dictionary<int, AnimIdx[]> _dynamicCaches = new Dictionary<int, AnimIdx[]>();
 
         static AnimationEdit()
         {
@@ -35,7 +37,8 @@ namespace Ultima
         public static void ExportToVD(int fileType, int body, string file, int animType, int[] actionsToInclude)
         {
             AnimIdx[] cache = GetCache(fileType);
-            GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
+            // Use Animations helper so we get the correct FileIndex for dynamic anim files (anim6+)
+            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
             using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
             using (var bin = new BinaryWriter(fs))
             {
@@ -107,7 +110,8 @@ namespace Ultima
         public static void ExportToVDRemap(int fileType, int body, string file, int animType, int[] targetToSourceMap)
         {
             AnimIdx[] cache = GetCache(fileType);
-            GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
+            // Use Animations helper so we get the correct FileIndex for dynamic anim files (anim6+)
+            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
             using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
             using (var bin = new BinaryWriter(fs))
             {
@@ -226,6 +230,25 @@ namespace Ultima
             {
                 _animCache5 = new AnimIdx[_fileIndex5.IdxLength / 12];
             }
+
+            // Create caches for any dynamically discovered anim files beyond anim5
+            try
+            {
+                foreach (var ft in Ultima.Animations.GetAvailableFileTypes())
+                {
+                    if (ft <= 5) continue;
+                    var fi = Ultima.Animations.GetFileIndexByType(ft);
+                    if (fi != null && fi.IndexLength > 0)
+                    {
+                        if (!_dynamicCaches.ContainsKey(ft))
+                            _dynamicCaches[ft] = new AnimIdx[fi.IndexLength / 12];
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
         }
 
         /// <summary>
@@ -233,11 +256,32 @@ namespace Ultima
         /// </summary>
         public static void Reload()
         {
+            // Recreate legacy indexes for compatibility
             _fileIndex = new FileIndex("Anim.idx", "Anim.mul", 6);
             _fileIndex2 = new FileIndex("Anim2.idx", "Anim2.mul", -1);
             _fileIndex3 = new FileIndex("Anim3.idx", "Anim3.mul", -1);
             _fileIndex4 = new FileIndex("Anim4.idx", "Anim4.mul", -1);
             _fileIndex5 = new FileIndex("Anim5.idx", "Anim5.mul", -1);
+
+            // Reuse Animations' discovery of anim*.idx files so editor picks up any additional anim files (anim6, etc.)
+            try
+            {
+                // Populate local FileIndex references from Animations if available
+                var fi1 = Ultima.Animations.GetFileIndexByType(1);
+                if (fi1 != null) _fileIndex = fi1;
+                var fi2 = Ultima.Animations.GetFileIndexByType(2);
+                if (fi2 != null) _fileIndex2 = fi2;
+                var fi3 = Ultima.Animations.GetFileIndexByType(3);
+                if (fi3 != null) _fileIndex3 = fi3;
+                var fi4 = Ultima.Animations.GetFileIndexByType(4);
+                if (fi4 != null) _fileIndex4 = fi4;
+                var fi5 = Ultima.Animations.GetFileIndexByType(5);
+                if (fi5 != null) _fileIndex5 = fi5;
+            }
+            catch
+            {
+                // ignore any issues and fall back to local defaults
+            }
 
             InitializeCache();
         }
@@ -353,6 +397,25 @@ namespace Ultima
                 case 5:
                     return _animCache5;
                 default:
+                    if (_dynamicCaches.TryGetValue(fileType, out AnimIdx[] cache))
+                        return cache;
+
+                    // attempt to create a cache on the fly if Animations knows about this fileType
+                    try
+                    {
+                        var fi = Ultima.Animations.GetFileIndexByType(fileType);
+                        if (fi != null && fi.IndexLength > 0)
+                        {
+                            cache = new AnimIdx[fi.IndexLength / 12];
+                            _dynamicCaches[fileType] = cache;
+                            return cache;
+                        }
+                    }
+                    catch
+                    {
+                        // ignore
+                    }
+
                     return _animCache;
             }
         }
@@ -361,23 +424,39 @@ namespace Ultima
         {
             AnimIdx[] cache = GetCache(fileType);
 
-            GetFileIndex(body, fileType, action, dir, out FileIndex fileIndex, out int index);
+            // Use Animations helper to support dynamically discovered anim files and mappings
+            Ultima.Animations.GetFileIndexForEditor(body, action, dir, fileType, out FileIndex fileIndex, out int index);
 
-            if (cache?[index] != null)
+            // Guard against cache being null or index out of range.
+            if (cache != null && index >= 0 && index < cache.Length)
             {
-                return cache[index];
+                if (cache[index] != null)
+                    return cache[index];
+
+                // create and store
+                return cache[index] = new AnimIdx(index, fileIndex);
             }
 
-            return cache[index] = new AnimIdx(index, fileIndex);
+            // No suitable cache available or index out of range: create transient AnimIdx and return it (don't store)
+            return new AnimIdx(index, fileIndex);
         }
 
         public static bool IsActionDefined(int fileType, int body, int action)
         {
             AnimIdx[] cache = GetCache(fileType);
 
-            GetFileIndex(body, fileType, action, 0, out FileIndex fileIndex, out int index);
+            // Use Animations helper to compute file index (supports dynamic animN files)
+            Ultima.Animations.GetFileIndexForEditor(body, action, 0, fileType, out FileIndex fileIndex, out int index);
 
-            if (cache?[index] != null)
+            // guard against out-of-range indexes
+            if (cache == null || index < 0 || index >= cache.Length)
+            {
+                // fall back to checking directly via fileIndex
+                bool fileValid = fileIndex.Valid(index, out int fileLength, out int _, out bool _);
+                return fileValid && fileLength >= 1;
+            }
+
+            if (cache[index] != null)
             {
                 return cache[index].Frames?.Count > 0;
             }
@@ -388,15 +467,42 @@ namespace Ultima
                 return false;
             }
 
-            bool valid = fileIndex.Valid(index, out int length, out int _, out bool _);
+            bool fileValid2 = fileIndex.Valid(index, out int fileLength2, out int _, out bool _2);
 
-            return valid && length >= 1;
+            return fileValid2 && fileLength2 >= 1;
         }
 
         public static void LoadFromVD(int fileType, int body, BinaryReader bin)
         {
             AnimIdx[] cache = GetCache(fileType);
-            GetFileIndex(body, fileType, 0, 0, out FileIndex _, out int index);
+            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
+            // Ensure we have a suitably sized cache for this fileType so imports write into it
+            if (fileIndex != null && fileIndex.IdxLength > 0)
+            {
+                int requiredSize = (int)(fileIndex.IdxLength / 12);
+                if (requiredSize > 0 && (cache == null || cache.Length < requiredSize))
+                {
+                    var newCache = new AnimIdx[requiredSize];
+                    if (cache != null)
+                    {
+                        System.Array.Copy(cache, newCache, System.Math.Min(cache.Length, newCache.Length));
+                    }
+
+                    // store new cache into the appropriate backing field
+                    switch (fileType)
+                    {
+                        case 1: _animCache = newCache; cache = _animCache; break;
+                        case 2: _animCache2 = newCache; cache = _animCache2; break;
+                        case 3: _animCache3 = newCache; cache = _animCache3; break;
+                        case 4: _animCache4 = newCache; cache = _animCache4; break;
+                        case 5: _animCache5 = newCache; cache = _animCache5; break;
+                        default:
+                            _dynamicCaches[fileType] = newCache;
+                            cache = newCache;
+                            break;
+                    }
+                }
+            }
             int animLength = Animations.GetAnimLength(body, fileType) * 5;
             var entries = new Entry3D[animLength];
 
@@ -412,7 +518,16 @@ namespace Ultima
                 if ((entry.Lookup > 0) && (entry.Lookup < bin.BaseStream.Length) && (entry.Length > 0))
                 {
                     bin.BaseStream.Seek(entry.Lookup, SeekOrigin.Begin);
-                    cache[index] = new AnimIdx(bin, entry.Extra);
+                    if (cache != null && index >= 0 && index < cache.Length)
+                    {
+                        cache[index] = new AnimIdx(bin, entry.Extra);
+                    }
+                    else
+                    {
+                        // if cache is not available or index out of range, create a transient AnimIdx (won't be cached)
+                        var transient = new AnimIdx(bin, entry.Extra);
+                        // nothing to store
+                    }
                 }
                 ++index;
             }
@@ -434,13 +549,14 @@ namespace Ultima
                 for (int i = index; i < index + (animLength * 5); i++)
                 {
                     AnimIdx anim;
-                    if (cache != null)
+                    if (cache != null && i >= 0 && i < cache.Length)
                     {
                         anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
                     }
                     else
                     {
-                        anim = cache[i] = new AnimIdx(i, fileIndex);
+                        // out of cache bounds: create transient AnimIdx
+                        anim = new AnimIdx(i, fileIndex);
                     }
 
                     if (anim == null)
@@ -464,34 +580,38 @@ namespace Ultima
             string filename;
             AnimIdx[] cache;
             FileIndex fileIndex;
-            switch (fileType)
+
+            // Try to obtain FileIndex and cache for dynamic types first
+            fileIndex = Ultima.Animations.GetFileIndexByType(fileType) ?? _fileIndex;
+            cache = GetCache(fileType);
+
+            // If fileIndex points to a specific mul file, prefer that base name (e.g., anim7)
+            try
             {
-                default:
-                case 1:
-                    filename = "anim";
-                    cache = _animCache;
-                    fileIndex = _fileIndex;
-                    break;
-                case 2:
-                    filename = "anim2";
-                    cache = _animCache2;
-                    fileIndex = _fileIndex2;
-                    break;
-                case 3:
-                    filename = "anim3";
-                    cache = _animCache3;
-                    fileIndex = _fileIndex3;
-                    break;
-                case 4:
-                    filename = "anim4";
-                    cache = _animCache4;
-                    fileIndex = _fileIndex4;
-                    break;
-                case 5:
-                    filename = "anim5";
-                    cache = _animCache5;
-                    fileIndex = _fileIndex5;
-                    break;
+                var fs = fileIndex?.FileAccessor?.Stream as FileStream;
+                if (fs != null && !string.IsNullOrEmpty(fs.Name))
+                {
+                    filename = Path.GetFileNameWithoutExtension(fs.Name);
+                }
+                else
+                {
+                    filename = fileType == 1 ? "anim" : $"anim{fileType}";
+                }
+            }
+            catch
+            {
+                filename = fileType == 1 ? "anim" : $"anim{fileType}";
+            }
+
+            // Diagnostic trace for troubleshooting
+            try
+            {
+                var mulPath = (fileIndex?.FileAccessor?.Stream as FileStream)?.Name ?? "(none)";
+                System.Diagnostics.Trace.WriteLine($"AnimationEdit.Save: fileType={fileType}, filename={filename}, outputPath={path}, fileIndexMul={mulPath}, cacheLength={(cache == null ? 0 : cache.Length)}");
+            }
+            catch
+            {
+                // ignore tracing errors
             }
 
             string idx = Path.Combine(path, filename + ".idx");

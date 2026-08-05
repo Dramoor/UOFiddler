@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.1.5
+    <value>Version 5.1.6
+- This dynaimcally loads all anim.mul/anim.idx files and allows for using in animedit. This will load info from a AnimMap.xml file that is in the appdata directory. You can edit them for profile by adding AnimMap_profilename.xml as the name to load with a specific profile. 
+		
+Version 5.1.5
 - Added in a check box in the misc tab to allow for dynamic searching for items in the items tab. This will load all items containing the searched name and not show the rest.
 		
 Version 5.1.4
