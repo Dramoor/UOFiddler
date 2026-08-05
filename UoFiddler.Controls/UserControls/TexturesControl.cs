@@ -403,7 +403,7 @@ namespace UoFiddler.Controls.UserControls
             }
 
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
-            string fileName = Path.Combine(Options.OutputPath, $"Texture 0x{index:X4}.{fileExtension}");
+            string fileName = Path.Combine(Options.OutputPath, $"Texture {index}.{fileExtension}");
 
             using (Bitmap bit = new Bitmap(Textures.GetTexture(index)))
             {
@@ -533,7 +533,7 @@ namespace UoFiddler.Controls.UserControls
                         continue;
                     }
 
-                    string fileName = Path.Combine(dialog.SelectedPath, $"Texture 0x{index:X4}.{fileExtension}");
+                    string fileName = Path.Combine(dialog.SelectedPath, $"Texture {index}.{fileExtension}");
                     var texture = Textures.GetTexture(index);
                     if (texture is null)
                     {

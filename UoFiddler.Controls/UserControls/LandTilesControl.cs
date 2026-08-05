@@ -535,7 +535,7 @@ namespace UoFiddler.Controls.UserControls
             }
 
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
-            string fileName = Path.Combine(Options.OutputPath, $"Landtile 0x{index:X4}.{fileExtension}");
+            string fileName = Path.Combine(Options.OutputPath, $"Landtile {index}.{fileExtension}");
 
             using (Bitmap bit = new Bitmap(Art.GetLand(index)))
             {
@@ -604,7 +604,7 @@ namespace UoFiddler.Controls.UserControls
                         continue;
                     }
 
-                    string fileName = Path.Combine(dialog.SelectedPath, $"Landtile 0x{index:X4}.{fileExtension}");
+                    string fileName = Path.Combine(dialog.SelectedPath, $"Landtile {index}.{fileExtension}");
                     var landTile = Art.GetLand(index);
                     if (landTile is null)
                     {

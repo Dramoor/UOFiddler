@@ -519,7 +519,7 @@ namespace UoFiddler.Controls.UserControls
         private static void ExportGumpImage(int index, ImageFormat imageFormat)
         {
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
-            string fileName = Path.Combine(Options.OutputPath, $"Gump 0x{index:X4}.{fileExtension}");
+            string fileName = Path.Combine(Options.OutputPath, $"Gump {index}.{fileExtension}");
 
             using (Bitmap bit = new Bitmap(Gumps.GetGump(index)))
             {
@@ -577,7 +577,7 @@ namespace UoFiddler.Controls.UserControls
                         continue;
                     }
 
-                    string fileName = Path.Combine(dialog.SelectedPath, $"Gump 0x{index:X4}.{fileExtension}");
+                    string fileName = Path.Combine(dialog.SelectedPath, $"Gump {index}.{fileExtension}");
                     var gump = Gumps.GetGump(index);
                     if (gump is null)
                     {

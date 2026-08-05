@@ -752,42 +752,71 @@ namespace UoFiddler.Controls.UserControls
 
         private void Extract_Image_ClickBmp(object sender, EventArgs e)
         {
-            if (_selectedGraphicId == -1)
-            {
-                return;
-            }
-
-            ExportItemImage(_selectedGraphicId, ImageFormat.Bmp);
+            ExportSelectedImages(ImageFormat.Bmp);
         }
 
         private void Extract_Image_ClickTiff(object sender, EventArgs e)
         {
-            if (_selectedGraphicId == -1)
-            {
-                return;
-            }
-
-            ExportItemImage(_selectedGraphicId, ImageFormat.Tiff);
+            ExportSelectedImages(ImageFormat.Tiff);
         }
 
         private void Extract_Image_ClickJpg(object sender, EventArgs e)
         {
-            if (_selectedGraphicId == -1)
-            {
-                return;
-            }
-
-            ExportItemImage(_selectedGraphicId, ImageFormat.Jpeg);
+            ExportSelectedImages(ImageFormat.Jpeg);
         }
 
         private void Extract_Image_ClickPng(object sender, EventArgs e)
         {
-            if (_selectedGraphicId == -1)
-            {
-                return;
-            }
+            ExportSelectedImages(ImageFormat.Png);
+        }
 
-            ExportItemImage(_selectedGraphicId, ImageFormat.Png);
+        private void ExportSelectedImages(ImageFormat imageFormat)
+        {
+            // If multi-select is enabled and there are selected indices, export all selected.
+            var selected = ItemsTileView.SelectedIndices;
+
+            if (ItemsTileView.MultiSelect && selected != null && selected.Count > 0)
+            {
+                Cursor.Current = Cursors.WaitCursor;
+                int saved = 0;
+                foreach (int tileIndex in selected)
+                {
+                    if (tileIndex < 0 || tileIndex >= _itemList.Count)
+                    {
+                        continue;
+                    }
+
+                    int graphic = _itemList[tileIndex];
+                    if (!Art.IsValidStatic(graphic))
+                    {
+                        continue;
+                    }
+
+                    string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+                    string fileName = Path.Combine(Options.OutputPath, $"Item {graphic}.{fileExtension}");
+
+                    using (Bitmap bit = new Bitmap(Art.GetStatic(graphic)))
+                    {
+                        bit.Save(fileName, imageFormat);
+                    }
+
+                    saved++;
+                }
+
+                Cursor.Current = Cursors.Default;
+
+                MessageBox.Show($"{saved} item(s) saved to {Options.OutputPath}", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information,
+                    MessageBoxDefaultButton.Button1);
+            }
+            else
+            {
+                if (_selectedGraphicId == -1)
+                {
+                    return;
+                }
+
+                ExportItemImage(_selectedGraphicId, imageFormat);
+            }
         }
 
         private static void ExportItemImage(int index, ImageFormat imageFormat)
@@ -798,7 +827,7 @@ namespace UoFiddler.Controls.UserControls
             }
 
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
-            string fileName = Path.Combine(Options.OutputPath, $"Item 0x{index:X4}.{fileExtension}");
+            string fileName = Path.Combine(Options.OutputPath, $"Item {index}.{fileExtension}");
 
             using (Bitmap bit = new Bitmap(Art.GetStatic(index)))
             {

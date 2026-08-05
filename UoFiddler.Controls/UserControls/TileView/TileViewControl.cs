@@ -11,6 +11,8 @@ namespace UoFiddler.Controls.UserControls.TileView
     public class TileViewControl : ScrollableControl
     {
         private int _itemsPerRow;
+        private int _anchorIndex = -1;
+        private int _lastFocusBeforeMouseDown = -1;
 
         /// <summary>
         /// Backwards compatibility with ListView ItemSelectionChanged event. Warning: Have a high chance to be changed in future.
@@ -327,11 +329,37 @@ namespace UoFiddler.Controls.UserControls.TileView
             {
                 int idx = GetIndexAtLocation(e.Location);
 
+                // store focus before it changes so Alt-range can fall back to it when anchor isn't set
+                _lastFocusBeforeMouseDown = _focusIndex;
+
                 FocusIndex = idx;
 
                 if (idx != -2 && e.Button == MouseButtons.Left) // no Tile at given location
                 {
-                    SelectIndex(idx);
+                    // capture modifiers at mouse time to avoid timing/order issues
+                    Keys mods = Control.ModifierKeys;
+
+                    // Shift => range selection from anchor (or last focus) to clicked index
+                    if ((mods & Keys.Shift) == Keys.Shift && _multiSelect)
+                    {
+                        int anchor = _anchorIndex >= 0
+                            ? _anchorIndex
+                            : (_lastFocusBeforeMouseDown >= 0 ? _lastFocusBeforeMouseDown : idx);
+
+                        int start = Math.Min(anchor, idx);
+                        int end = Math.Max(anchor, idx);
+
+                        SelectedIndices.Clear();
+                        for (int i = start; i <= end; ++i)
+                        {
+                            SelectedIndices.Add(i);
+                        }
+                    }
+                    else
+                    {
+                        // fallback to standard selection behavior (handles Ctrl toggling)
+                        SelectIndex(idx);
+                    }
                 }
             };
 
@@ -474,38 +502,68 @@ namespace UoFiddler.Controls.UserControls.TileView
 
         private void SelectIndex(int index)
         {
-            switch (ModifierKeys)
+            // Support Ctrl for toggle, Shift for range selection (anchor set on mouse down), default to single select
+            if ((ModifierKeys & Keys.Control) == Keys.Control)
             {
-                case Keys.Control:
-                    if (_multiSelect)
+                if (_multiSelect)
+                {
+                    if (SelectedIndices.Contains(index))
                     {
-                        if (SelectedIndices.Contains(index))
-                        {
-                            SelectedIndices.Remove(index);
-                        }
-                        else
-                        {
-                            SelectedIndices.Add(index);
-                        }
+                        SelectedIndices.Remove(index);
                     }
                     else
                     {
-                        if (!SelectedIndices.Contains(index))
-                        {
-                            SelectedIndices.Clear();
-                            SelectedIndices.Add(index);
-                        }
+                        SelectedIndices.Add(index);
                     }
-
-                    break;
-                default:
+                }
+                else
+                {
                     if (!SelectedIndices.Contains(index))
                     {
                         SelectedIndices.Clear();
                         SelectedIndices.Add(index);
                     }
+                }
 
-                    break;
+                // set anchor to last explicitly selected index for subsequent range selections
+                _anchorIndex = index;
+            }
+            else if ((ModifierKeys & Keys.Shift) == Keys.Shift)
+            {
+                if (_multiSelect)
+                {
+                    int anchor = _anchorIndex >= 0
+                        ? _anchorIndex
+                        : (_lastFocusBeforeMouseDown >= 0 ? _lastFocusBeforeMouseDown : index);
+                    int start = Math.Min(anchor, index);
+                    int end = Math.Max(anchor, index);
+
+                    SelectedIndices.Clear();
+                    for (int i = start; i <= end; ++i)
+                    {
+                        SelectedIndices.Add(i);
+                    }
+                }
+                else
+                {
+                    if (!SelectedIndices.Contains(index))
+                    {
+                        SelectedIndices.Clear();
+                        SelectedIndices.Add(index);
+                    }
+                }
+                // do not change anchor so repeated Alt-clicks expand from same anchor
+            }
+            else
+            {
+                if (!SelectedIndices.Contains(index))
+                {
+                    SelectedIndices.Clear();
+                    SelectedIndices.Add(index);
+                }
+
+                // default click sets anchor
+                _anchorIndex = index;
             }
         }
 
