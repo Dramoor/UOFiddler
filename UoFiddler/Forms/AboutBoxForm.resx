@@ -119,7 +119,7 @@
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
     <value>Version 5.1.4
-- Exporting item,gump,texture,landtile images will use decimal instead of hexidecimal for the file name.
+- Exporting item,gump,texture,landtile/animation vds images will use decimal instead of hexidecimal for the file name.
 	
 - Can now select multiple items in the items tab with ctrl or ranges with shift. 
 	

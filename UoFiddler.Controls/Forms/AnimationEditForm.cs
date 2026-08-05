@@ -1749,7 +1749,7 @@ namespace UoFiddler.Controls.Forms
                 dialog.Title = "Export to .vd";
                 dialog.InitialDirectory = Options.OutputPath;
                 dialog.Filter = "vd files (*.vd)|*.vd";
-                dialog.FileName = $"anim{_fileType}_0x{_currentBody:X}.vd";
+                dialog.FileName = $"anim{_fileType}_{_currentBody}.vd";
 
                 // Build a simple option dialog embedded in the SaveFileDialog's owner sequence
                 if (dialog.ShowDialog() != DialogResult.OK)
@@ -3087,7 +3087,7 @@ namespace UoFiddler.Controls.Forms
                         continue;
                     }
 
-                    string fileName = Path.Combine(dialog.SelectedPath, $"anim{_fileType}_0x{index:X}.vd");
+                    string fileName = Path.Combine(dialog.SelectedPath, $"anim{_fileType}_{index}.vd");
                     AnimationEdit.ExportToVD(_fileType, index, fileName);
                 }
 
