@@ -100,6 +100,7 @@ namespace UoFiddler.Controls.UserControls
             ExportAllToolStripMenuItem = new ToolStripMenuItem();
             asBmpToolStripMenuItem = new ToolStripMenuItem();
             showLayerSearchToolStripMenuItem = new ToolStripMenuItem();
+            dynamicItemSearchToolStripMenuItem = new ToolStripMenuItem();
             asTiffToolStripMenuItem = new ToolStripMenuItem();
             asJpgToolStripMenuItem = new ToolStripMenuItem();
             asPngToolStripMenuItem = new ToolStripMenuItem();
@@ -560,7 +561,7 @@ namespace UoFiddler.Controls.UserControls
             // MiscToolStripDropDownButton
             // 
             MiscToolStripDropDownButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { showLayerSearchToolStripMenuItem, ExportAllToolStripMenuItem });
+            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { showLayerSearchToolStripMenuItem, dynamicItemSearchToolStripMenuItem, ExportAllToolStripMenuItem });
             MiscToolStripDropDownButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             MiscToolStripDropDownButton.Name = "MiscToolStripDropDownButton";
             MiscToolStripDropDownButton.Size = new System.Drawing.Size(45, 25);
@@ -573,6 +574,14 @@ namespace UoFiddler.Controls.UserControls
             showLayerSearchToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             showLayerSearchToolStripMenuItem.Text = "Show layer search";
             showLayerSearchToolStripMenuItem.Click += ShowLayerSearchToolStripMenuItem_Click;
+            //
+            // dynamicItemSearchToolStripMenuItem
+            //
+            dynamicItemSearchToolStripMenuItem.CheckOnClick = true;
+            dynamicItemSearchToolStripMenuItem.Name = "dynamicItemSearchToolStripMenuItem";
+            dynamicItemSearchToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            dynamicItemSearchToolStripMenuItem.Text = "Dynamic item searching";
+            dynamicItemSearchToolStripMenuItem.Click += DynamicItemSearchToolStripMenuItem_Click;
             // 
             // ExportAllToolStripMenuItem
             // 
@@ -714,6 +723,7 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripTextBox searchByNameToolStripTextBox;
         private ToolStripButton searchByNameToolStripButton;
         private ToolStripButton searchByNamePrevToolStripButton;
+        private ToolStripMenuItem dynamicItemSearchToolStripMenuItem;
         private ToolStripLabel toolStripLabelLayer;
         private ToolStripTextBox layerToolStripTextBox;
         private ToolStripButton layerPrevToolStripButton;

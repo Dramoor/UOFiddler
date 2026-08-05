@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.1.4
+    <value>Version 5.1.5
+- Added in a check box in the misc tab to allow for dynamic searching for items in the items tab. This will load all items containing the searched name and not show the rest.
+		
+Version 5.1.4
 - Can select in the misc tab on items search by layer and can then search every item in the items tab with the layer selected. 
 
 - Exporting item,gump,texture,landtile/animation vds images will use decimal instead of hexidecimal for the file name.

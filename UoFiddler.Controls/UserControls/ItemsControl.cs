@@ -39,6 +39,8 @@ namespace UoFiddler.Controls.UserControls
         }
 
         private List<int> _itemList = new List<int>();
+        // full unfiltered list of items (used when dynamic filtering is enabled)
+        private List<int> _allItemList = new List<int>();
         private bool _showFreeSlots;
 
         private int _selectedGraphicId = -1;
@@ -275,6 +277,9 @@ namespace UoFiddler.Controls.UserControls
                 }
             }
 
+            // keep a copy of the full unfiltered list so we can restore it after dynamic filtering
+            _allItemList = new List<int>(_itemList);
+
             ItemsTileView.VirtualListSize = _itemList.Count;
 
             if (prevSelected >= 0)
@@ -384,9 +389,123 @@ namespace UoFiddler.Controls.UserControls
 
                 _itemList.Remove(index);
             }
+            // keep master list in sync
+            if (Art.IsValidStatic(index))
+            {
+                bool doneAll = false;
+                for (int i = 0; i < _allItemList.Count; ++i)
+                {
+                    if (index < _allItemList[i])
+                    {
+                        _allItemList.Insert(i, index);
+                        doneAll = true;
+                        break;
+                    }
+
+                    if (index != _allItemList[i])
+                    {
+                        continue;
+                    }
+
+                    doneAll = true;
+                    break;
+                }
+
+                if (!doneAll)
+                {
+                    _allItemList.Add(index);
+                }
+            }
+            else
+            {
+                _allItemList.Remove(index);
+            }
+
+            // if dynamic searching is enabled, reapply current filter
+            try
+            {
+                if (dynamicItemSearchToolStripMenuItem != null && dynamicItemSearchToolStripMenuItem.Checked)
+                {
+                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+            catch
+            {
+                // ignore when designer
+            }
+
 
             ItemsTileView.VirtualListSize = _itemList.Count;
             ItemsTileView.Invalidate();
+        }
+
+        private void DynamicItemSearchToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem mi)
+            {
+                bool dynamic = mi.Checked;
+                // hide the Find Next/Prev buttons when dynamic searching is enabled
+                searchByNameToolStripButton.Visible = !dynamic;
+                searchByNamePrevToolStripButton.Visible = !dynamic;
+
+                if (!dynamic)
+                {
+                    // restore full list
+                    _itemList = new List<int>(_allItemList);
+                    ItemsTileView.VirtualListSize = _itemList.Count;
+                    ItemsTileView.Invalidate();
+                }
+                else
+                {
+                    // apply filter if any text is present
+                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+        }
+
+        private void ApplyNameFilter(string name)
+        {
+            if (_allItemList == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                // empty -> restore full list
+                _itemList = new List<int>(_allItemList);
+                ItemsTileView.VirtualListSize = _itemList.Count;
+                ItemsTileView.Invalidate();
+                if (_itemList.Count > 0)
+                {
+                    SelectedGraphicId = _itemList[0];
+                }
+                return;
+            }
+
+            var searchMethod = SearchHelper.GetSearchMethod();
+            var filtered = new List<int>();
+            foreach (var id in _allItemList)
+            {
+                var result = searchMethod(name, TileData.ItemTable[id].Name);
+                if (result.HasErrors)
+                {
+                    break;
+                }
+
+                if (result.EntryFound)
+                {
+                    filtered.Add(id);
+                }
+            }
+
+            _itemList = filtered;
+            ItemsTileView.VirtualListSize = _itemList.Count;
+            ItemsTileView.Invalidate();
+            if (_itemList.Count > 0)
+            {
+                SelectedGraphicId = _itemList[0];
+            }
         }
 
         private Color _backgroundColorItem = Color.White;
@@ -1463,10 +1582,36 @@ namespace UoFiddler.Controls.UserControls
         private void SearchByNameToolStripTextBox_KeyUp(object sender, KeyEventArgs e)
         {
             // Start search forward from beginning when typing in the search box so initial match is the first matching item
+            try
+            {
+                if (dynamicItemSearchToolStripMenuItem != null && dynamicItemSearchToolStripMenuItem.Checked)
+                {
+                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                    return;
+                }
+            }
+            catch
+            {
+                // ignore in designer
+            }
+
             SearchName(searchByNameToolStripTextBox.Text, true, true);
         }
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
         {
+            try
+            {
+                if (dynamicItemSearchToolStripMenuItem != null && dynamicItemSearchToolStripMenuItem.Checked)
+                {
+                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                    return;
+                }
+            }
+            catch
+            {
+                // ignore in designer
+            }
+
             SearchName(searchByNameToolStripTextBox.Text, true);
         }
 
