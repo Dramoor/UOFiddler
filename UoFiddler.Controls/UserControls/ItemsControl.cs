@@ -461,7 +461,7 @@ namespace UoFiddler.Controls.UserControls
             {
                 // ignore if cliloc cannot be loaded
             }
-            sb.AppendLine($"Graphic: 0x{graphic:X4} ({graphic})");
+            sb.AppendLine($"Graphic: 0x{graphic:X4}({graphic})");
             sb.AppendLine($"Height/Capacity: {item.Height}");
             sb.AppendLine($"Weight: {item.Weight}");
             sb.AppendLine($"Animation: {item.Animation}");
