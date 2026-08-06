@@ -79,6 +79,10 @@
 	<Multi name="British Galleon [damaged][east]" id="69" type="0" />
 	<Multi name="British Galleon [damaged][south]" id="70" type="0" />
 	<Multi name="British Galleon [damaged][west]" id="71" type="0" />
+	<Multi name="Pumpkin Rowboat [north]" id="80" type="0" />
+	<Multi name="Pumpkin Rowboat [east]" id="81" type="0" />
+	<Multi name="Pumpkin Rowboat [south]" id="82" type="0" />
+	<Multi name="Pumpkin Rowboat [west]" id="83" type="0" />
 	<Multi name="Small Stone and Plaster House" id="100" type="1" />
 	<Multi name="Small Stone and Plaster House" id="101" type="1" />
 	<Multi name="Small Fieldstone House" id="102" type="1" />
@@ -286,6 +290,87 @@
 	<Multi name="The Keep Calm And Carry On Keep" id="5276" type="1" />
 	<Multi name="The Ravenloft Keep" id="5277" type="1" />
 	<Multi name="The Queens Retreat Keep" id="5278" type="1" />
+	<Multi name="The Heorot" id="5279" type="1" />
+	<Multi name="The Township" id="5280" type="1" />
+	<Multi name="The Castle of Resistance" id="5281" type="1" />
 	<Multi name="New Player Quest Cam" id="7500" type="2" />
+	<Multi name="Wooden Stairs [South]" id="7600" type="3" />
+	<Multi name="Wooden Stairs [West]" id="7601" type="3" />
+	<Multi name="Wooden Stairs [North]" id="7602" type="3" />
+	<Multi name="Wooden Stairs [East]" id="7603" type="3" />
+	<Multi name="Stone Stairs [South]" id="7604" type="3" />
+	<Multi name="Stone Stairs [West]" id="7605" type="3" />
+	<Multi name="Stone Stairs [North]" id="7606" type="3" />
+	<Multi name="Stone Stairs [East]" id="7607" type="3" />
+	<Multi name="Stone Stairs [South]" id="7608" type="3" />
+	<Multi name="Stone Stairs [West]" id="7609" type="3" />
+	<Multi name="Stone Stairs [North]" id="7610" type="3" />
+	<Multi name="Stone Stairs [East]" id="7611" type="3" />
+	<Multi name="Wood Stairs [South]" id="7612" type="3" />
+	<Multi name="Wood Stairs [West]" id="7613" type="3" />
+	<Multi name="Wood Stairs [North]" id="7614" type="3" />
+	<Multi name="Wood Stairs [East]" id="7615" type="3" />
+	<Multi name="Wood Stairs [South]" id="7612" type="3" />
+	<Multi name="Wood Stairs [West]" id="7613" type="3" />
+	<Multi name="Wood Stairs [North]" id="7614" type="3" />
+	<Multi name="Wood Stairs [East]" id="7615" type="3" />
+	<Multi name="Stone Stairs [South]" id="7616" type="3" />
+	<Multi name="Stone Stairs [West]" id="7617" type="3" />
+	<Multi name="Stone Stairs [North]" id="7618" type="3" />
+	<Multi name="Stone Stairs [East]" id="7619" type="3" />
+	<Multi name="Marble Stairs [South]" id="7620" type="3" />
+	<Multi name="Marble Stairs [West]" id="7621" type="3" />
+	<Multi name="Marble Stairs [North]" id="7622" type="3" />
+	<Multi name="Marble Stairs [East]" id="7623" type="3" />
+	<Multi name="Sandstone Stairs [South]" id="7624" type="3" />
+	<Multi name="Sandstone Stairs [West]" id="7625" type="3" />
+	<Multi name="Sandstone Stairs [North]" id="7626" type="3" />
+	<Multi name="Sandstone Stairs [East]" id="7627" type="3" />
+	<Multi name="Sandstone Stairs [South]" id="7628" type="3" />
+	<Multi name="Sandstone Stairs [West]" id="7629" type="3" />
+	<Multi name="Sandstone Stairs [North]" id="7630" type="3" />
+	<Multi name="Sandstone Stairs [East]" id="7631" type="3" />
+	<Multi name="Stone Stairs [South]" id="7632" type="3" />
+	<Multi name="Stone Stairs [West]" id="7633" type="3" />
+	<Multi name="Stone Stairs [North]" id="7634" type="3" />
+	<Multi name="Stone Stairs [East]" id="7635" type="3" />
+	<Multi name="Carpet Stairs [South]" id="7636" type="3" />
+	<Multi name="Carpet Stairs [East]" id="7639" type="3" />
+	<Multi name="Crystal Stairs [South]" id="7640" type="3" />
+	<Multi name="Crystal Stairs [West]" id="7641" type="3" />
+	<Multi name="Crystal Stairs [North]" id="7642" type="3" />
+	<Multi name="Crystal Stairs [East]" id="7643" type="3" />
+	<Multi name="Stone Stairs [South]" id="7644" type="3" />
+	<Multi name="Stone Stairs [West]" id="7645" type="3" />
+	<Multi name="Stone Stairs [North]" id="7646" type="3" />
+	<Multi name="Stone Stairs [East]" id="7647" type="3" />
+	<Multi name="Gargoyle Stairs [South]" id="7648" type="3" />
+	<Multi name="Gargoyle Stairs [West]" id="7649" type="3" />
+	<Multi name="Gargoyle Stairs [North]" id="7650" type="3" />
+	<Multi name="Gargoyle Stairs [East]" id="7651" type="3" />
+	<Multi name="Gargoyle Stairs [South]" id="7652" type="3" />
+	<Multi name="Gargoyle Stairs [West]" id="7653" type="3" />
+	<Multi name="Gargoyle Stairs [North]" id="7654" type="3" />
+	<Multi name="Gargoyle Stairs [East]" id="7655" type="3" />
+	<Multi name="Gargoyle Stairs [South]" id="7656" type="3" />
+	<Multi name="Gargoyle Stairs [West]" id="7657" type="3" />
+	<Multi name="Gargoyle Stairs [North]" id="7658" type="3" />
+	<Multi name="Gargoyle Stairs [East]" id="7659" type="3" />
+	<Multi name="Stone Stairs [South]" id="7660" type="3" />
+	<Multi name="Stone Stairs [West]" id="7661" type="3" />
+	<Multi name="Stone Stairs [North]" id="7662" type="3" />
+	<Multi name="Stone Stairs [East]" id="7663" type="3" />
+	<Multi name="Wood Stairs [South]" id="7664" type="3" />
+	<Multi name="Wood Stairs [West]" id="7665" type="3" />
+	<Multi name="Wood Stairs [North]" id="7666" type="3" />
+	<Multi name="Wood Stairs [East]" id="7667" type="3" />
+	<Multi name="Sandstone Stairs [South]" id="7668" type="3" />
+	<Multi name="Sandstone Stairs [West]" id="7669" type="3" />
+	<Multi name="Sandstone Stairs [North]" id="7670" type="3" />
+	<Multi name="Sandstone Stairs [East]" id="7671" type="3" />
+	<Multi name="Stone Marble Stairs [South]" id="7672" type="3" />
+	<Multi name="Stone Marble Stairs [West]" id="7673" type="3" />
+	<Multi name="Stone Marble Stairs [North]" id="7674" type="3" />
+	<Multi name="Stone Marble Stairs [East]" id="7675" type="3" />
 </Multis>
 

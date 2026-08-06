@@ -367,24 +367,95 @@ namespace Ultima
         {
             try
             {
-                Stream stream = _fileIndex.Seek(index, out int length, out int _, out bool _);
+                IEntry entry = null;
+                Stream stream = _fileIndex.Seek(index, ref entry, out bool patched);
 
-                if (stream == null)
+                if (stream == null || entry == null)
                 {
                     return MultiComponentList.Empty;
                 }
 
-                if (Art.IsUOAHS())
+                int length = entry.Length & 0x7FFFFFFF;
+
+                // Compressed UOP entries
+                if (entry.Flag >= CompressionFlag.Zlib)
                 {
-                    return new MultiComponentList(new BinaryReader(stream), length / 16, true);
+                    if (patched)
+                    {
+                        // Verdata on compressed UOP not supported here
+                        System.Diagnostics.Debug.WriteLine($"Multis.Load: patched + compressed not supported index={index}");
+                        return MultiComponentList.Empty;
+                    }
+
+                    var compLen = length;
+                    var compBuffer = new byte[compLen];
+                    stream.ReadExactly(compBuffer, 0, compLen);
+
+                    var dec = UopUtils.Decompress(compBuffer);
+                    if (!dec.success)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Multis.Load: decompression failed index={index}");
+                        return MultiComponentList.Empty;
+                    }
+
+                    var final = dec.data;
+                    if (entry.Flag == CompressionFlag.Mythic)
+                    {
+                        final = MythicDecompress.Decompress(dec.data);
+                    }
+
+                    using (var ms = new MemoryStream(final))
+                    using (var reader = new BinaryReader(ms))
+                    {
+                        // ClassicUO: skip a uint header then read count
+                        _ = reader.ReadUInt32();
+                        int count = reader.ReadInt32();
+
+                        var list = new List<MultiComponentList.MultiTileEntry>(count);
+                        for (int i = 0; i < count; ++i)
+                        {
+                            ushort id = reader.ReadUInt16();
+                            short x = reader.ReadInt16();
+                            short y = reader.ReadInt16();
+                            short z = reader.ReadInt16();
+                            ushort flags = reader.ReadUInt16();
+                            uint unknown = reader.ReadUInt32();
+
+                            if (unknown != 0)
+                            {
+                                // skip additional uints as ClassicUO does
+                                reader.BaseStream.Seek(unknown * 4, SeekOrigin.Current);
+                            }
+
+                            var e = new MultiComponentList.MultiTileEntry
+                            {
+                                ItemId = id,
+                                OffsetX = x,
+                                OffsetY = y,
+                                OffsetZ = z,
+                                Flags = (int)flags,
+                                Unk1 = (int)unknown
+                            };
+
+                            list.Add(e);
+                        }
+
+                        return new MultiComponentList(list);
+                    }
                 }
-                else
-                {
-                    return new MultiComponentList(new BinaryReader(stream), length / 12, false);
-                }
+
+                // Uncompressed entries: create reader over shared stream (leave open)
+                var streamReader = new BinaryReader(stream, System.Text.Encoding.Default, true);
+
+                // Detect format by length divisibility (prefer 16-byte entries when possible)
+                bool useNew = (length % 16) == 0 && (length / 16) > 0;
+                int entries = useNew ? length / 16 : length / 12;
+
+                return new MultiComponentList(streamReader, entries, useNew);
             }
-            catch
+            catch (Exception ex)
             {
+                System.Diagnostics.Debug.WriteLine($"Multis.Load({index}) failed: {ex}");
                 return MultiComponentList.Empty;
             }
         }

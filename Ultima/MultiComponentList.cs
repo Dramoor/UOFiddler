@@ -690,7 +690,7 @@ namespace Ultima
 
             ConvertList();
         }
-
+        
         private void ConvertList()
         {
             _center = new Point(-_min.X, -_min.Y);
