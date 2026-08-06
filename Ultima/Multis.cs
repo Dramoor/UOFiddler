@@ -791,58 +791,51 @@ namespace Ultima
                 {
                     string uopPath = Path.Combine(path, "MultiCollection.uop");
 
-                    // Try plugin converter first (reflection to avoid hard dependency)
+                    // Prefer manual UOP creation first; fall back to plugin converter on failure
                     try
                     {
-                        Type convType = null;
-                        foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
-                        {
-                            convType = a.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
-                            if (convType != null) break;
-                        }
-
-                        if (convType == null)
-                        {
-                            string possible = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "UOPPacker.dll");
-                            if (File.Exists(possible))
-                            {
-                                var asm = Assembly.LoadFrom(possible);
-                                convType = asm.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
-                            }
-                        }
-
-                        bool invoked = false;
-                        if (convType != null)
-                        {
-                            var toUop = convType.GetMethod("ToUop", BindingFlags.Public | BindingFlags.Static);
-                            if (toUop != null)
-                            {
-                                Type fileTypeEnum = convType.Assembly.GetType("UoFiddler.Plugin.UopPacker.Classes.FileType");
-                                object fileTypeVal = null;
-                                if (fileTypeEnum != null)
-                                {
-                                    fileTypeVal = Enum.Parse(fileTypeEnum, "MultiCollection");
-                                }
-
-                                try
-                                {
-                                    toUop.Invoke(null, new object[] { mul, idx, uopPath, fileTypeVal, 0, CompressionFlag.Zlib });
-                                    invoked = true;
-                                }
-                                catch { }
-                            }
-                        }
-
-                        if (!invoked)
-                        {
-                            CreateMultiUopFromFiles(mul, idx, uopPath);
-                        }
+                        CreateMultiUopFromFiles(mul, idx, uopPath);
                     }
                     catch
                     {
                         try
                         {
-                            CreateMultiUopFromFiles(mul, idx, uopPath);
+                            Type convType = null;
+                            foreach (var a in AppDomain.CurrentDomain.GetAssemblies())
+                            {
+                                convType = a.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
+                                if (convType != null) break;
+                            }
+
+                            if (convType == null)
+                            {
+                                string possible = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "plugins", "UOPPacker.dll");
+                                if (File.Exists(possible))
+                                {
+                                    var asm = Assembly.LoadFrom(possible);
+                                    convType = asm.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
+                                }
+                            }
+
+                            if (convType != null)
+                            {
+                                var toUop = convType.GetMethod("ToUop", BindingFlags.Public | BindingFlags.Static);
+                                if (toUop != null)
+                                {
+                                    Type fileTypeEnum = convType.Assembly.GetType("UoFiddler.Plugin.UopPacker.Classes.FileType");
+                                    object fileTypeVal = null;
+                                    if (fileTypeEnum != null)
+                                    {
+                                        fileTypeVal = Enum.Parse(fileTypeEnum, "MultiCollection");
+                                    }
+
+                                    try
+                                    {
+                                        toUop.Invoke(null, new object[] { mul, idx, uopPath, fileTypeVal, 0, CompressionFlag.Zlib });
+                                    }
+                                    catch { }
+                                }
+                            }
                         }
                         catch { }
                     }
