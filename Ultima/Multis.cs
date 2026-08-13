@@ -7,12 +7,24 @@ using System.Reflection;
 
 namespace Ultima
 {
+    /// <summary>
+    /// Flags for multi tile entries in UOP and MUL formats
+    /// </summary>
+    [Flags]
+    public enum MultiFlag
+    {
+        UNKNOWN = 0,
+        VISIBLE = 1,
+        BACKGROUND = 2,
+        TAG = 4,    // in uop, newer entries (0x100)
+    }
+
     public sealed class Multis
     {
-        public const int MaximumMultiIndex = 0x2200;
+        public const int MaximumMultiIndex = 0x3000;
 
         private static MultiComponentList[] _components = new MultiComponentList[MaximumMultiIndex];
-        private static FileIndex _fileIndex = new FileIndex("Multi.idx", "Multi.mul", "multicollection.uop", MaximumMultiIndex, 14, ".bin", 14, false);
+        private static FileIndex _fileIndex = new FileIndex("Multi.idx", "Multi.mul", "multicollection.uop", MaximumMultiIndex, 14, ".bin", MaximumMultiIndex, false);
 
         public enum ImportType
         {
@@ -24,7 +36,10 @@ namespace Ultima
             UOX3,
             MULTICACHE,
             UOADESIGN,
-            XML
+            XML,
+            MUL,        // client mul
+            UOHS,       // client newer mul
+            UOP         // client uop
         }
 
 
@@ -33,7 +48,7 @@ namespace Ultima
         /// </summary>
         public static void Reload()
         {
-            _fileIndex = new FileIndex("Multi.idx", "Multi.mul", "multicollection.uop", MaximumMultiIndex, 14, ".bin", 14, false);
+            _fileIndex = new FileIndex("Multi.idx", "Multi.mul", "multicollection.uop", MaximumMultiIndex, 14, ".bin", MaximumMultiIndex, false);
             _components = new MultiComponentList[MaximumMultiIndex];
         }
 
@@ -407,10 +422,11 @@ namespace Ultima
                     using (var ms = new MemoryStream(final))
                     using (var reader = new BinaryReader(ms))
                     {
-                        // ClassicUO: skip a uint header then read count
-                        _ = reader.ReadUInt32();
+                        // UOP format: read header with unknown value and count
+                        int headerUnknown = reader.ReadInt32();
                         int count = reader.ReadInt32();
 
+                        // Create multi from list for compressed UOP data
                         var list = new List<MultiComponentList.MultiTileEntry>(count);
                         for (int i = 0; i < count; ++i)
                         {
@@ -420,12 +436,6 @@ namespace Ultima
                             short z = reader.ReadInt16();
                             ushort flags = reader.ReadUInt16();
                             uint unknown = reader.ReadUInt32();
-
-                            if (unknown != 0)
-                            {
-                                // skip additional uints as ClassicUO does
-                                reader.BaseStream.Seek(unknown * 4, SeekOrigin.Current);
-                            }
 
                             var e = new MultiComponentList.MultiTileEntry
                             {
@@ -437,6 +447,16 @@ namespace Ultima
                                 Unk1 = (int)unknown
                             };
 
+                            // Read extra tag data if present
+                            if (unknown != 0)
+                            {
+                                e.Tag = new uint[unknown];
+                                for (int j = 0; j < unknown; ++j)
+                                {
+                                    e.Tag[j] = reader.ReadUInt32();
+                                }
+                            }
+
                             list.Add(e);
                         }
 
@@ -447,11 +467,54 @@ namespace Ultima
                 // Uncompressed entries: create reader over shared stream (leave open)
                 var streamReader = new BinaryReader(stream, System.Text.Encoding.Default, true);
 
-                // Detect format by length divisibility (prefer 16-byte entries when possible)
+                // Detect format by checking if it's likely UOP format
+                // UOP format starts with a header (2 uint32 values) then alternates ushort flags
+                // For uncompressed UOP: header + (ushort+coords+ushort+tagcount+tags)*count
+                // This is complex to detect perfectly, so we use heuristics
+
+                // Try to determine format based on length
+                // MUL format: 12 bytes per entry (ushort itemid + 3x short offsets + uint flags)
+                // UOHS format: 16 bytes per entry (ushort itemid + 3x short offsets + ulong flags)
+                // UOP format: 8 bytes per entry header + variable (ushort itemid + 3x short offsets + ushort flags + uint count + count*uint tags)
+
+                bool useUOP = (length % 16) != 0 || _fileIndex.IsUOP;
+                Multis.ImportType format = Multis.ImportType.MUL;
+
+                if (useUOP)
+                {
+                    format = Multis.ImportType.UOP;
+                    // UOP: 8 bytes header + (2+2+2+2+2+4+n*4) per entry
+                    // Peek ahead to check for UOP header
+                    long pos = streamReader.BaseStream.Position;
+                    try
+                    {
+                        int dummy1 = streamReader.ReadInt32();  // header unknown
+                        int count = streamReader.ReadInt32();   // actual count
+                        if (count > 0 && count < 10000)  // sanity check
+                        {
+                            streamReader.BaseStream.Seek(pos, SeekOrigin.Begin);
+                            return new MultiComponentList(streamReader, 0, format);  // pass 0, constructor will read from header
+                        }
+                    }
+                    catch { }
+                    streamReader.BaseStream.Seek(pos, SeekOrigin.Begin);
+                    format = Multis.ImportType.MUL;
+                }
+
+                // Standard detection for MUL/UOHS
                 bool useNew = (length % 16) == 0 && (length / 16) > 0;
+                if (useNew)
+                {
+                    format = Multis.ImportType.UOHS;
+                }
+                else
+                {
+                    format = Multis.ImportType.MUL;
+                }
+
                 int entries = useNew ? length / 16 : length / 12;
 
-                return new MultiComponentList(streamReader, entries, useNew);
+                return new MultiComponentList(streamReader, entries, format);
             }
             catch (Exception ex)
             {
@@ -713,8 +776,311 @@ namespace Ultima
             return newTiles;
         }
 
+        /// <summary>
+        /// Saves multis to UOP format (MultiCollection.uop) with tag preservation
+        /// Uses direct binary UOP format writing to preserve tag data from UOP entries
+        /// </summary>
+        private static void SaveUOP(string path)
+        {
+            string uopPath = Path.Combine(path, "MultiCollection.uop");
+
+            // Try direct UOP writing with tag preservation first
+            try
+            {
+                SaveUOPDirect(uopPath);
+                return;
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"Direct UOP save failed, falling back to MUL->UOP conversion: {ex}");
+            }
+
+            // Fallback: Use MUL→UOP conversion (loses tags but ensures format compatibility)
+            string tempIdx = Path.Combine(path, "temp_multi.idx");
+            string tempMul = Path.Combine(path, "temp_multi.mul");
+
+            try
+            {
+                bool isUOAHS = Art.IsUOAHS();
+
+                using (var fsidx = new FileStream(tempIdx, FileMode.Create, FileAccess.Write, FileShare.Write))
+                using (var fsmul = new FileStream(tempMul, FileMode.Create, FileAccess.Write, FileShare.Write))
+                using (var binidx = new BinaryWriter(fsidx))
+                using (var binmul = new BinaryWriter(fsmul))
+                {
+                    for (int index = 0; index < MaximumMultiIndex; ++index)
+                    {
+                        MultiComponentList comp = GetComponents(index);
+
+                        if (comp == MultiComponentList.Empty)
+                        {
+                            binidx.Write(-1);
+                            binidx.Write(-1);
+                            binidx.Write(-1);
+                        }
+                        else
+                        {
+                            List<MultiComponentList.MultiTileEntry> tiles = RebuildTiles(comp.SortedTiles);
+                            binidx.Write((int)fsmul.Position);
+                            if (isUOAHS)
+                            {
+                                binidx.Write(tiles.Count * 16);
+                            }
+                            else
+                            {
+                                binidx.Write(tiles.Count * 12); 
+                            }
+
+                            binidx.Write(-1);
+                            for (int i = 0; i < tiles.Count; ++i)
+                            {
+                                binmul.Write(tiles[i].ItemId);
+                                binmul.Write(tiles[i].OffsetX);
+                                binmul.Write(tiles[i].OffsetY);
+                                binmul.Write(tiles[i].OffsetZ);
+                                binmul.Write(tiles[i].Flags);
+                                if (isUOAHS)
+                                {
+                                    binmul.Write(tiles[i].Unk1);
+                                }
+                            }
+                        }
+                    }
+                }
+
+                CreateMultiUopFromFiles(tempMul, tempIdx, uopPath);
+            }
+            finally
+            {
+                try { File.Delete(tempIdx); } catch { }
+                try { File.Delete(tempMul); } catch { }
+            }
+        }
+
+        /// <summary>
+        /// Direct UOP binary format writer matching UOutils UOPFile.cs exactly
+        /// </summary>
+        private static void SaveUOPDirect(string uopPath)
+        {
+            const uint uopMagic = 0x50594D;      // "MYP"
+            const uint uopVersion = 5;
+            const uint uopFormat = 0xFD23EC43;
+            const long firstTable = 0x28;
+            const int tableSize = 0x64;          // 100 entries per table
+            const bool fulltables = true;        // Write all 100 entries per table, padded with zeros
+
+            // Build list of entries to write
+            var entries = new List<UopEntryData>();
+            for (int i = 0; i < MaximumMultiIndex; ++i)
+            {
+                MultiComponentList comp = GetComponents(i);
+                if (comp != MultiComponentList.Empty)
+                {
+                    entries.Add(BuildUopEntry(i, comp));
+                }
+            }
+
+            using (var writer = new BinaryWriter(new FileStream(uopPath, FileMode.Create, FileAccess.Write)))
+            {
+                // Write UOP header (40 bytes)
+                writer.Write(uopMagic);
+                writer.Write(uopVersion);
+                writer.Write(uopFormat);
+                writer.Write(firstTable);
+                writer.Write(tableSize);
+                writer.Write(entries.Count);  // file count
+                writer.Write(1);              // modified count
+                writer.Write(1);              // unknown
+                writer.Write(0);              // unknown
+
+                // Padding to first table
+                for (long i = 0x28; i < firstTable; ++i)
+                    writer.Write((byte)0);
+
+                // Calculate table count
+                int tableCount = (int)Math.Ceiling((double)entries.Count / tableSize);
+
+                // Reserve space for all tables (to be filled later)
+                long tablesStartPos = writer.BaseStream.Position;
+                if (fulltables)
+                {
+                    for (int i = 0; i < 34 * tableSize * tableCount + 12 * tableCount; ++i)
+                        writer.Write((byte)0);
+                }
+                else
+                {
+                    for (int i = 0; i < 34 * entries.Count + 12 * tableCount; ++i)
+                        writer.Write((byte)0);
+                }
+
+                // Write data blocks (header + compressed data for each entry)
+                for (int j = 0; j < entries.Count; ++j)
+                {
+                    UopEntryData ud = entries[j];
+                    ud.Offset = writer.BaseStream.Position;
+                    ud.Identifier = UopUtils.HashFileName(ud.Name);
+                    ud.Hash = ComputeAdler32(ud.CompressedData);
+
+                    writer.Write(ud.Header);
+                    writer.Write(ud.CompressedData);
+                }
+
+                // Seek back to tables and write them
+                writer.Seek((int)tablesStartPos, SeekOrigin.Begin);
+
+                // Write table blocks
+                for (int i = 0; i < tableCount; ++i)
+                {
+                    long thisTable = writer.BaseStream.Position;
+
+                    int idxStart = i * tableSize;
+                    int idxEnd = (i + 1) * tableSize;
+                    if (idxEnd > entries.Count) idxEnd = entries.Count;
+
+                    int num = idxEnd - idxStart;
+                    long tableNxt = 0;
+                    if (i + 1 != tableCount)
+                    {
+                        tableNxt = 12 + 34 * num + thisTable;
+                    }
+
+                    // Table header
+                    if (fulltables)
+                        writer.Write(tableSize);  // Always write full table size
+                    else
+                        writer.Write(num);        // Write actual entry count
+
+                    writer.Write(tableNxt);       // Next table offset
+
+                    // Write table entries
+                    for (int j = 0; j < num; ++j)
+                    {
+                        UopEntryData ud = entries[idxStart + j];
+                        writer.Write(ud.Offset);           // 8 bytes - file offset
+                        writer.Write(ud.Header.Length);    // 4 bytes - header length
+                        writer.Write((uint)ud.CompressedData.Length); // 4 bytes - compressed size
+                        writer.Write(ud.DecompressedLength); // 4 bytes - decompressed size
+                        writer.Write(ud.Identifier);       // 8 bytes - file hash
+                        writer.Write(ud.Hash);             // 4 bytes - data hash
+                        writer.Write(ud.CompressionMethod); // 2 bytes - compression method
+                    }
+
+                    // Pad remaining entries if fulltables
+                    if (fulltables)
+                    {
+                        for (int j = num; j < tableSize; ++j)
+                        {
+                            writer.Write((ulong)0);    // offset
+                            writer.Write((uint)0);     // header length
+                            writer.Write((uint)0);     // compressed size
+                            writer.Write((uint)0);     // decompressed size
+                            writer.Write((ulong)0);    // identifier
+                            writer.Write((uint)0);     // hash
+                            writer.Write((ushort)0);   // compression method
+                        }
+                    }
+                }
+            }
+        }
+
+        private class UopEntryData
+        {
+            public string Name { get; set; }
+            public byte[] Header { get; set; }
+            public byte[] CompressedData { get; set; }
+            public int DecompressedLength { get; set; }
+            public short CompressionMethod { get; set; }
+            public long Offset { get; set; }
+            public ulong Identifier { get; set; }
+            public uint Hash { get; set; }
+        }
+
+        private static UopEntryData BuildUopEntry(int index, MultiComponentList comp)
+        {
+            // Build 12-byte header (standard UOP multi format)
+            byte[] header;
+            using (var hs = new MemoryStream())
+            using (var hw = new BinaryWriter(hs))
+            {
+                hw.Write((ushort)3);         // version
+                hw.Write((ushort)8);         // unknown
+                hw.Write((ushort)0x08db);    // changes
+                hw.Write((ushort)0x511c);    // unknown
+                hw.Write((uint)0x01d4c4ff);  // fixed value
+                header = hs.ToArray();
+            }
+
+            // Build tile data
+            byte[] decompressedData;
+            using (var ms = new MemoryStream())
+            using (var bw = new BinaryWriter(ms))
+            {
+                bw.Write((uint)index);
+                bw.Write((uint)comp.SortedTiles.Length);
+
+                foreach (var tile in comp.SortedTiles)
+                {
+                    bw.Write(tile.ItemId);
+                    bw.Write(tile.OffsetX);
+                    bw.Write(tile.OffsetY);
+                    bw.Write(tile.OffsetZ);
+                    bw.Write((ushort)tile.Flags);
+
+                    if (tile.Tag != null && tile.Tag.Length > 0)
+                    {
+                        bw.Write((uint)tile.Tag.Length);
+                        foreach (uint tag in tile.Tag)
+                            bw.Write(tag);
+                    }
+                    else
+                    {
+                        bw.Write(0u);
+                    }
+                }
+
+                decompressedData = ms.ToArray();
+            }
+
+            // Compress
+            var (compressSuccess, compressedData) = UopUtils.Compress(decompressedData);
+            if (!compressSuccess)
+            {
+                compressedData = decompressedData;
+            }
+
+            return new UopEntryData
+            {
+                Name = $"build/multicollection/{index:D6}.bin",
+                Header = header,
+                CompressedData = compressedData,
+                DecompressedLength = decompressedData.Length,
+                CompressionMethod = (short)(compressSuccess ? 1 : 0)
+            };
+        }
+
+        private static uint ComputeAdler32(byte[] data)
+        {
+            const uint MOD_ADLER = 65521;
+            uint a = 1, b = 0;
+
+            foreach (byte d in data)
+            {
+                a = (a + d) % MOD_ADLER;
+                b = (b + a) % MOD_ADLER;
+            }
+
+            return (b << 16) | a;
+        }
+
         public static void Save(string path)
         {
+            // Route to SaveUOP if the file index is UOP format
+            if (_fileIndex.IsUOP)
+            {
+                SaveUOP(path);
+                return;
+            }
+
             bool isUOAHS = Art.IsUOAHS();
 
             string idx = Path.Combine(path, "multi.idx");

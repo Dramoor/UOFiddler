@@ -18,6 +18,8 @@ namespace Ultima
             set => FileAccessor[index] = (Entry6D)value;
         }
 
+        public bool IsUOP => FileAccessor is UopFileAccessor;
+
         private readonly string _mulPath;
 
         public FileIndex(string idxFile, string mulFile, int length, int file) : this(idxFile, mulFile, null, length,
@@ -129,13 +131,24 @@ namespace Ultima
              */
             if (_mulPath?.EndsWith(".uop") == true)
             {
-                FileAccessor = new UopFileAccessor(_mulPath, uopEntryExtension, length, idxLength, hasExtra);
+                try
+                {
+                    FileAccessor = new UopFileAccessor(_mulPath, uopEntryExtension, length, idxLength, hasExtra);
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to load UOP file '{_mulPath}': {ex.Message}. Falling back to MUL format.");
+                    FileAccessor = null;
+                    _mulPath = null;
+                    // Fall through to try MUL format
+                }
             }
-            else if ((idxPath != null) && (_mulPath != null))
+
+            if (FileAccessor == null && (idxPath != null) && (_mulPath != null))
             {
                 FileAccessor = new MulFileAccessor(idxPath, _mulPath, length);
             }
-            else
+            else if (FileAccessor == null)
             {
                 return;
             }

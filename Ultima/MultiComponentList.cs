@@ -38,6 +38,7 @@ namespace Ultima
         public int MaxHeight { get; }
         public MultiTileEntry[] SortedTiles { get; }
         public int Surface { get; private set; }
+        public bool Dirty { get; set; }
 
         public struct MultiTileEntry
         {
@@ -47,6 +48,20 @@ namespace Ultima
             public short OffsetZ;
             public int Flags;
             public int Unk1;
+            public uint[] Tag;  // For UOP format extra data
+
+            public override string ToString()
+            {
+                string s = string.Format("id: 0x{0:X} x:{1} y:{2} z:{3} f:{4} xtra:", ItemId, OffsetX, OffsetY, OffsetZ, Flags);
+                if (Tag != null)
+                {
+                    foreach (uint t in Tag)
+                    {
+                        s += $" 0x{t:X}";
+                    }
+                }
+                return s;
+            }
         }
 
         /// <summary>
@@ -195,6 +210,115 @@ namespace Ultima
             }
             ConvertList();
             reader.Close();
+        }
+
+        /// <summary>
+        /// Constructor for loading multi data with format-specific handling
+        /// </summary>
+        /// <param name="reader">Binary reader positioned at the multi data</param>
+        /// <param name="count">Number of tiles (for MUL/UOHS formats)</param>
+        /// <param name="format">Format type: MUL, UOHS, or UOP</param>
+        public MultiComponentList(BinaryReader reader, int count, Multis.ImportType format)
+        {
+            _min = _max = Point.Empty;
+
+            try
+            {
+                // UOP format has a header with additional info
+                if (format == Multis.ImportType.UOP || format == Multis.ImportType.UOADESIGN)
+                {
+                    // Read UOP header: unknown_value and actual_count
+                    int a = reader.ReadInt32();
+                    int cnt = reader.ReadInt32();
+                    count = cnt;
+                }
+
+                SortedTiles = new MultiTileEntry[count];
+
+                for (int i = 0; i < count; ++i)
+                {
+                    SortedTiles[i].ItemId = Art.GetLegalItemId(reader.ReadUInt16());
+                    SortedTiles[i].OffsetX = reader.ReadInt16();
+                    SortedTiles[i].OffsetY = reader.ReadInt16();
+                    SortedTiles[i].OffsetZ = reader.ReadInt16();
+
+                    // Read flags based on format
+                    switch (format)
+                    {
+                        case Multis.ImportType.MUL:
+                            // MUL format: uint32 flag value
+                            SortedTiles[i].Flags = reader.ReadInt32();
+                            SortedTiles[i].Unk1 = 0;
+                            break;
+
+                        case Multis.ImportType.UOHS:
+                            // UOHS format: uint64 flag value
+                            SortedTiles[i].Flags = (int)reader.ReadInt64();
+                            SortedTiles[i].Unk1 = 0;
+                            break;
+
+                        case Multis.ImportType.UOP:
+                        case Multis.ImportType.UOADESIGN:
+                            // UOP format: ushort flag + uint32 count of extra fields
+                            ushort uopFlags = reader.ReadUInt16();
+                            SortedTiles[i].Flags = uopFlags;
+                            uint tagCount = reader.ReadUInt32();
+                            if (tagCount > 0)
+                            {
+                                SortedTiles[i].Tag = new uint[tagCount];
+                                for (int j = 0; j < tagCount; j++)
+                                {
+                                    SortedTiles[i].Tag[j] = reader.ReadUInt32();
+                                }
+                            }
+                            SortedTiles[i].Unk1 = 0;
+                            break;
+
+                        default:
+                            // Fallback to MUL format
+                            SortedTiles[i].Flags = reader.ReadInt32();
+                            SortedTiles[i].Unk1 = 0;
+                            break;
+                    }
+
+                    MultiTileEntry e = SortedTiles[i];
+
+                    if (e.OffsetX < _min.X)
+                    {
+                        _min.X = e.OffsetX;
+                    }
+
+                    if (e.OffsetY < _min.Y)
+                    {
+                        _min.Y = e.OffsetY;
+                    }
+
+                    if (e.OffsetX > _max.X)
+                    {
+                        _max.X = e.OffsetX;
+                    }
+
+                    if (e.OffsetY > _max.Y)
+                    {
+                        _max.Y = e.OffsetY;
+                    }
+
+                    if (e.OffsetZ > MaxHeight)
+                    {
+                        MaxHeight = e.OffsetZ;
+                    }
+                }
+
+                ConvertList();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"MultiComponentList constructor error: {ex}");
+            }
+            finally
+            {
+                reader.Close();
+            }
         }
 
         public MultiComponentList(string fileName, Multis.ImportType type)
@@ -913,6 +1037,96 @@ namespace Ultima
 
                 xmlWriter.WriteEndElement();
             }
+        }
+
+        /// <summary>
+        /// Converts UOP format flag value to MultiFlag enum
+        /// </summary>
+        public MultiFlag UOPMultiFlags(ushort x)
+        {
+            switch (x)
+            {
+                case 0: return MultiFlag.VISIBLE;
+                case 1: return MultiFlag.BACKGROUND;
+                case 256: return MultiFlag.VISIBLE | MultiFlag.TAG;
+                case 257: return MultiFlag.BACKGROUND | MultiFlag.TAG;
+                default:
+                    System.Diagnostics.Debug.WriteLine($"Unknown UOP multi flag: {x}");
+                    return MultiFlag.UNKNOWN;
+            }
+        }
+
+        /// <summary>
+        /// Converts MultiFlag enum to UOP format flag value
+        /// </summary>
+        public ushort UOPMultiFlags(MultiFlag x)
+        {
+            ushort r = 0;
+            // VISIBLE has value 0
+            if (x.HasFlag(MultiFlag.TAG))
+                r += 256;
+            if (x.HasFlag(MultiFlag.BACKGROUND))
+                r += 1;
+            return r;
+        }
+
+        /// <summary>
+        /// Converts MUL format flag value to MultiFlag enum
+        /// </summary>
+        public MultiFlag MULMultiFlags(ushort x)
+        {
+            switch (x)
+            {
+                case 0: return MultiFlag.BACKGROUND;
+                case 1: return MultiFlag.VISIBLE;
+                default:
+                    System.Diagnostics.Debug.WriteLine($"Unknown MUL multi flag: {x}");
+                    return MultiFlag.UNKNOWN;
+            }
+        }
+
+        /// <summary>
+        /// Converts MultiFlag enum to MUL format flag value
+        /// </summary>
+        public ushort MULMultiFlags(MultiFlag x)
+        {
+            ushort r = 0;
+            // BACKGROUND has value 0
+            if (x.HasFlag(MultiFlag.VISIBLE))
+                r += 1;
+            // TAG unsupported in MUL
+            return r;
+        }
+
+        /// <summary>
+        /// Converts text format flag value to MultiFlag enum
+        /// </summary>
+        public MultiFlag TxtMultiFlags(string s)
+        {
+            switch (Convert.ToUInt64(s))
+            {
+                case 0: return MultiFlag.BACKGROUND; // MUL value
+                case 1: return MultiFlag.VISIBLE;    // MUL value
+                case 256: return MultiFlag.BACKGROUND | MultiFlag.TAG;
+                case 257: return MultiFlag.VISIBLE | MultiFlag.TAG;  // UOP value
+                default: return MultiFlag.UNKNOWN;
+            }
+        }
+
+        /// <summary>
+        /// Converts MultiFlag enum to text format flag value
+        /// </summary>
+        public string TxtMultiFlags(MultiFlag s)
+        {
+            if (s == (MultiFlag.VISIBLE | MultiFlag.TAG))
+                return "257";
+            if (s == (MultiFlag.BACKGROUND | MultiFlag.TAG))
+                return "256";
+            if (s == MultiFlag.VISIBLE)
+                return "1";
+            if (s == MultiFlag.BACKGROUND)
+                return "0";
+            return "x";
         }
     }
 }
