@@ -295,7 +295,7 @@ namespace Ultima
 
         }
 
-        private static ulong HashLittle2(string s)
+        public static ulong HashLittle2(string s)
         {
             int length = s.Length;
 
@@ -364,7 +364,7 @@ namespace Ultima
             return (ulong)b << 32 | c;
         }
 
-        private static uint HashAdler32(byte[] d)
+        public static uint HashAdler32(byte[] d)
         {
             uint a = 1;
             uint b = 0;
@@ -777,14 +777,14 @@ namespace Ultima
         }
 
         /// <summary>
-        /// Saves multis to UOP format (MultiCollection.uop) with tag preservation
-        /// Uses direct binary UOP format writing to preserve tag data from UOP entries
+        /// Saves multis to UOP format (MultiCollection.uop)
+        /// Uses direct UOP binary format writing to match UOutils output format (without tag frames)
         /// </summary>
         private static void SaveUOP(string path)
         {
             string uopPath = Path.Combine(path, "MultiCollection.uop");
 
-            // Try direct UOP writing with tag preservation first
+            // Use direct UOP writing
             try
             {
                 SaveUOPDirect(uopPath);
@@ -792,7 +792,7 @@ namespace Ultima
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"Direct UOP save failed, falling back to MUL->UOP conversion: {ex}");
+                System.Diagnostics.Debug.WriteLine($"Direct UOP save failed: {ex}");
             }
 
             // Fallback: Use MUL→UOP conversion (loses tags but ensures format compatibility)
@@ -824,11 +824,11 @@ namespace Ultima
                             binidx.Write((int)fsmul.Position);
                             if (isUOAHS)
                             {
-                                binidx.Write(tiles.Count * 16);
+                                binidx.Write(tiles.Count * 12);  // UOAHS: 2+2+2+2+2+2 = 12 bytes per tile
                             }
                             else
                             {
-                                binidx.Write(tiles.Count * 12); 
+                                binidx.Write(tiles.Count * 10);  // Standard: 2+2+2+2+2 = 10 bytes per tile
                             }
 
                             binidx.Write(-1);
@@ -865,7 +865,7 @@ namespace Ultima
             const uint uopMagic = 0x50594D;      // "MYP"
             const uint uopVersion = 5;
             const uint uopFormat = 0xFD23EC43;
-            const long firstTable = 0x28;
+            const long firstTable = 0x200;       // CORRECTED: Should be 0x200, not 0x28
             const int tableSize = 0x64;          // 100 entries per table
             const bool fulltables = true;        // Write all 100 entries per table, padded with zeros
 
@@ -1024,17 +1024,20 @@ namespace Ultima
                     bw.Write(tile.OffsetX);
                     bw.Write(tile.OffsetY);
                     bw.Write(tile.OffsetZ);
-                    bw.Write((ushort)tile.Flags);
+                    bw.Write((ushort)tile.Flags);  // UOP format: ushort flags
 
+                    // MUST write tag count for every tile - even if 0 - else parser gets out of sync
                     if (tile.Tag != null && tile.Tag.Length > 0)
                     {
                         bw.Write((uint)tile.Tag.Length);
                         foreach (uint tag in tile.Tag)
+                        {
                             bw.Write(tag);
+                        }
                     }
                     else
                     {
-                        bw.Write(0u);
+                        bw.Write(0u);  // Zero tag count for untagged tiles
                     }
                 }
 
