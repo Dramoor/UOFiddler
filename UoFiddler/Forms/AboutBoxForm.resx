@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.1.7
+    <value>Version 5.1.8
+- Can now create a gif from the animation edit tab. You can create in one direction or all directions of a specific action. Also you can export individual frames now from the frames tab.
+		
+Version 5.1.7
 - MultiCollection.UOP can be read and written in the .uop compressed format that can read on the CUO client and on the OSI client. Some programs cannot read the file though, Still needs some tweaking.
 	
 Version 5.1.6

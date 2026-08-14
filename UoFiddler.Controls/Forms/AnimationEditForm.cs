@@ -10,6 +10,7 @@
  ***************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -1624,6 +1625,270 @@ namespace UoFiddler.Controls.Forms
                     ProgressBar.Invalidate();
                 }
             }
+        }
+
+        private void OnClickExportFrameBmp(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Bmp);
+        }
+
+        private void OnClickExportFrameTiff(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Tiff);
+        }
+
+        private void OnClickExportFrameJpg(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Jpeg);
+        }
+
+        private void OnClickExportFramePng(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Png);
+        }
+
+        private void ExportFrame(ImageFormat imageFormat)
+        {
+            if (FramesListView.SelectedItems.Count < 1)
+            {
+                return;
+            }
+
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+            if (currentBits == null || currentBits.Length == 0)
+            {
+                return;
+            }
+
+            int frameIndex = (int)FramesListView.SelectedItems[0].Tag;
+            Bitmap bit = currentBits[frameIndex];
+
+            if (bit == null)
+            {
+                return;
+            }
+
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+            string fileName = Path.Combine(Options.OutputPath, $"Frame_{_currentBody}_{_currentAction}_{_currentDir}_{frameIndex}");
+
+            using (Bitmap newBitmap = new Bitmap(bit.Width, bit.Height))
+            {
+                using (Graphics newGraph = Graphics.FromImage(newBitmap))
+                {
+                    newGraph.FillRectangle(Brushes.White, 0, 0, newBitmap.Width, newBitmap.Height);
+                    newGraph.DrawImage(bit, new Point(0, 0));
+                    newGraph.Save();
+                }
+
+                newBitmap.Save($"{fileName}.{fileExtension}", imageFormat);
+            }
+
+            MessageBox.Show($"Frame saved to '{fileName}.{fileExtension}'", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void OnClickExportAnimationAsBmp(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Bmp);
+        }
+
+        private void OnClickExportAnimationAsTiff(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Tiff);
+        }
+
+        private void OnClickExportAnimationAsJpg(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Jpeg);
+        }
+
+        private void OnClickExportAnimationAsPng(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Png);
+        }
+
+        private void ExportAnimationFrames(ImageFormat imageFormat)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+            if (currentBits == null || currentBits.Length == 0)
+            {
+                return;
+            }
+
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+            string fileName = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}");
+
+            for (int i = 0; i < currentBits.Length; i++)
+            {
+                if (currentBits[i] == null)
+                    continue;
+
+                using (Bitmap newBitmap = new Bitmap(currentBits[i].Width, currentBits[i].Height))
+                {
+                    using (Graphics newGraph = Graphics.FromImage(newBitmap))
+                    {
+                        newGraph.FillRectangle(Brushes.White, 0, 0, newBitmap.Width, newBitmap.Height);
+                        newGraph.DrawImage(currentBits[i], new Point(0, 0));
+                        newGraph.Save();
+                    }
+
+                    newBitmap.Save($"{fileName}-{i}.{fileExtension}", imageFormat);
+                }
+            }
+
+            MessageBox.Show($"Animation frames saved to '{fileName}-X.{fileExtension}'", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void OnClickExportAnimationAsGifThisDirection(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: false, allDirections: false);
+        }
+
+        private void OnClickExportAnimationAsGifAllDirections(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: false, allDirections: true);
+        }
+
+        private void OnClickExportAnimationAsGifLoopingThisDirection(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: true, allDirections: false);
+        }
+
+        private void OnClickExportAnimationAsGifLoopingAllDirections(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: true, allDirections: true);
+        }
+
+        private void ExportAnimationAsGif(bool looping, bool allDirections)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            if (allDirections)
+            {
+                ExportAnimationAsGifAllDirections(looping);
+            }
+            else
+            {
+                ExportAnimationAsGifThisDirection(looping);
+            }
+        }
+
+        private void ExportAnimationAsGifThisDirection(bool looping)
+        {
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+            if (currentBits == null || currentBits.Length == 0 || edit.Frames == null || edit.Frames.Count == 0)
+            {
+                return;
+            }
+
+            var animFrames = new List<AnimatedFrame>();
+            for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
+            {
+                if (currentBits[i] != null)
+                {
+                    animFrames.Add(new AnimatedFrame(currentBits[i], edit.Frames[i].Center));
+                }
+            }
+
+            if (animFrames.Count == 0)
+            {
+                return;
+            }
+
+            var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_{_currentDir}.gif");
+
+            animFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
+            MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void ExportAnimationAsGifAllDirections(bool looping)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            var allFrames = new List<AnimatedFrame>();
+
+            // Collect frames in circular order: 0, 1, 2, 3, 4, 3 reversed, 2 reversed, 1 reversed
+            // This creates a full 360-degree rotation effect when played
+            int[] directionOrder = { 0, 1, 2, 3, 4, 3, 2, 1 };
+            bool[] mirrorOrder = { false, false, false, false, false, true, true, true };
+
+            for (int orderIndex = 0; orderIndex < directionOrder.Length; orderIndex++)
+            {
+                int dir = directionOrder[orderIndex];
+                bool mirror = mirrorOrder[orderIndex];
+
+                AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, dir);
+                if (edit != null)
+                {
+                    Bitmap[] currentBits = edit.GetFrames();
+                    if (currentBits != null && edit.Frames != null)
+                    {
+                        for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
+                        {
+                            if (currentBits[i] != null)
+                            {
+                                if (mirror)
+                                {
+                                    var mirroredBitmap = new Bitmap(currentBits[i].Width, currentBits[i].Height);
+                                    using (Graphics g = Graphics.FromImage(mirroredBitmap))
+                                    {
+                                        g.ScaleTransform(-1, 1);
+                                        g.TranslateTransform(-currentBits[i].Width, 0);
+                                        g.DrawImage(currentBits[i], 0, 0);
+                                    }
+                                    allFrames.Add(new AnimatedFrame(mirroredBitmap, edit.Frames[i].Center));
+                                }
+                                else
+                                {
+                                    allFrames.Add(new AnimatedFrame(currentBits[i], edit.Frames[i].Center));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (allFrames.Count == 0)
+            {
+                return;
+            }
+
+            var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_AllDir.gif");
+
+            allFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
+            MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
         }
 
         private void OnClickExtractPalette(object sender, EventArgs e)
