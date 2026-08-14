@@ -1,9 +1,13 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Multis>
 	<!--Entries in Multi tab-->
 	<!--Name=Displayed name-->
 	<!--ID=Multi Slot-->
 	<!--type=0:Boat, 1:House, 2:Decoration, 3:Other-->
+	<!--hidden=1 (optional) - Set to 1 to hide/block this multi ID from appearing in the list-->
+	<!--HiddenRange - Hide a range of IDs with one entry (min and max are inclusive):
+  <HiddenRange min="8001" max="8100" />
+  -->
 	<!--ToolTips:
   <ToolTip id="MultiSlot" text="Your Text here" />
   -->
@@ -372,5 +376,20 @@
 	<Multi name="Stone Marble Stairs [West]" id="7673" type="3" />
 	<Multi name="Stone Marble Stairs [North]" id="7674" type="3" />
 	<Multi name="Stone Marble Stairs [East]" id="7675" type="3" />
+	<HiddenRange min="8001" max="8479" />
+	<!-- Examples of how to hide/block multi IDs you don't want to see:
+
+	Option 1: Hide individual entries using hidden="1"
+	<Multi name="Hidden Example 1" id="8001" type="3" hidden="1" />
+	<Multi name="Hidden Example 2" id="8002" type="3" hidden="1" />
+
+	Option 2: Hide a range of IDs with one entry (min and max are inclusive)
+	<HiddenRange min="8001" max="8200" />
+
+	Simply add hidden="1" to any Multi entry to prevent it from showing in the list,
+	or use HiddenRange to hide multiple consecutive IDs at once.
+	This is useful for blocking test entries, debug items, or any multis you prefer not to see.
+	-->
 </Multis>
+
 

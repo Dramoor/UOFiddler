@@ -67,6 +67,9 @@ namespace UoFiddler.Controls.UserControls
             // However to keep changes minimal, use the existing pattern and assign via local variables and shadow the readonly fields by replacing their usage with the local ones below.
             _xmlDocument = doc;
             _xmlElementMultis = _xmlDocument["Multis"];
+
+            // Parse HiddenRange entries
+            ParseHiddenRanges();
         }
 
         private bool _loaded;
@@ -74,6 +77,7 @@ namespace UoFiddler.Controls.UserControls
         private readonly MultisControl _refMarker;
         private Color _backgroundImageColor = Color.White;
         private bool _useTransparencyForPng = true;
+        private readonly List<(int Min, int Max)> _hiddenRanges = new List<(int, int)>();
 
         /// <summary>
         /// ReLoads if loaded
@@ -84,6 +88,41 @@ namespace UoFiddler.Controls.UserControls
             {
                 OnLoad(this, EventArgs.Empty);
             }
+        }
+
+        private void ParseHiddenRanges()
+        {
+            _hiddenRanges.Clear();
+            if (_xmlElementMultis == null)
+            {
+                return;
+            }
+
+            XmlNodeList rangeNodes = _xmlElementMultis.SelectNodes("HiddenRange");
+            foreach (XmlNode rangeNode in rangeNodes)
+            {
+                XmlAttribute minAttr = rangeNode.Attributes?["min"];
+                XmlAttribute maxAttr = rangeNode.Attributes?["max"];
+
+                if (minAttr != null && maxAttr != null && 
+                    int.TryParse(minAttr.Value, out int minId) && 
+                    int.TryParse(maxAttr.Value, out int maxId))
+                {
+                    _hiddenRanges.Add((minId, maxId));
+                }
+            }
+        }
+
+        private bool IsIdInHiddenRange(int id)
+        {
+            foreach (var (min, max) in _hiddenRanges)
+            {
+                if (id >= min && id <= max)
+                {
+                    return true;
+                }
+            }
+            return false;
         }
 
         private void OnLoad(object sender, EventArgs e)
@@ -122,10 +161,30 @@ namespace UoFiddler.Controls.UserControls
                     {
                         XmlNodeList xMultiNodeList = _xmlElementMultis.SelectNodes("/Multis/Multi[@id='" + i + "']");
                         string j = "";
+                        bool isHidden = false;
 
                         foreach (XmlNode xMultiNode in xMultiNodeList)
                         {
+                            // Check if this multi is marked as hidden
+                            XmlAttribute hiddenAttr = xMultiNode.Attributes?["hidden"];
+                            if (hiddenAttr != null && hiddenAttr.Value == "1")
+                            {
+                                isHidden = true;
+                                break;
+                            }
+
                             j = xMultiNode.Attributes["name"].Value;
+                        }
+
+                        // Also check if this ID is in a hidden range
+                        if (!isHidden && IsIdInHiddenRange(i))
+                        {
+                            isHidden = true;
+                        }
+
+                        if (isHidden)
+                        {
+                            continue;
                         }
 
                         node = new TreeNode($"{i,5} (0x{i:X}) {j}");
