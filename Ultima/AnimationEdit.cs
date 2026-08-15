@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -413,14 +414,162 @@ namespace Ultima
                     }
                     catch
                     {
-                        // ignore
-                    }
+                                    // ignore
+                                    }
 
-                    return _animCache;
-            }
-        }
+                                    return _animCache;
+                            }
+                        }
 
-        public static AnimIdx GetAnimation(int fileType, int body, int action, int dir)
+                        public static void ExportToVDScaled(int fileType, int body, string file, int animType, float scale)
+                        {
+                            AnimIdx[] cache = GetCache(fileType);
+                            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
+                            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
+                            using (var bin = new BinaryWriter(fs))
+                            {
+                                bin.Write((short)6);
+                                int animLength = Animations.GetAnimLength(body, fileType);
+                                int currType;
+                                if (animType >= 0)
+                                {
+                                    currType = animType;
+                                }
+                                else
+                                {
+                                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                                }
+
+                                bin.Write((short)currType);
+                                long indexPos = bin.BaseStream.Position;
+                                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+
+                                for (int i = index; i < index + (animLength * 5); i++)
+                                {
+                                    AnimIdx anim;
+                                    if (cache != null)
+                                    {
+                                        anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                                    }
+                                    else
+                                    {
+                                        anim = cache[i] = new AnimIdx(i, fileIndex);
+                                    }
+
+                                    if (anim == null)
+                                    {
+                                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                        bin.Write(-1);
+                                        bin.Write(-1);
+                                        bin.Write(-1);
+                                        indexPos = bin.BaseStream.Position;
+                                    }
+                                    else
+                                    {
+                                        anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
+                                    }
+                                }
+                            }
+                        }
+
+                        public static void ExportToVDRemapScaled(int fileType, int body, string file, int animType, int[] targetToSourceMap, float scale)
+                        {
+                            AnimIdx[] cache = GetCache(fileType);
+                            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
+                            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
+                            using (var bin = new BinaryWriter(fs))
+                            {
+                                bin.Write((short)6);
+                                int animLength = Animations.GetAnimLength(body, fileType);
+                                int currType;
+                                if (animType >= 0)
+                                {
+                                    currType = animType;
+                                }
+                                else
+                                {
+                                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                                }
+
+                                bin.Write((short)currType);
+                                long indexPos = bin.BaseStream.Position;
+                                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+
+                                for (int i = index; i < index + (animLength * 5); i++)
+                                {
+                                    int action = (i - index) / 5;
+                                    int directionOffset = (i - index) % 5;
+
+                                    if (targetToSourceMap == null || targetToSourceMap.Length != animLength)
+                                    {
+                                        // Fallback to default scaled behavior
+                                        AnimIdx anim;
+                                        if (cache != null)
+                                        {
+                                            anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                                        }
+                                        else
+                                        {
+                                            anim = cache[i] = new AnimIdx(i, fileIndex);
+                                        }
+
+                                        if (anim == null)
+                                        {
+                                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            indexPos = bin.BaseStream.Position;
+                                        }
+                                        else
+                                        {
+                                            anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        int sourceAction = targetToSourceMap[action];
+                                        if (sourceAction < 0)
+                                        {
+                                            // Empty entry
+                                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            indexPos = bin.BaseStream.Position;
+                                        }
+                                        else
+                                        {
+                                            int sourceIdx = index + (sourceAction * 5) + directionOffset;
+                                            AnimIdx anim;
+                                            if (cache != null)
+                                            {
+                                                anim = cache[sourceIdx] != null ? cache[sourceIdx] : cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
+                                            }
+                                            else
+                                            {
+                                                anim = cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
+                                            }
+
+                                            if (anim == null)
+                                            {
+                                                bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                                bin.Write(-1);
+                                                bin.Write(-1);
+                                                bin.Write(-1);
+                                                indexPos = bin.BaseStream.Position;
+                                            }
+                                            else
+                                            {
+                                                anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        public static AnimIdx GetAnimation(int fileType, int body, int action, int dir)
         {
             AnimIdx[] cache = GetCache(fileType);
 
@@ -958,6 +1107,49 @@ namespace Ultima
             bin.Write(_idxExtra);
             indexpos = bin.BaseStream.Position;
         }
+
+        public void ExportToVDScaled(BinaryWriter bin, ref long indexpos, ref long animpos, float scale)
+        {
+            bin.BaseStream.Seek(indexpos, SeekOrigin.Begin);
+            if ((Frames == null) || (Frames.Count == 0))
+            {
+                bin.Write(-1);
+                bin.Write(-1);
+                bin.Write(-1);
+                indexpos = bin.BaseStream.Position;
+                return;
+            }
+
+            bin.Write((int)animpos);
+            indexpos = bin.BaseStream.Position;
+            bin.BaseStream.Seek(animpos, SeekOrigin.Begin);
+
+            for (int i = 0; i < PaletteCapacity; i++)
+            {
+                bin.Write((ushort)(Palette[i] ^ 0x8000));
+            }
+
+            long startPosition = (int)bin.BaseStream.Position;
+            bin.Write(Frames.Count);
+            long seek = (int)bin.BaseStream.Position;
+            long curr = bin.BaseStream.Position + (4 * Frames.Count);
+            foreach (FrameEdit frame in Frames)
+            {
+                bin.BaseStream.Seek(seek, SeekOrigin.Begin);
+                bin.Write((int)(curr - startPosition));
+                seek = bin.BaseStream.Position;
+                bin.BaseStream.Seek(curr, SeekOrigin.Begin);
+                FrameEdit.ScaleAndSaveFrame(frame, scale, Palette, bin);
+                curr = bin.BaseStream.Position;
+            }
+
+            long length = bin.BaseStream.Position - animpos;
+            animpos = bin.BaseStream.Position;
+            bin.BaseStream.Seek(indexpos, SeekOrigin.Begin);
+            bin.Write((int)length);
+            bin.Write(_idxExtra);
+            indexpos = bin.BaseStream.Position;
+        }
     }
 
     public sealed class FrameEdit
@@ -1136,6 +1328,233 @@ namespace Ultima
             }
 
             bin.Write(0x7FFF7FFF);
+        }
+
+        internal static void ScaleAndSaveFrame(FrameEdit frame, float scale, ushort[] palette, BinaryWriter output)
+        {
+            // Null check
+            if (frame == null)
+            {
+                return;
+            }
+
+            // If scale is 1.0, just save normally
+            if (Math.Abs(scale - 1.0f) < 0.001f)
+            {
+                frame.Save(output);
+                return;
+            }
+
+            // Step 1: Decode the frame's run-length data into a 2D indexed pixel grid
+            int width = frame.Width;
+            int height = frame.Height;
+            byte[][] pixelGrid = new byte[height][];
+            for (int i = 0; i < height; i++)
+            {
+                pixelGrid[i] = new byte[width];
+                // Initialize to 0 (transparent)
+                for (int j = 0; j < width; j++)
+                    pixelGrid[i][j] = 0;
+            }
+
+            // Decode raw runs into the grid
+            int xBase = frame.Center.X - 0x200;
+            int yBase = frame.Center.Y + height - 0x200;
+
+            if (frame.RawData != null)
+            {
+                foreach (var raw in frame.RawData)
+                {
+                    int xStart = xBase + raw.offsetX;
+                    int yPos = yBase + raw.offsetY;
+
+                    if (yPos < 0 || yPos >= height || raw.data == null)
+                        continue;
+
+                    for (int i = 0; i < raw.run && i < raw.data.Length; i++)
+                    {
+                        int xPos = xStart + i;
+                        if (xPos >= 0 && xPos < width)
+                        {
+                            pixelGrid[yPos][xPos] = raw.data[i];
+                        }
+                    }
+                }
+            }
+
+            // Step 2: Scale the pixel grid using nearest-neighbor
+            int newWidth = Math.Max(1, (int)Math.Round(width * scale));
+            int newHeight = Math.Max(1, (int)Math.Round(height * scale));
+            byte[][] scaledGrid = new byte[newHeight][];
+            for (int i = 0; i < newHeight; i++)
+            {
+                scaledGrid[i] = new byte[newWidth];
+            }
+
+            for (int y = 0; y < newHeight; y++)
+            {
+                int srcY = (int)(y / scale);
+                if (srcY >= height) srcY = height - 1;
+
+                for (int x = 0; x < newWidth; x++)
+                {
+                    int srcX = (int)(x / scale);
+                    if (srcX >= width) srcX = width - 1;
+                    scaledGrid[y][x] = pixelGrid[srcY][srcX];
+                }
+            }
+
+            // Step 3: Scale the frame center and dimensions
+            int newCenterX = (int)Math.Round(frame.Center.X * scale);
+            int newCenterY = (int)Math.Round(frame.Center.Y * scale);
+
+            // Step 4: Write header
+            output.Write((short)newCenterX);
+            output.Write((short)newCenterY);
+            output.Write((ushort)newWidth);
+            output.Write((ushort)newHeight);
+
+            // Step 5: Re-encode the scaled grid to run format using the same coordinate system
+            const int _doubleXor = (0x200 << 22) | (0x200 << 12);
+            int newXBase = newCenterX - 0x200;
+            int newYBase = newCenterY + newHeight - 0x200;
+
+            for (int y = 0; y < newHeight; y++)
+            {
+                int x = 0;
+                while (x < newWidth)
+                {
+                    // Skip transparent pixels
+                    while (x < newWidth && scaledGrid[y][x] == 0)
+                        x++;
+
+                    if (x >= newWidth)
+                        break;
+
+                    int runStart = x;
+                    var runData = new List<byte>();
+
+                    // Collect opaque run
+                    while (x < newWidth && scaledGrid[y][x] != 0)
+                    {
+                        runData.Add(scaledGrid[y][x]);
+                        x++;
+                    }
+
+                    if (runData.Count == 0)
+                        continue;
+
+                    // Encode using the same coordinate system as the decoder
+                    int runOffsetX = runStart - newXBase;
+                    int runOffsetY = y - newYBase;
+
+                    // The offsetX and offsetY stored in the header are already in the 0x200-adjusted space
+                    // We need to clamp them to the 10-bit range (0-1023)
+                    runOffsetX = runOffsetX & 0x3FF;
+                    runOffsetY = runOffsetY & 0x3FF;
+
+                    int header = runData.Count | (runOffsetY << 12) | (runOffsetX << 22);
+                    header ^= _doubleXor;
+                    output.Write(header);
+
+                    foreach (byte idx in runData)
+                        output.Write(idx);
+                }
+            }
+
+            output.Write(0x7FFF7FFF);
+        }
+
+        private static Bitmap RenderFrameToBitmap(FrameEdit frame, ushort[] palette)
+        {
+            if (frame == null || frame.Width < 1 || frame.Height < 1)
+                return null;
+
+            int bmpWidth = frame.Width + 20;
+            int bmpHeight = frame.Height + 20;
+            Bitmap bmp = new Bitmap(bmpWidth, bmpHeight, PixelFormat.Format16bppArgb1555);
+
+            BitmapData bd = bmp.LockBits(
+                new Rectangle(0, 0, bmpWidth, bmpHeight),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format16bppArgb1555);
+
+            try
+            {
+                unsafe
+                {
+                    ushort* line = (ushort*)bd.Scan0;
+                    int delta = bd.Stride >> 1;
+
+                    for (int y = 0; y < bmpHeight; y++)
+                    {
+                        ushort* cur = line + (y * delta);
+                        for (int x = 0; x < bmpWidth; x++)
+                            *cur++ = 0;
+                    }
+
+                    int xBase = frame.Center.X - 0x200;
+                    int yBase = frame.Center.Y + frame.Height - 0x200;
+
+                    foreach (var raw in frame.RawData)
+                    {
+                        int xPos = xBase + raw.offsetX;
+                        int yPos = yBase + raw.offsetY;
+
+                        if (yPos >= 0 && yPos < bmpHeight)
+                        {
+                            ushort* scanLine = line + (yPos * delta);
+                            for (int i = 0; i < raw.run && (xPos + i) < bmpWidth; i++)
+                            {
+                                int x = xPos + i;
+                                if (x >= 0 && raw.data != null && i < raw.data.Length)
+                                {
+                                    byte paletteIdx = raw.data[i];
+                                    if (paletteIdx < palette.Length)
+                                        scanLine[x] = palette[paletteIdx];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                bmp.UnlockBits(bd);
+            }
+
+            return bmp;
+        }
+
+        private static byte GetClosestPaletteIndex(ushort[] palette, ushort color)
+        {
+            int r = ((color >> 10) & 0x1F) << 3;
+            int g = ((color >> 5) & 0x1F) << 3;
+            int b = (color & 0x1F) << 3;
+
+            int bestIdx = 0;
+            int bestDist = int.MaxValue;
+
+            for (int i = 0; i < palette.Length; i++)
+            {
+                ushort palColor = palette[i];
+                int pr = ((palColor >> 10) & 0x1F) << 3;
+                int pg = ((palColor >> 5) & 0x1F) << 3;
+                int pb = (palColor & 0x1F) << 3;
+
+                int dr = r - pr;
+                int dg = g - pg;
+                int db = b - pb;
+                int dist = dr * dr + dg * dg + db * db;
+
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestIdx = i;
+                }
+            }
+
+            return (byte)bestIdx;
         }
     }
 }

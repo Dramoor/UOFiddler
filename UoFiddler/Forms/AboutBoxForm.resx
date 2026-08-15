@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.1.8
+    <value>Version 5.1.9
+- Added in the start to be able to export a vd at a scaled size, right now this only scales from 10 percent to 100 percent. You can also remap the vd with an option as well.
+
+Version 5.1.8
 - Can now create a gif from the animation edit tab. You can create in one direction or all directions of a specific action. Also you can export individual frames now from the frames tab.
 		
 Version 5.1.7

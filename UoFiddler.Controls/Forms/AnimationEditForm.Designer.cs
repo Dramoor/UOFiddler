@@ -44,6 +44,8 @@
             fromvdToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             tovdToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            tovdScaledToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            tovdScaledRemapToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             AnimationFileToolStrip = new System.Windows.Forms.ToolStrip();
             SelectFileToolStripComboBox = new System.Windows.Forms.ToolStripComboBox();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -318,7 +320,7 @@
             // 
             // exportToolStripMenuItem1
             // 
-            exportToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { tovdToolStripMenuItem });
+            exportToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { tovdToolStripMenuItem, tovdScaledToolStripMenuItem, tovdScaledRemapToolStripMenuItem });
             exportToolStripMenuItem1.Name = "exportToolStripMenuItem1";
             exportToolStripMenuItem1.Size = new System.Drawing.Size(156, 22);
             exportToolStripMenuItem1.Text = "Export..";
@@ -329,6 +331,20 @@
             tovdToolStripMenuItem.Size = new System.Drawing.Size(106, 22);
             tovdToolStripMenuItem.Text = "To .vd";
             tovdToolStripMenuItem.Click += OnClickExportToVD;
+            // 
+            // tovdScaledToolStripMenuItem
+            // 
+            tovdScaledToolStripMenuItem.Name = "tovdScaledToolStripMenuItem";
+            tovdScaledToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            tovdScaledToolStripMenuItem.Text = "To .vd (Resized)...";
+            tovdScaledToolStripMenuItem.Click += OnClickExportToVDScaled;
+            // 
+            // tovdScaledRemapToolStripMenuItem
+            // 
+            tovdScaledRemapToolStripMenuItem.Name = "tovdScaledRemapToolStripMenuItem";
+            tovdScaledRemapToolStripMenuItem.Size = new System.Drawing.Size(153, 22);
+            tovdScaledRemapToolStripMenuItem.Text = "To .vd (Resized + Remap)...";
+            tovdScaledRemapToolStripMenuItem.Click += OnClickExportToVDScaledRemap;
             // 
             // exportAnimationToolStripMenuItem
             // 
@@ -1704,6 +1720,8 @@
         private System.Windows.Forms.ToolStrip AnimationFileToolStrip;
         private System.Windows.Forms.ToolStripComboBox SelectFileToolStripComboBox;
         private System.Windows.Forms.ToolStripMenuItem tovdToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem tovdScaledToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem tovdScaledRemapToolStripMenuItem;
         private System.Windows.Forms.TrackBar DirectionTrackBar;
         private System.Windows.Forms.TreeView AnimationListTreeView;
         private System.Windows.Forms.StatusStrip StatusStrip;
