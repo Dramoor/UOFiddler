@@ -1011,6 +1011,56 @@ namespace UoFiddler.Controls.UserControls
             Options.ChangedUltimaClass["Art"] = true;
         }
 
+        private void OnClickRemoveAll(object sender, EventArgs e)
+        {
+            // Check if multiple items are selected
+            if (ItemsTileView.SelectedIndices.Count > 1)
+            {
+                // Multiple selection case
+                int count = ItemsTileView.SelectedIndices.Count;
+                DialogResult result = MessageBox.Show(
+                    $"Are you sure you want to remove {count} selected tiles?",
+                    "Remove All",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question,
+                    MessageBoxDefaultButton.Button2);
+
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                // Remove all selected tiles
+                var selectedIndices = new List<int>(ItemsTileView.SelectedIndices);
+                foreach (var index in selectedIndices)
+                {
+                    if (Art.IsValidStatic(index))
+                    {
+                        Art.RemoveStatic(index);
+                        ControlEvents.FireItemChangeEvent(this, index);
+
+                        if (!_showFreeSlots)
+                        {
+                            _itemList.Remove(index);
+                            _allItemList.Remove(index);
+                        }
+                    }
+                }
+
+                // Update UI
+                ItemsTileView.VirtualListSize = _itemList.Count;
+                ItemsTileView.SelectedIndices.Clear();
+                ItemsTileView.Invalidate();
+                UpdateDetail(-1);
+                Options.ChangedUltimaClass["Art"] = true;
+            }
+            else if (_selectedGraphicId > 0)
+            {
+                // Single selection case - use existing Remove logic
+                OnClickRemove(sender, e);
+            }
+        }
+
         private void OnTextChangedInsert(object sender, EventArgs e)
         {
             if (Utils.ConvertStringToInt(InsertText.Text, out int index, 0, Art.GetMaxItemId()))
@@ -1650,7 +1700,23 @@ namespace UoFiddler.Controls.UserControls
 
         private void TileViewContextMenuStrip_Opening(object sender, CancelEventArgs e)
         {
-            if (SelectedGraphicId <= 0)
+            // Check if multiple items are selected
+            bool hasMultipleSelections = ItemsTileView.SelectedIndices.Count > 1;
+            bool hasSingleSelection = ItemsTileView.SelectedIndices.Count == 1;
+
+            // Remove: only enabled for single selection
+            removeToolStripMenuItem.Enabled = hasSingleSelection;
+
+            // Remove All Selected: only enabled for multiple selections
+            removeAllToolStripMenuItem.Enabled = hasMultipleSelections;
+
+            // Disable single-item-only operations when multiple items are selected
+            selectInAllTabsToolStripMenuItem.Enabled = !hasMultipleSelections;
+            selectInTileDataTabToolStripMenuItem.Enabled = !hasMultipleSelections;
+            selectInRadarColorTabToolStripMenuItem.Enabled = !hasMultipleSelections;
+            replaceToolStripMenuItem.Enabled = !hasMultipleSelections;
+
+            if (SelectedGraphicId <= 0 || hasMultipleSelections)
             {
                 selectInGumpsTabMaleToolStripMenuItem.Enabled = false;
                 selectInGumpsTabFemaleToolStripMenuItem.Enabled = false;

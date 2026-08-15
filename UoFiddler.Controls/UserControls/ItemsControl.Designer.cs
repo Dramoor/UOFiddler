@@ -73,6 +73,7 @@ namespace UoFiddler.Controls.UserControls
             insertAtToolStripMenuItem = new ToolStripMenuItem();
             InsertText = new ToolStripTextBox();
             removeToolStripMenuItem = new ToolStripMenuItem();
+            removeAllToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
             saveToolStripMenuItem = new ToolStripMenuItem();
             StatusStrip = new StatusStrip();
@@ -228,7 +229,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // TileViewContextMenuStrip
             // 
-            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, toolStripSeparator7, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInAllTabsToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, toolStripSeparator7, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInAllTabsToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, removeAllToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             TileViewContextMenuStrip.Name = "contextMenuStrip1";
             TileViewContextMenuStrip.Size = new System.Drawing.Size(213, 314);
             TileViewContextMenuStrip.Opening += TileViewContextMenuStrip_Opening;
@@ -382,6 +383,13 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += OnClickRemove;
+            // 
+            // removeAllToolStripMenuItem
+            // 
+            removeAllToolStripMenuItem.Name = "removeAllToolStripMenuItem";
+            removeAllToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            removeAllToolStripMenuItem.Text = "Remove All Selected";
+            removeAllToolStripMenuItem.Click += OnClickRemoveAll;
             // 
             // toolStripSeparator1
             // 
@@ -708,6 +716,7 @@ namespace UoFiddler.Controls.UserControls
         private System.ComponentModel.BackgroundWorker PreLoader;
         private ToolStripProgressBar ProgressBar;
         private ToolStripMenuItem removeToolStripMenuItem;
+        private ToolStripMenuItem removeAllToolStripMenuItem;
         private ToolStripMenuItem replaceToolStripMenuItem;
         private ToolStripMenuItem saveToolStripMenuItem;
         private ToolStripMenuItem selectInRadarColorTabToolStripMenuItem;
