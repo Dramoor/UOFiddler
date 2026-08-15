@@ -91,15 +91,17 @@ namespace UoFiddler.Controls.UserControls
             searchByNameToolStripTextBox = new ToolStripTextBox();
             searchByNameToolStripButton = new ToolStripButton();
             searchByNamePrevToolStripButton = new ToolStripButton();
-            toolStripLabelLayer = new ToolStripLabel();
-            layerToolStripTextBox = new ToolStripTextBox();
-            layerPrevToolStripButton = new ToolStripButton();
-            layerNextToolStripButton = new ToolStripButton();
+
             toolStripSeparator4 = new ToolStripSeparator();
             MiscToolStripDropDownButton = new ToolStripDropDownButton();
             ExportAllToolStripMenuItem = new ToolStripMenuItem();
             asBmpToolStripMenuItem = new ToolStripMenuItem();
-            showLayerSearchToolStripMenuItem = new ToolStripMenuItem();
+            searchTypeToolStripMenuItem = new ToolStripMenuItem();
+            searchTypeNameToolStripMenuItem = new ToolStripMenuItem();
+            searchTypeAnimationToolStripMenuItem = new ToolStripMenuItem();
+            searchTypeWeightToolStripMenuItem = new ToolStripMenuItem();
+            searchTypeLayerToolStripMenuItem = new ToolStripMenuItem();
+            searchTypeStackOffsetToolStripMenuItem = new ToolStripMenuItem();
             dynamicItemSearchToolStripMenuItem = new ToolStripMenuItem();
             asTiffToolStripMenuItem = new ToolStripMenuItem();
             asJpgToolStripMenuItem = new ToolStripMenuItem();
@@ -439,7 +441,7 @@ namespace UoFiddler.Controls.UserControls
             // ToolStrip
             // 
             ToolStrip.GripStyle = ToolStripGripStyle.Hidden;
-            ToolStrip.Items.AddRange(new ToolStripItem[] { saveToolStripButton, toolStripSeparator5, ProgressBar, PreloadItemsToolStripButton, toolStripLabel1, searchByIdToolStripTextBox, toolStripLabel2, searchByNameToolStripTextBox, searchByNamePrevToolStripButton, searchByNameToolStripButton, toolStripLabelLayer, layerToolStripTextBox, layerPrevToolStripButton, layerNextToolStripButton, toolStripSeparator4, MiscToolStripDropDownButton });
+            ToolStrip.Items.AddRange(new ToolStripItem[] { saveToolStripButton, toolStripSeparator5, ProgressBar, PreloadItemsToolStripButton, toolStripLabel1, searchByIdToolStripTextBox, toolStripLabel2, searchByNameToolStripTextBox, searchByNamePrevToolStripButton, searchByNameToolStripButton, toolStripSeparator4, MiscToolStripDropDownButton });
             ToolStrip.Location = new System.Drawing.Point(0, 0);
             ToolStrip.Name = "ToolStrip";
             ToolStrip.RenderMode = ToolStripRenderMode.System;
@@ -523,36 +525,6 @@ namespace UoFiddler.Controls.UserControls
             searchByNamePrevToolStripButton.Text = "Find Prev";
             searchByNamePrevToolStripButton.Click += SearchByNamePrevToolStripButton_Click;
             // 
-            // toolStripLabelLayer
-            // 
-            toolStripLabelLayer.Name = "toolStripLabelLayer";
-            toolStripLabelLayer.Size = new System.Drawing.Size(40, 25);
-            toolStripLabelLayer.Text = "Layer:";
-            // 
-            // layerToolStripTextBox
-            // 
-            layerToolStripTextBox.Name = "layerToolStripTextBox";
-            layerToolStripTextBox.Size = new System.Drawing.Size(50, 28);
-            layerToolStripTextBox.KeyUp += SearchByLayerTextBox_KeyUp;
-            // 
-            // layerPrevToolStripButton
-            // 
-            layerPrevToolStripButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            layerPrevToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            layerPrevToolStripButton.Name = "layerPrevToolStripButton";
-            layerPrevToolStripButton.Size = new System.Drawing.Size(40, 25);
-            layerPrevToolStripButton.Text = "LPrev";
-            layerPrevToolStripButton.Click += LayerPrevToolStripButton_Click;
-            // 
-            // layerNextToolStripButton
-            // 
-            layerNextToolStripButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            layerNextToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
-            layerNextToolStripButton.Name = "layerNextToolStripButton";
-            layerNextToolStripButton.Size = new System.Drawing.Size(40, 25);
-            layerNextToolStripButton.Text = "LNext";
-            layerNextToolStripButton.Click += LayerNextToolStripButton_Click;
-            // 
             // toolStripSeparator4
             // 
             toolStripSeparator4.Name = "toolStripSeparator4";
@@ -561,19 +533,59 @@ namespace UoFiddler.Controls.UserControls
             // MiscToolStripDropDownButton
             // 
             MiscToolStripDropDownButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { showLayerSearchToolStripMenuItem, dynamicItemSearchToolStripMenuItem, ExportAllToolStripMenuItem });
+            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { searchTypeToolStripMenuItem, dynamicItemSearchToolStripMenuItem, ExportAllToolStripMenuItem });
             MiscToolStripDropDownButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             MiscToolStripDropDownButton.Name = "MiscToolStripDropDownButton";
             MiscToolStripDropDownButton.Size = new System.Drawing.Size(45, 25);
             MiscToolStripDropDownButton.Text = "Misc";
             // 
-            // showLayerSearchToolStripMenuItem
+            // searchTypeToolStripMenuItem
             // 
-            showLayerSearchToolStripMenuItem.CheckOnClick = true;
-            showLayerSearchToolStripMenuItem.Name = "showLayerSearchToolStripMenuItem";
-            showLayerSearchToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
-            showLayerSearchToolStripMenuItem.Text = "Show layer search";
-            showLayerSearchToolStripMenuItem.Click += ShowLayerSearchToolStripMenuItem_Click;
+            searchTypeToolStripMenuItem.Name = "searchTypeToolStripMenuItem";
+            searchTypeToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            searchTypeToolStripMenuItem.Text = "Search Type";
+            searchTypeToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchTypeNameToolStripMenuItem, searchTypeAnimationToolStripMenuItem, searchTypeWeightToolStripMenuItem, searchTypeLayerToolStripMenuItem, searchTypeStackOffsetToolStripMenuItem });
+            // 
+            // searchTypeNameToolStripMenuItem
+            // 
+            searchTypeNameToolStripMenuItem.CheckOnClick = true;
+            searchTypeNameToolStripMenuItem.Checked = true;
+            searchTypeNameToolStripMenuItem.Name = "searchTypeNameToolStripMenuItem";
+            searchTypeNameToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            searchTypeNameToolStripMenuItem.Text = "Name";
+            searchTypeNameToolStripMenuItem.Click += SearchTypeMenuItem_Click;
+            // 
+            // searchTypeAnimationToolStripMenuItem
+            // 
+            searchTypeAnimationToolStripMenuItem.CheckOnClick = true;
+            searchTypeAnimationToolStripMenuItem.Name = "searchTypeAnimationToolStripMenuItem";
+            searchTypeAnimationToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            searchTypeAnimationToolStripMenuItem.Text = "Animation";
+            searchTypeAnimationToolStripMenuItem.Click += SearchTypeMenuItem_Click;
+            // 
+            // searchTypeWeightToolStripMenuItem
+            // 
+            searchTypeWeightToolStripMenuItem.CheckOnClick = true;
+            searchTypeWeightToolStripMenuItem.Name = "searchTypeWeightToolStripMenuItem";
+            searchTypeWeightToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            searchTypeWeightToolStripMenuItem.Text = "Weight";
+            searchTypeWeightToolStripMenuItem.Click += SearchTypeMenuItem_Click;
+            // 
+            // searchTypeLayerToolStripMenuItem
+            // 
+            searchTypeLayerToolStripMenuItem.CheckOnClick = true;
+            searchTypeLayerToolStripMenuItem.Name = "searchTypeLayerToolStripMenuItem";
+            searchTypeLayerToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            searchTypeLayerToolStripMenuItem.Text = "Layer";
+            searchTypeLayerToolStripMenuItem.Click += SearchTypeMenuItem_Click;
+            // 
+            // searchTypeStackOffsetToolStripMenuItem
+            // 
+            searchTypeStackOffsetToolStripMenuItem.CheckOnClick = true;
+            searchTypeStackOffsetToolStripMenuItem.Name = "searchTypeStackOffsetToolStripMenuItem";
+            searchTypeStackOffsetToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            searchTypeStackOffsetToolStripMenuItem.Text = "Stack Offset";
+            searchTypeStackOffsetToolStripMenuItem.Click += SearchTypeMenuItem_Click;
             //
             // dynamicItemSearchToolStripMenuItem
             //
@@ -672,7 +684,12 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripMenuItem asBmpToolStripMenuItem;
         private ToolStripMenuItem asJpgToolStripMenuItem;
         private ToolStripMenuItem asJpgToolStripMenuItem1;
-        private ToolStripMenuItem showLayerSearchToolStripMenuItem;
+        private ToolStripMenuItem searchTypeToolStripMenuItem;
+        private ToolStripMenuItem searchTypeNameToolStripMenuItem;
+        private ToolStripMenuItem searchTypeAnimationToolStripMenuItem;
+        private ToolStripMenuItem searchTypeWeightToolStripMenuItem;
+        private ToolStripMenuItem searchTypeLayerToolStripMenuItem;
+        private ToolStripMenuItem searchTypeStackOffsetToolStripMenuItem;
         private ToolStripMenuItem asPngToolStripMenuItem;
         private ToolStripMenuItem asPngToolStripMenuItem1;
         private ToolStripMenuItem asTiffToolStripMenuItem;
@@ -724,10 +741,7 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripButton searchByNameToolStripButton;
         private ToolStripButton searchByNamePrevToolStripButton;
         private ToolStripMenuItem dynamicItemSearchToolStripMenuItem;
-        private ToolStripLabel toolStripLabelLayer;
-        private ToolStripTextBox layerToolStripTextBox;
-        private ToolStripButton layerPrevToolStripButton;
-        private ToolStripButton layerNextToolStripButton;
+
         private ToolStripSeparator toolStripSeparator4;
         private ToolStripButton saveToolStripButton;
         private ToolStripSeparator toolStripSeparator5;

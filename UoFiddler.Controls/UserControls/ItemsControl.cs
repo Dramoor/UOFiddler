@@ -43,6 +43,20 @@ namespace UoFiddler.Controls.UserControls
         private List<int> _allItemList = new List<int>();
         private bool _showFreeSlots;
 
+        /// <summary>
+        /// Enum for search types
+        /// </summary>
+        private enum SearchType
+        {
+            Name,
+            Animation,
+            Weight,
+            Layer,
+            StackOffset
+        }
+
+        private SearchType _currentSearchType = SearchType.Name;
+
         private int _selectedGraphicId = -1;
 
         public int SelectedGraphicId
@@ -223,6 +237,123 @@ namespace UoFiddler.Controls.UserControls
             return false;
         }
 
+        /// <summary>
+        /// Searches for items by animation ID and selects the next/previous matching item
+        /// </summary>
+        /// <param name="animation">animation ID to search for</param>
+        /// <param name="next">true = search forward, false = search backward</param>
+        /// <returns>true if found</returns>
+        public static bool SearchByAnimation(int animation, bool next)
+        {
+            if (!RefMarker.IsLoaded)
+            {
+                RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+            }
+
+            var count = RefMarker._itemList.Count;
+            if (count == 0)
+            {
+                return false;
+            }
+
+            int start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : 0;
+
+            for (int k = 1; k <= count; ++k)
+            {
+                int i = next ? (start + k) % count : (start - k) % count;
+                if (i < 0) i += count;
+
+                var id = RefMarker._itemList[i];
+                var item = TileData.ItemTable[id];
+                if (item.Animation == animation)
+                {
+                    RefMarker.ItemsTileView.FocusIndex = -1;
+                    RefMarker.SelectedGraphicId = id;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Searches for items by weight and selects the next/previous matching item
+        /// </summary>
+        /// <param name="weight">weight value to search for</param>
+        /// <param name="next">true = search forward, false = search backward</param>
+        /// <returns>true if found</returns>
+        public static bool SearchByWeight(int weight, bool next)
+        {
+            if (!RefMarker.IsLoaded)
+            {
+                RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+            }
+
+            var count = RefMarker._itemList.Count;
+            if (count == 0)
+            {
+                return false;
+            }
+
+            int start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : 0;
+
+            for (int k = 1; k <= count; ++k)
+            {
+                int i = next ? (start + k) % count : (start - k) % count;
+                if (i < 0) i += count;
+
+                var id = RefMarker._itemList[i];
+                var item = TileData.ItemTable[id];
+                if (item.Weight == weight)
+                {
+                    RefMarker.ItemsTileView.FocusIndex = -1;
+                    RefMarker.SelectedGraphicId = id;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Searches for items by stack offset and selects the next/previous matching item
+        /// </summary>
+        /// <param name="stackOffset">stack offset value to search for</param>
+        /// <param name="next">true = search forward, false = search backward</param>
+        /// <returns>true if found</returns>
+        public static bool SearchByStackOffset(int stackOffset, bool next)
+        {
+            if (!RefMarker.IsLoaded)
+            {
+                RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+            }
+
+            var count = RefMarker._itemList.Count;
+            if (count == 0)
+            {
+                return false;
+            }
+
+            int start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : 0;
+
+            for (int k = 1; k <= count; ++k)
+            {
+                int i = next ? (start + k) % count : (start - k) % count;
+                if (i < 0) i += count;
+
+                var id = RefMarker._itemList[i];
+                var item = TileData.ItemTable[id];
+                if (item.StackingOffset == stackOffset)
+                {
+                    RefMarker.ItemsTileView.FocusIndex = -1;
+                    RefMarker.SelectedGraphicId = id;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
         public void OnLoad(object sender, EventArgs e)
         {
             if (IsAncestorSiteInDesignMode || FormsDesignerHelper.IsInDesignMode())
@@ -249,11 +380,7 @@ namespace UoFiddler.Controls.UserControls
             // Initialize visibility of layer search controls based on misc menu setting
             try
             {
-                var showLayer = showLayerSearchToolStripMenuItem != null && showLayerSearchToolStripMenuItem.Checked;
-                toolStripLabelLayer.Visible = showLayer;
-                layerToolStripTextBox.Visible = showLayer;
-                layerPrevToolStripButton.Visible = showLayer;
-                layerNextToolStripButton.Visible = showLayer;
+                // Legacy layer search controls removed - search types now handled via menu
             }
             catch
             {
@@ -463,14 +590,14 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
-        private void ApplyNameFilter(string name)
+        private void ApplyFilter(string searchValue)
         {
             if (_allItemList == null)
             {
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(name))
+            if (string.IsNullOrWhiteSpace(searchValue))
             {
                 // empty -> restore full list
                 _itemList = new List<int>(_allItemList);
@@ -483,20 +610,86 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
-            var searchMethod = SearchHelper.GetSearchMethod();
             var filtered = new List<int>();
-            foreach (var id in _allItemList)
-            {
-                var result = searchMethod(name, TileData.ItemTable[id].Name);
-                if (result.HasErrors)
-                {
-                    break;
-                }
 
-                if (result.EntryFound)
-                {
-                    filtered.Add(id);
-                }
+            switch (_currentSearchType)
+            {
+                case SearchType.Name:
+                    {
+                        var searchMethod = SearchHelper.GetSearchMethod();
+                        foreach (var id in _allItemList)
+                        {
+                            var result = searchMethod(searchValue, TileData.ItemTable[id].Name);
+                            if (result.HasErrors)
+                            {
+                                break;
+                            }
+
+                            if (result.EntryFound)
+                            {
+                                filtered.Add(id);
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Animation:
+                    {
+                        if (int.TryParse(searchValue, out int animation))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                if (TileData.ItemTable[id].Animation == animation)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Weight:
+                    {
+                        if (int.TryParse(searchValue, out int weight))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                if (TileData.ItemTable[id].Weight == weight)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Layer:
+                    {
+                        if (int.TryParse(searchValue, out int layer))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                var item = TileData.ItemTable[id];
+                                var relevantFlags = TileFlag.Wearable | TileFlag.Weapon | TileFlag.Armor;
+                                if (item.Quality == layer && (item.Flags & relevantFlags) != 0)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.StackOffset:
+                    {
+                        if (int.TryParse(searchValue, out int stackOffset))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                if (TileData.ItemTable[id].StackingOffset == stackOffset)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
             }
 
             _itemList = filtered;
@@ -508,19 +701,64 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
+        private void ApplyNameFilter(string name)
+        {
+            ApplyFilter(name);
+        }
+
         private Color _backgroundColorItem = Color.White;
         private static bool _didSimulateClilocInit = false;
 
-        private void ShowLayerSearchToolStripMenuItem_Click(object sender, EventArgs e)
+        private void SearchTypeMenuItem_Click(object sender, EventArgs e)
         {
-            if (sender is ToolStripMenuItem mi)
+            if (!(sender is ToolStripMenuItem mi))
             {
-                bool show = mi.Checked;
-                toolStripLabelLayer.Visible = show;
-                layerToolStripTextBox.Visible = show;
-                layerPrevToolStripButton.Visible = show;
-                layerNextToolStripButton.Visible = show;
+                return;
             }
+
+            // Uncheck all search type menu items
+            searchTypeNameToolStripMenuItem.Checked = false;
+            searchTypeAnimationToolStripMenuItem.Checked = false;
+            searchTypeWeightToolStripMenuItem.Checked = false;
+            searchTypeLayerToolStripMenuItem.Checked = false;
+            searchTypeStackOffsetToolStripMenuItem.Checked = false;
+
+            // Check the selected item and update current search type
+            mi.Checked = true;
+
+            if (mi == searchTypeNameToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Name;
+                toolStripLabel2.Text = "Name:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by item name";
+            }
+            else if (mi == searchTypeAnimationToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Animation;
+                toolStripLabel2.Text = "Animation:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by animation ID";
+            }
+            else if (mi == searchTypeWeightToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Weight;
+                toolStripLabel2.Text = "Weight:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by weight value";
+            }
+            else if (mi == searchTypeLayerToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Layer;
+                toolStripLabel2.Text = "Layer:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by layer (wearables only)";
+            }
+            else if (mi == searchTypeStackOffsetToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.StackOffset;
+                toolStripLabel2.Text = "Stack Offset:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by stack offset value";
+            }
+
+            // Clear the search box when changing search type
+            searchByNameToolStripTextBox.Text = "";
         }
 
         private void ChangeBackgroundColorToolStripMenuItem_Click(object sender, EventArgs e)
@@ -1579,6 +1817,48 @@ namespace UoFiddler.Controls.UserControls
             SelectedGraphicId = indexValue;
         }
 
+        /// <summary>
+        /// Performs a search based on the current search type
+        /// </summary>
+        private void PerformSearchByCurrentType(string searchValue, bool next, bool fromStart = false)
+        {
+            if (string.IsNullOrWhiteSpace(searchValue))
+            {
+                return;
+            }
+
+            switch (_currentSearchType)
+            {
+                case SearchType.Name:
+                    SearchName(searchValue, next, fromStart);
+                    break;
+                case SearchType.Animation:
+                    if (int.TryParse(searchValue, out int animation))
+                    {
+                        SearchByAnimation(animation, next);
+                    }
+                    break;
+                case SearchType.Weight:
+                    if (int.TryParse(searchValue, out int weight))
+                    {
+                        SearchByWeight(weight, next);
+                    }
+                    break;
+                case SearchType.Layer:
+                    if (int.TryParse(searchValue, out int layer))
+                    {
+                        SearchByLayer(layer, next);
+                    }
+                    break;
+                case SearchType.StackOffset:
+                    if (int.TryParse(searchValue, out int stackOffset))
+                    {
+                        SearchByStackOffset(stackOffset, next);
+                    }
+                    break;
+            }
+        }
+
         private void SearchByNameToolStripTextBox_KeyUp(object sender, KeyEventArgs e)
         {
             // Start search forward from beginning when typing in the search box so initial match is the first matching item
@@ -1586,7 +1866,7 @@ namespace UoFiddler.Controls.UserControls
             {
                 if (dynamicItemSearchToolStripMenuItem != null && dynamicItemSearchToolStripMenuItem.Checked)
                 {
-                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                    ApplyFilter(searchByNameToolStripTextBox.Text);
                     return;
                 }
             }
@@ -1595,7 +1875,7 @@ namespace UoFiddler.Controls.UserControls
                 // ignore in designer
             }
 
-            SearchName(searchByNameToolStripTextBox.Text, true, true);
+            PerformSearchByCurrentType(searchByNameToolStripTextBox.Text, next: true, fromStart: true);
         }
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
         {
@@ -1603,7 +1883,7 @@ namespace UoFiddler.Controls.UserControls
             {
                 if (dynamicItemSearchToolStripMenuItem != null && dynamicItemSearchToolStripMenuItem.Checked)
                 {
-                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                    ApplyFilter(searchByNameToolStripTextBox.Text);
                     return;
                 }
             }
@@ -1612,39 +1892,22 @@ namespace UoFiddler.Controls.UserControls
                 // ignore in designer
             }
 
-            SearchName(searchByNameToolStripTextBox.Text, true);
-        }
-
-        private void SearchByLayerTextBox_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.Enter)
-            {
-                if (int.TryParse(layerToolStripTextBox.Text, out int layer))
-                {
-                    SearchByLayer(layer, true);
-                }
-            }
+            PerformSearchByCurrentType(searchByNameToolStripTextBox.Text, next: true, fromStart: false);
         }
 
         private void LayerNextToolStripButton_Click(object sender, EventArgs e)
         {
-            if (int.TryParse(layerToolStripTextBox.Text, out int layer))
-            {
-                SearchByLayer(layer, true);
-            }
+            PerformSearchByCurrentType(searchByNameToolStripTextBox.Text, next: true, fromStart: false);
         }
 
         private void LayerPrevToolStripButton_Click(object sender, EventArgs e)
         {
-            if (int.TryParse(layerToolStripTextBox.Text, out int layer))
-            {
-                SearchByLayer(layer, false);
-            }
+            PerformSearchByCurrentType(searchByNameToolStripTextBox.Text, next: false, fromStart: false);
         }
 
         private void SearchByNamePrevToolStripButton_Click(object sender, EventArgs e)
         {
-            SearchName(searchByNameToolStripTextBox.Text, false);
+            PerformSearchByCurrentType(searchByNameToolStripTextBox.Text, next: false, fromStart: false);
         }
 
     }
