@@ -1,0 +1,62 @@
+name: Build & Release
+
+# The script now triggers ONLY when you push a semantic version tag
+on:
+  push:
+    tags:
+      - "[0-9]*.[0-9]*.[0-9]*"
+
+permissions:
+  contents: write # Grants full permission to upload assets to your release tab
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: windows-latest
+
+    env:
+      DOTNET_CLI_TELEMETRY_OPTOUT: 1
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+      DOTNET_NOLOGO: 1
+      Solution_Name: UoFiddler.sln
+      Asset_Name: UOFiddler-${{ github.ref_name }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Install .NET Core
+        uses: actions/setup-dotnet@v4.3.1
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore & build the application
+        run: dotnet build $env:Solution_Name --configuration Release
+
+      # Creates the single ZIP file directly out of the Release directory
+      - name: Compress Release Assets
+        shell: pwsh
+        run: |
+          $ReleasePath = ".\UoFiddler\bin\Release"
+          if (-Not (Test-Path $ReleasePath)) {
+            Write-Error "Release path not found: $ReleasePath"
+            exit 1
+          }
+          Get-ChildItem -Path $ReleasePath -Recurse | Write-Host
+          Compress-Archive -Path "$ReleasePath\*" -DestinationPath "./${{ env.Asset_Name }}.zip" -Force
+          Write-Host "Archive created: ${{ env.Asset_Name }}.zip"
+          Get-Item "./${{ env.Asset_Name }}.zip" | Select-Object FullName, Length
+
+      # Since the entire workflow only triggers on tags now, this will never skip
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: UOFiddler ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
+          generate_release_notes: true
+          draft: false
+          prerelease: false
+          fail_on_unmatched_files: true
+          files: ${{ env.Asset_Name }}.zip
