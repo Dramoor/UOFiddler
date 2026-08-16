@@ -103,7 +103,7 @@ namespace UoFiddler.Controls.Forms
             }
 
             Data.AppendText($"Name: {item.Name}\n");
-            try
+            try 
             {
                 int clilocNumberHeader = _index < 0x4000 ? 1020000 + _index : 1078872 + _index;
                 string clilocTextHeader = ClilocControl.GetStringFromLoaded(clilocNumberHeader);
