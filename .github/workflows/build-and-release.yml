@@ -8,11 +8,11 @@ on:
       - "[0-9]+.[0-9]+.[0-9]+"
 
 permissions:
-  contents: read
+  contents: write # Upgraded to allow release creation and asset uploading
 
 jobs:
-  build:
-    name: Build
+  build-and-release:
+    name: Build & Publish Release
     runs-on: windows-latest
 
     strategy:
@@ -26,6 +26,7 @@ jobs:
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       DOTNET_NOLOGO: 1
       Solution_Name: UoFiddler.sln
+      # Dynamic name: uses version tag if available, falls back to "master" if pushing code
       Asset_Name: UOFiddler-${{ github.ref_name }}
 
     steps:
@@ -44,37 +45,23 @@ jobs:
         env:
           Configuration: ${{ matrix.configuration }}
 
+      # 1. Saves your compiled files to the Actions tab
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4.6.2
         with:
-          name: ${{ env.Asset_Name }}.zip
+          name: ${{ env.Asset_Name }}-raw
           path: ./UOFiddler/bin/Release/
 
-  release:
-    name: Release
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: windows-latest
+      # 2. Creates the clean production ZIP folder using PowerShell
+      - name: Compress Release Assets
+        shell: pwsh
+        run: |
+          Compress-Archive -Path ./UOFiddler/bin/Release/* -DestinationPath ./${{ env.Asset_Name }}.zip
 
-    permissions:
-      contents: write
-
-    env:
-      Asset_Name: UOFiddler-${{ github.ref_name }}
-      Body_Path: release_body.md
-
-    steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v4.3.0
-        with:
-          name: ${{ env.Asset_Name }}.zip
-          path: ./${{ env.Asset_Name }}/
-
-      - name: Archive release
-        run: 7z a -tzip ${{ env.Asset_Name }}.zip './${{ env.Asset_Name }}'
-
+      # 3. Only pushes to the website Releases tab IF you pushed a version tag (e.g. 1.0.0)
       - name: Create release
-        uses: softprops/action-gh-release@v2.2.2
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
         with:
           name: UOFiddler ${{ github.ref_name }}
           generate_release_notes: true
