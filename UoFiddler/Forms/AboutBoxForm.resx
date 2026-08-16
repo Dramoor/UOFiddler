@@ -124,6 +124,7 @@
 - Added in ability with shift and ctrl for multiple selections in the Land tile tab. Can remove multiple tiles with remove selected or export the images.
 - Added in ability with shift and ctrl for multiple selections in the Textures tab. Can remove multiple textures with remove selected or export the images.
 - Added in ability with shift and ctrl for multiple selections in the Gumps tab. Can remove multiple gump images with remove selected or export the images.
+- Added check boxes in the tree view of the multis tab to allow for selecting multiple multis to export or remove. Can also select all or none with the check boxes at the top of the tree view.
 
 Version 5.2.0
 - Can now use the search in items tab to search by name, or by animation, layer, weight and stack offset. You can use this as a normal search, or with the dynamic search.

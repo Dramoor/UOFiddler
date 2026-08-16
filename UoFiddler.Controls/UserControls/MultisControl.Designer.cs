@@ -52,7 +52,10 @@ namespace UoFiddler.Controls.UserControls
             toCsvToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             toUOX3ToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             removeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            removeSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             toolStrip1 = new System.Windows.Forms.ToolStrip();
+            checkAllToolStripButton = new System.Windows.Forms.ToolStripButton();
+            uncheckAllToolStripButton = new System.Windows.Forms.ToolStripButton();
             toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
             exportAllImagesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             aToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -137,6 +140,7 @@ namespace UoFiddler.Controls.UserControls
             TreeViewMulti.ContextMenuStrip = contextMenuStrip2;
             TreeViewMulti.Dock = System.Windows.Forms.DockStyle.Fill;
             TreeViewMulti.HideSelection = false;
+            TreeViewMulti.CheckBoxes = true;
             TreeViewMulti.Location = new System.Drawing.Point(0, 25);
             TreeViewMulti.Margin = new System.Windows.Forms.Padding(0);
             TreeViewMulti.Name = "TreeViewMulti";
@@ -147,9 +151,10 @@ namespace UoFiddler.Controls.UserControls
             // 
             // contextMenuStrip2
             // 
-            contextMenuStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { toolStripMenuItem4, importToolStripMenuItem, exportToolStripMenuItem, removeToolStripMenuItem });
+            contextMenuStrip2.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { toolStripMenuItem4, importToolStripMenuItem, exportToolStripMenuItem, removeToolStripMenuItem, removeSelectedToolStripMenuItem });
             contextMenuStrip2.Name = "contextMenuStrip1";
             contextMenuStrip2.Size = new System.Drawing.Size(157, 92);
+            contextMenuStrip2.Opening += ContextMenuStrip_Opening;
             // 
             // toolStripMenuItem4
             // 
@@ -215,16 +220,42 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += OnClickRemove;
             // 
+            // removeSelectedToolStripMenuItem
+            // 
+            removeSelectedToolStripMenuItem.Enabled = false;
+            removeSelectedToolStripMenuItem.Name = "removeSelectedToolStripMenuItem";
+            removeSelectedToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
+            removeSelectedToolStripMenuItem.Text = "Remove Selected";
+            removeSelectedToolStripMenuItem.Click += OnClickRemoveSelected;
+            // 
             // toolStrip1
             // 
             toolStrip1.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { toolStripDropDownButton1 });
+            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { checkAllToolStripButton, uncheckAllToolStripButton, toolStripDropDownButton1 });
             toolStrip1.Location = new System.Drawing.Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
             toolStrip1.Size = new System.Drawing.Size(245, 25);
             toolStrip1.TabIndex = 1;
             toolStrip1.Text = "toolStrip1";
+            // 
+            // checkAllToolStripButton
+            // 
+            checkAllToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            checkAllToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            checkAllToolStripButton.Name = "checkAllToolStripButton";
+            checkAllToolStripButton.Size = new System.Drawing.Size(62, 22);
+            checkAllToolStripButton.Text = "Check All";
+            checkAllToolStripButton.Click += OnClickCheckAll;
+            // 
+            // uncheckAllToolStripButton
+            // 
+            uncheckAllToolStripButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            uncheckAllToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            uncheckAllToolStripButton.Name = "uncheckAllToolStripButton";
+            uncheckAllToolStripButton.Size = new System.Drawing.Size(73, 22);
+            uncheckAllToolStripButton.Text = "Uncheck All";
+            uncheckAllToolStripButton.Click += OnClickUncheckAll;
             // 
             // toolStripDropDownButton1
             // 
@@ -589,6 +620,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.RichTextBox MultiComponentBox;
         private System.Windows.Forms.PictureBox MultiPictureBox;
         private System.Windows.Forms.ToolStripMenuItem removeToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem removeSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem1;
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.SplitContainer splitContainer3;
@@ -619,5 +651,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem toUOX3FileToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toUOX3ToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem toXMLFileToolStripMenuItem;
+        private System.Windows.Forms.ToolStripButton checkAllToolStripButton;
+        private System.Windows.Forms.ToolStripButton uncheckAllToolStripButton;
     }
 }

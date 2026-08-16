@@ -429,22 +429,54 @@ namespace UoFiddler.Controls.UserControls
 
         private void Extract_Image_ClickBmp(object sender, EventArgs e)
         {
-            ExtractMultiImage(ImageFormat.Bmp, _backgroundImageColor);
+            var checkedNodes = GetCheckedNodes(TreeViewMulti.Nodes);
+            if (checkedNodes.Count > 1)
+            {
+                ExportMultipleMultisImages(ImageFormat.Bmp, _backgroundImageColor);
+            }
+            else
+            {
+                ExtractMultiImage(ImageFormat.Bmp, _backgroundImageColor);
+            }
         }
 
         private void Extract_Image_ClickTiff(object sender, EventArgs e)
         {
-            ExtractMultiImage(ImageFormat.Tiff, _backgroundImageColor);
+            var checkedNodes = GetCheckedNodes(TreeViewMulti.Nodes);
+            if (checkedNodes.Count > 1)
+            {
+                ExportMultipleMultisImages(ImageFormat.Tiff, _backgroundImageColor);
+            }
+            else
+            {
+                ExtractMultiImage(ImageFormat.Tiff, _backgroundImageColor);
+            }
         }
 
         private void Extract_Image_ClickJpg(object sender, EventArgs e)
         {
-            ExtractMultiImage(ImageFormat.Jpeg, _backgroundImageColor);
+            var checkedNodes = GetCheckedNodes(TreeViewMulti.Nodes);
+            if (checkedNodes.Count > 1)
+            {
+                ExportMultipleMultisImages(ImageFormat.Jpeg, _backgroundImageColor);
+            }
+            else
+            {
+                ExtractMultiImage(ImageFormat.Jpeg, _backgroundImageColor);
+            }
         }
 
         private void Extract_Image_ClickPng(object sender, EventArgs e)
         {
-            ExtractMultiImage(ImageFormat.Png, _useTransparencyForPng ? Color.Transparent : _backgroundImageColor);
+            var checkedNodes = GetCheckedNodes(TreeViewMulti.Nodes);
+            if (checkedNodes.Count > 1)
+            {
+                ExportMultipleMultisImages(ImageFormat.Png, _useTransparencyForPng ? Color.Transparent : _backgroundImageColor);
+            }
+            else
+            {
+                ExtractMultiImage(ImageFormat.Png, _useTransparencyForPng ? Color.Transparent : _backgroundImageColor);
+            }
         }
 
         private void ExtractMultiImage(ImageFormat imageFormat, Color backgroundColor)
@@ -483,6 +515,48 @@ namespace UoFiddler.Controls.UserControls
 
                 newBitmap.Save(fileName, imageFormat);
             }
+        }
+
+        private void ExportMultipleMultisImages(ImageFormat imageFormat, Color backgroundColor)
+        {
+            var checkedNodes = GetCheckedNodes(TreeViewMulti.Nodes);
+            if (checkedNodes.Count < 2)
+            {
+                return;
+            }
+
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+            string floorSuffix = HeightChangeMulti.Value > 0
+                ? $"_Z{HeightChangeMulti.Value:000}"
+                : string.Empty;
+
+            int selectedMaxHeight = HeightChangeMulti.Maximum - HeightChangeMulti.Value;
+            int successCount = 0;
+
+            foreach (TreeNode node in checkedNodes)
+            {
+                try
+                {
+                    int multiId = int.Parse(node.Name);
+                    string fileName = Path.Combine(Options.OutputPath, $"Multi 0x{multiId:X4}{floorSuffix}.{fileExtension}");
+
+                    MultiComponentList multi = (MultiComponentList)node.Tag;
+                    using (Bitmap multiBitmap = multi?.GetImage(selectedMaxHeight))
+                    {
+                        if (multiBitmap != null)
+                        {
+                            SaveImage(multiBitmap, fileName, imageFormat, backgroundColor);
+                            successCount++;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Error exporting multi: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+
+            MessageBox.Show($"{successCount} multi(s) exported to {Options.OutputPath}", "Export Complete", MessageBoxButtons.OK, MessageBoxIcon.Information);
         }
 
         private void OnClickFreeSlots(object sender, EventArgs e)
@@ -628,6 +702,27 @@ namespace UoFiddler.Controls.UserControls
             Options.ChangedUltimaClass["Multis"] = false;
         }
 
+        private void ContextMenuStrip_Opening(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            int checkedCount = TreeViewMulti.Nodes.Count > 0 ? CountCheckedNodes(TreeViewMulti.Nodes) : 0;
+            removeToolStripMenuItem.Enabled = TreeViewMulti.SelectedNode != null;
+            removeSelectedToolStripMenuItem.Enabled = checkedCount > 1;
+        }
+
+        private int CountCheckedNodes(TreeNodeCollection nodes)
+        {
+            int count = 0;
+            foreach (TreeNode node in nodes)
+            {
+                if (node.Checked)
+                {
+                    count++;
+                }
+                count += CountCheckedNodes(node.Nodes);  // Recursively count child nodes
+            }
+            return count;
+        }
+
         private void OnClickRemove(object sender, EventArgs e)
         {
             if (TreeViewMulti.SelectedNode == null)
@@ -653,6 +748,75 @@ namespace UoFiddler.Controls.UserControls
             TreeViewMulti.SelectedNode.Remove();
             Options.ChangedUltimaClass["Multis"] = true;
             ControlEvents.FireMultiChangeEvent(this, id);
+        }
+
+        private void OnClickRemoveSelected(object sender, EventArgs e)
+        {
+            var checkedNodes = GetCheckedNodes(TreeViewMulti.Nodes);
+            if (checkedNodes.Count < 2)
+            {
+                return;
+            }
+
+            DialogResult result = MessageBox.Show(
+                string.Format("Are you sure you want to remove {0} selected multis?", checkedNodes.Count),
+                "Remove Selected",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2);
+
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
+
+            // Remove in reverse order to maintain correct indices
+            for (int i = checkedNodes.Count - 1; i >= 0; i--)
+            {
+                TreeNode node = checkedNodes[i];
+                if (node.Tag is MultiComponentList)
+                {
+                    int id = int.Parse(node.Name);
+                    Multis.Remove(id);
+                    node.Remove();
+                    ControlEvents.FireMultiChangeEvent(this, id);
+                }
+            }
+
+            Options.ChangedUltimaClass["Multis"] = true;
+        }
+
+        private List<TreeNode> GetCheckedNodes(TreeNodeCollection nodes)
+        {
+            var checkedNodes = new List<TreeNode>();
+            foreach (TreeNode node in nodes)
+            {
+                if (node.Checked)
+                {
+                    checkedNodes.Add(node);
+                }
+                checkedNodes.AddRange(GetCheckedNodes(node.Nodes));
+            }
+            return checkedNodes;
+        }
+
+        private void OnClickCheckAll(object sender, EventArgs e)
+        {
+            SetAllNodeCheckStates(TreeViewMulti.Nodes, true);
+        }
+
+        private void OnClickUncheckAll(object sender, EventArgs e)
+        {
+            SetAllNodeCheckStates(TreeViewMulti.Nodes, false);
+        }
+
+        private void SetAllNodeCheckStates(TreeNodeCollection nodes, bool isChecked)
+        {
+            foreach (TreeNode node in nodes)
+            {
+                node.Checked = isChecked;
+                SetAllNodeCheckStates(node.Nodes, isChecked);
+            }
         }
 
         private void OnClickImport(object sender, EventArgs e)
