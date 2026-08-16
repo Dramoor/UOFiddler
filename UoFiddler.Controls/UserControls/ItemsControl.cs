@@ -1678,6 +1678,16 @@ namespace UoFiddler.Controls.UserControls
             GumpControl.Select(itemData.Animation + gumpOffset);
         }
 
+        internal static void SelectItem(int graphicId)
+        {
+            if (!RefMarker.IsLoaded)
+            {
+                RefMarker.OnLoad(EventArgs.Empty);
+            }
+
+            RefMarker.SelectedGraphicId = graphicId;
+        }
+
         private void SelectInGumpsTabMaleToolStripMenuItem_Click(object sender, EventArgs e)
         {
             if (SelectedGraphicId <= 0)

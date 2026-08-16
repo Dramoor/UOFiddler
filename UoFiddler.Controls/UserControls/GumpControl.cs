@@ -670,6 +670,60 @@ namespace UoFiddler.Controls.UserControls
             Select(gumpId);
         }
 
+        private void SelectInItemsTab_Click(object sender, EventArgs e)
+        {
+            if (listBox.SelectedIndex == -1)
+            {
+                return;
+            }
+
+            int gumpId = (int)listBox.SelectedItem;
+            int animationId = gumpId >= 60000 ? gumpId - 60000 : gumpId - 50000;
+
+            // Find the item that has this animation ID
+            int itemId = FindItemByAnimation(animationId);
+            if (itemId >= 0)
+            {
+                ItemsControl.SelectItem(itemId);
+            }
+        }
+
+        private int FindItemByAnimation(int animationId)
+        {
+            // Search through the ItemTable to find an item with this animation ID
+            for (int i = 0; i < TileData.ItemTable.Length; ++i)
+            {
+                if (TileData.ItemTable[i].Animation == animationId)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        private void ContextMenuStrip_Opening(object sender, CancelEventArgs e)
+        {
+            if (listBox.SelectedIndex == -1)
+            {
+                selectInItemsTabToolStripMenuItem.Enabled = false;
+                return;
+            }
+
+            int gumpId = (int)listBox.SelectedItem;
+
+            // Check if gumpId is in the animation offset range (50000-60000)
+            if (gumpId >= 50000)
+            {
+                int animationId = gumpId >= 60000 ? gumpId - 60000 : gumpId - 50000;
+                // Enable only if an item exists with this animation ID
+                selectInItemsTabToolStripMenuItem.Enabled = FindItemByAnimation(animationId) >= 0;
+            }
+            else
+            {
+                selectInItemsTabToolStripMenuItem.Enabled = false;
+            }
+        }
+
         public static bool Search(int graphic)
         {
             if (!_refMarker._loaded)

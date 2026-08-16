@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.2.0
+    <value>Version 5.2.1
+- Can now right click in gumps menu on an object and select in the items tab if that item has a corresponding item set in the tiledata.
+	
+Version 5.2.0
 - Can now use the search in items tab to search by name, or by animation, layer, weight and stack offset. You can use this as a normal search, or with the dynamic search.
 - Added in ability to remove all selected tiles when having multiple selected in the items tab.
 	
