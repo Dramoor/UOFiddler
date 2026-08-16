@@ -187,6 +187,7 @@ namespace UoFiddler.Controls.UserControls
             Brush fontBrush = Brushes.Gray;
 
             int i = int.Parse(listBox.Items[e.Index].ToString());
+            bool isSelected = listBox.SelectedIndices.Contains(e.Index);
 
             if (Gumps.IsValidIndex(i))
             {
@@ -197,7 +198,7 @@ namespace UoFiddler.Controls.UserControls
                     int width = bmp.Width > 100 ? 100 : bmp.Width;
                     int height = bmp.Height > 54 ? 54 : bmp.Height;
 
-                    if (listBox.SelectedIndex == e.Index)
+                    if (isSelected)
                     {
                         e.Graphics.FillRectangle(Brushes.LightSteelBlue, e.Bounds.X, e.Bounds.Y, 105, 60);
                     }
@@ -215,7 +216,7 @@ namespace UoFiddler.Controls.UserControls
             }
             else
             {
-                if (listBox.SelectedIndex == e.Index)
+                if (isSelected)
                 {
                     e.Graphics.FillRectangle(Brushes.LightSteelBlue, e.Bounds.X, e.Bounds.Y, 105, 60);
                 }
@@ -375,6 +376,49 @@ namespace UoFiddler.Controls.UserControls
             Options.ChangedUltimaClass["Gumps"] = true;
         }
 
+        private void OnClickRemoveSelected(object sender, EventArgs e)
+        {
+            if (listBox.SelectedIndices.Count <= 1)
+            {
+                return;
+            }
+
+            DialogResult result = MessageBox.Show(
+                $"Are you sure to remove {listBox.SelectedIndices.Count} gumps?",
+                "Remove Selected",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2);
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
+
+            Cursor.Current = Cursors.WaitCursor;
+            var indicesToRemove = new List<int>(listBox.SelectedIndices.Cast<int>());
+            indicesToRemove.Reverse();
+
+            foreach (int index in indicesToRemove)
+            {
+                int gumpId = (int)listBox.Items[index];
+                Gumps.RemoveGump(gumpId);
+                ControlEvents.FireGumpChangeEvent(this, gumpId);
+            }
+
+            if (!_showFreeSlots)
+            {
+                foreach (int index in indicesToRemove)
+                {
+                    listBox.Items.RemoveAt(index);
+                }
+            }
+
+            Cursor.Current = Cursors.Default;
+            pictureBox.BackgroundImage = null;
+            listBox.Invalidate();
+            Options.ChangedUltimaClass["Gumps"] = true;
+        }
+
         private void OnClickFindFree(object sender, EventArgs e)
         {
             int id = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
@@ -494,26 +538,54 @@ namespace UoFiddler.Controls.UserControls
 
         private void Extract_Image_ClickBmp(object sender, EventArgs e)
         {
-            int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
-            ExportGumpImage(i, ImageFormat.Bmp);
+            if (listBox.SelectedIndices.Count > 1)
+            {
+                ExportMultipleGumps(ImageFormat.Bmp);
+            }
+            else
+            {
+                int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
+                ExportGumpImage(i, ImageFormat.Bmp);
+            }
         }
 
         private void Extract_Image_ClickTiff(object sender, EventArgs e)
         {
-            int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
-            ExportGumpImage(i, ImageFormat.Tiff);
+            if (listBox.SelectedIndices.Count > 1)
+            {
+                ExportMultipleGumps(ImageFormat.Tiff);
+            }
+            else
+            {
+                int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
+                ExportGumpImage(i, ImageFormat.Tiff);
+            }
         }
 
         private void Extract_Image_ClickJpg(object sender, EventArgs e)
         {
-            int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
-            ExportGumpImage(i, ImageFormat.Jpeg);
+            if (listBox.SelectedIndices.Count > 1)
+            {
+                ExportMultipleGumps(ImageFormat.Jpeg);
+            }
+            else
+            {
+                int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
+                ExportGumpImage(i, ImageFormat.Jpeg);
+            }
         }
 
         private void Extract_Image_ClickPng(object sender, EventArgs e)
         {
-            int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
-            ExportGumpImage(i, ImageFormat.Png);
+            if (listBox.SelectedIndices.Count > 1)
+            {
+                ExportMultipleGumps(ImageFormat.Png);
+            }
+            else
+            {
+                int i = int.Parse(listBox.Items[listBox.SelectedIndex].ToString());
+                ExportGumpImage(i, ImageFormat.Png);
+            }
         }
 
         private static void ExportGumpImage(int index, ImageFormat imageFormat)
@@ -532,6 +604,36 @@ namespace UoFiddler.Controls.UserControls
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,
                 MessageBoxDefaultButton.Button1);
+        }
+
+        private void ExportMultipleGumps(ImageFormat imageFormat)
+        {
+            Cursor.Current = Cursors.WaitCursor;
+            int successCount = 0;
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+
+            foreach (int index in listBox.SelectedIndices)
+            {
+                int gumpId = (int)listBox.Items[index];
+
+                try
+                {
+                    string fileName = Path.Combine(Options.OutputPath, $"Gump {gumpId}.{fileExtension}");
+                    using (Bitmap bit = new Bitmap(Gumps.GetGump(gumpId)))
+                    {
+                        bit.Save(fileName, imageFormat);
+                        successCount++;
+                    }
+                }
+                catch
+                {
+                    // Skip on error and continue
+                }
+            }
+
+            Cursor.Current = Cursors.Default;
+            MessageBox.Show($"Exported {successCount} gump(s) to {Options.OutputPath}", "Export Complete",
+                MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
         }
 
         private void OnClick_SaveAllBmp(object sender, EventArgs e)
@@ -703,6 +805,15 @@ namespace UoFiddler.Controls.UserControls
 
         private void ContextMenuStrip_Opening(object sender, CancelEventArgs e)
         {
+            bool hasMultipleSelections = listBox.SelectedIndices.Count > 1;
+            bool hasSingleSelection = listBox.SelectedIndices.Count == 1;
+
+            replaceGumpToolStripMenuItem.Enabled = hasSingleSelection;
+            insertToolStripMenuItem.Enabled = hasSingleSelection;
+            toolStripMenuItem1.Enabled = hasSingleSelection;
+            removeToolStripMenuItem.Enabled = hasSingleSelection;
+            removeSelectedToolStripMenuItem.Enabled = hasMultipleSelections;
+
             if (listBox.SelectedIndex == -1)
             {
                 selectInItemsTabToolStripMenuItem.Enabled = false;

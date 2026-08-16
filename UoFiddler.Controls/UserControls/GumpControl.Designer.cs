@@ -54,6 +54,7 @@ namespace UoFiddler.Controls.UserControls
             jumpToMaleFemale = new System.Windows.Forms.ToolStripMenuItem();
             replaceGumpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             removeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            removeSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             insertToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             InsertText = new System.Windows.Forms.ToolStripTextBox();
             toolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -126,6 +127,7 @@ namespace UoFiddler.Controls.UserControls
             listBox.Location = new System.Drawing.Point(0, 25);
             listBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             listBox.Name = "listBox";
+            listBox.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             listBox.Size = new System.Drawing.Size(289, 405);
             listBox.TabIndex = 0;
             listBox.DrawItem += ListBox_DrawItem;
@@ -135,7 +137,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // contextMenuStrip
             // 
-            contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, toolStripSeparator2, extractImageToolStripMenuItem, toolStripSeparator6, jumpToMaleFemale, selectInItemsTabToolStripMenuItem, toolStripSeparator5, replaceGumpToolStripMenuItem, insertToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, toolStripSeparator2, extractImageToolStripMenuItem, toolStripSeparator6, jumpToMaleFemale, selectInItemsTabToolStripMenuItem, toolStripSeparator5, replaceGumpToolStripMenuItem, insertToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, removeSelectedToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             contextMenuStrip.Name = "contextMenuStrip1";
             contextMenuStrip.Size = new System.Drawing.Size(190, 226);
             contextMenuStrip.Opening += ContextMenuStrip_Opening;
@@ -215,6 +217,14 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += OnClickRemove;
+            // 
+            // removeSelectedToolStripMenuItem
+            // 
+            removeSelectedToolStripMenuItem.Enabled = false;
+            removeSelectedToolStripMenuItem.Name = "removeSelectedToolStripMenuItem";
+            removeSelectedToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
+            removeSelectedToolStripMenuItem.Text = "Remove Selected";
+            removeSelectedToolStripMenuItem.Click += OnClickRemoveSelected;
             // 
             // insertToolStripMenuItem
             // 
@@ -479,6 +489,7 @@ namespace UoFiddler.Controls.UserControls
         private System.ComponentModel.BackgroundWorker PreLoader;
         private System.Windows.Forms.ToolStripProgressBar ProgressBar;
         private System.Windows.Forms.ToolStripMenuItem removeToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem removeSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem replaceGumpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectInItemsTabToolStripMenuItem;
