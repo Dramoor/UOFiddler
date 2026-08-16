@@ -103,7 +103,9 @@ namespace UoFiddler.Controls.UserControls
             searchTypeWeightToolStripMenuItem = new ToolStripMenuItem();
             searchTypeLayerToolStripMenuItem = new ToolStripMenuItem();
             searchTypeStackOffsetToolStripMenuItem = new ToolStripMenuItem();
+            searchTypeHeightToolStripMenuItem = new ToolStripMenuItem();
             dynamicItemSearchToolStripMenuItem = new ToolStripMenuItem();
+            filterToolStripMenuItem = new ToolStripMenuItem();
             asTiffToolStripMenuItem = new ToolStripMenuItem();
             asJpgToolStripMenuItem = new ToolStripMenuItem();
             asPngToolStripMenuItem = new ToolStripMenuItem();
@@ -541,18 +543,24 @@ namespace UoFiddler.Controls.UserControls
             // MiscToolStripDropDownButton
             // 
             MiscToolStripDropDownButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { searchTypeToolStripMenuItem, dynamicItemSearchToolStripMenuItem, ExportAllToolStripMenuItem });
+            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { searchTypeToolStripMenuItem, dynamicItemSearchToolStripMenuItem, filterToolStripMenuItem, ExportAllToolStripMenuItem });
             MiscToolStripDropDownButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             MiscToolStripDropDownButton.Name = "MiscToolStripDropDownButton";
             MiscToolStripDropDownButton.Size = new System.Drawing.Size(45, 25);
             MiscToolStripDropDownButton.Text = "Misc";
+            // 
+            // filterToolStripMenuItem
+            // 
+            filterToolStripMenuItem.Name = "filterToolStripMenuItem";
+            filterToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            filterToolStripMenuItem.Text = "Filter";
             // 
             // searchTypeToolStripMenuItem
             // 
             searchTypeToolStripMenuItem.Name = "searchTypeToolStripMenuItem";
             searchTypeToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
             searchTypeToolStripMenuItem.Text = "Search Type";
-            searchTypeToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchTypeNameToolStripMenuItem, searchTypeAnimationToolStripMenuItem, searchTypeWeightToolStripMenuItem, searchTypeLayerToolStripMenuItem, searchTypeStackOffsetToolStripMenuItem });
+            searchTypeToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { searchTypeNameToolStripMenuItem, searchTypeAnimationToolStripMenuItem, searchTypeWeightToolStripMenuItem, searchTypeLayerToolStripMenuItem, searchTypeStackOffsetToolStripMenuItem, searchTypeHeightToolStripMenuItem });
             // 
             // searchTypeNameToolStripMenuItem
             // 
@@ -594,6 +602,14 @@ namespace UoFiddler.Controls.UserControls
             searchTypeStackOffsetToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
             searchTypeStackOffsetToolStripMenuItem.Text = "Stack Offset";
             searchTypeStackOffsetToolStripMenuItem.Click += SearchTypeMenuItem_Click;
+            // 
+            // searchTypeHeightToolStripMenuItem
+            // 
+            searchTypeHeightToolStripMenuItem.CheckOnClick = true;
+            searchTypeHeightToolStripMenuItem.Name = "searchTypeHeightToolStripMenuItem";
+            searchTypeHeightToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            searchTypeHeightToolStripMenuItem.Text = "Height";
+            searchTypeHeightToolStripMenuItem.Click += SearchTypeMenuItem_Click;
             //
             // dynamicItemSearchToolStripMenuItem
             //
@@ -698,6 +714,7 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripMenuItem searchTypeWeightToolStripMenuItem;
         private ToolStripMenuItem searchTypeLayerToolStripMenuItem;
         private ToolStripMenuItem searchTypeStackOffsetToolStripMenuItem;
+        private ToolStripMenuItem searchTypeHeightToolStripMenuItem;
         private ToolStripMenuItem asPngToolStripMenuItem;
         private ToolStripMenuItem asPngToolStripMenuItem1;
         private ToolStripMenuItem asTiffToolStripMenuItem;
@@ -755,5 +772,6 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripButton saveToolStripButton;
         private ToolStripSeparator toolStripSeparator5;
         private ToolStripSeparator toolStripSeparator7;
+        private ToolStripMenuItem filterToolStripMenuItem;
     }
 }

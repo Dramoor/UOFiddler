@@ -17,6 +17,7 @@ using System.Windows.Forms;
 using Ultima;
 using UoFiddler.Controls.Classes;
 using UoFiddler.Controls.Helpers;
+using UoFiddler.Controls.UserControls;
 
 namespace UoFiddler.Controls.Forms
 {
@@ -102,7 +103,20 @@ namespace UoFiddler.Controls.Forms
             }
 
             Data.AppendText($"Name: {item.Name}\n");
-            Data.AppendText(string.Format("Graphic: 0x{0:X4} ({0})\n", _index));
+            try
+            {
+                int clilocNumberHeader = _index < 0x4000 ? 1020000 + _index : 1078872 + _index;
+                string clilocTextHeader = ClilocControl.GetStringFromLoaded(clilocNumberHeader);
+                if (!string.IsNullOrWhiteSpace(clilocTextHeader))
+                {
+                    Data.AppendText($"Cliloc: {clilocTextHeader}\n");
+                }
+            }
+            catch
+            {
+                // ignore if cliloc cannot be loaded
+            }
+            Data.AppendText(string.Format("Graphic: 0x{0:X4}({0})\n", _index));
             Data.AppendText($"Height/Capacity: {item.Height}\n");
             Data.AppendText($"Weight: {item.Weight}\n");
             Data.AppendText($"Animation: {item.Animation}\n");
@@ -111,6 +125,8 @@ namespace UoFiddler.Controls.Forms
             Data.AppendText($"Hue: {item.Hue}\n");
             Data.AppendText($"StackingOffset/Unk4: {item.StackingOffset}\n");
             Data.AppendText($"Flags: {item.Flags}\n");
+            Data.AppendText($"Graphic Size: {bit?.Width ?? 0} x {bit?.Height ?? 0}\n");
+
 
             if ((item.Flags & TileFlag.PartialHue) != 0)
             {

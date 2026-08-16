@@ -127,7 +127,7 @@
 - Added check boxes in the tree view of the multis tab to allow for selecting multiple multis to export or remove. Can also select all or none with the check boxes at the top of the tree view.
 
 Version 5.2.0
-- Can now use the search in items tab to search by name, or by animation, layer, weight and stack offset. You can use this as a normal search, or with the dynamic search.
+- Can now use the search in items tab to search by name, or by animation, layer, height, weight and stack offset. You can use this as a normal search, or with the dynamic search.
 - Added in ability to remove all selected tiles when having multiple selected in the items tab.
 	
 Version 5.1.9

@@ -17,6 +17,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Text;
 using System.Windows.Forms;
+using System.Linq;
 using Ultima;
 using UoFiddler.Controls.Classes;
 using UoFiddler.Controls.Forms;
@@ -36,12 +37,17 @@ namespace UoFiddler.Controls.UserControls
 
             RefMarker = this;
             DetailTextBox.AddBasicContextMenu();
+
+            InitializeFilterMenu();
         }
 
         private List<int> _itemList = new List<int>();
         // full unfiltered list of items (used when dynamic filtering is enabled)
         private List<int> _allItemList = new List<int>();
         private bool _showFreeSlots;
+
+        // Item flag filtering
+        private TileFlag _selectedItemFlags = TileFlag.None;
 
         /// <summary>
         /// Enum for search types
@@ -52,7 +58,8 @@ namespace UoFiddler.Controls.UserControls
             Animation,
             Weight,
             Layer,
-            StackOffset
+            StackOffset,
+            Height
         }
 
         private SearchType _currentSearchType = SearchType.Name;
@@ -76,6 +83,123 @@ namespace UoFiddler.Controls.UserControls
         public static ItemsControl RefMarker { get; private set; }
         public static TileViewControl TileView => RefMarker.ItemsTileView;
         public bool IsLoaded { get; private set; }
+
+
+        /// <summary>
+        /// Initializes the filter menu with only flags that are actually used in items
+        /// </summary>
+        private void InitializeFilterMenu()
+        {
+            try
+            {
+                filterToolStripMenuItem.DropDownItems.Clear();
+
+                // Add "None" option to clear all filters
+                var filterNoneMenuItem = new ToolStripMenuItem
+                {
+                    Name = "filterNone",
+                    Text = "None",
+                    CheckOnClick = true,
+                    Checked = true
+                };
+                filterNoneMenuItem.Click += FilterNone_Click;
+                filterToolStripMenuItem.DropDownItems.Add(filterNoneMenuItem);
+
+                // Add separator
+                filterToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
+
+                // Scan all items to find which flags are actually used
+                var usedFlags = new HashSet<TileFlag>();
+                for (int i = 0; i < TileData.ItemTable.Length; i++)
+                {
+                    var item = TileData.ItemTable[i];
+                    if (item.Flags != TileFlag.None)
+                    {
+                        // Add each individual flag that's set on this item
+                        foreach (TileFlag flag in Enum.GetValues(typeof(TileFlag)))
+                        {
+                            if (flag != TileFlag.None && (item.Flags & flag) != 0)
+                            {
+                                usedFlags.Add(flag);
+                            }
+                        }
+                    }
+                }
+
+                // Add checkboxes only for flags that are actually used
+                foreach (var flag in usedFlags.OrderBy(f => f.ToString()))
+                {
+                    var menuItem = new ToolStripMenuItem
+                    {
+                        Name = $"filter{flag}",
+                        Text = flag.ToString(),
+                        CheckOnClick = true,
+                        Tag = flag
+                    };
+                    menuItem.Click += FilterFlag_Click;
+                    filterToolStripMenuItem.DropDownItems.Add(menuItem);
+                }
+            }
+            catch
+            {
+                // Ignore errors in designer
+            }
+        }
+
+        /// <summary>
+        /// Handles filter "None" click - clears all flag filters
+        /// </summary>
+        private void FilterNone_Click(object sender, EventArgs e)
+        {
+            _selectedItemFlags = TileFlag.None;
+
+            // Uncheck all flag items except "None"
+            foreach (ToolStripItem item in filterToolStripMenuItem.DropDownItems)
+            {
+                if (item is ToolStripMenuItem menuItem && menuItem.Name != "filterNone")
+                {
+                    menuItem.Checked = false;
+                }
+            }
+
+            // Re-apply filter only if dynamic search is enabled
+            if (dynamicItemSearchToolStripMenuItem?.Checked == true)
+            {
+                ApplyNameFilter(searchByNameToolStripTextBox.Text);
+            }
+        }
+
+        /// <summary>
+        /// Handles individual flag checkbox clicks
+        /// </summary>
+        private void FilterFlag_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is TileFlag flag)
+            {
+                if (menuItem.Checked)
+                {
+                    _selectedItemFlags |= flag;
+                }
+                else
+                {
+                    _selectedItemFlags &= ~flag;
+                }
+
+                // Uncheck "None" if any flag is checked
+                var noneItem = filterToolStripMenuItem.DropDownItems.Cast<ToolStripItem>()
+                    .FirstOrDefault(x => x is ToolStripMenuItem m && m.Name == "filterNone") as ToolStripMenuItem;
+                if (noneItem != null)
+                {
+                    noneItem.Checked = _selectedItemFlags == TileFlag.None;
+                }
+
+                // Re-apply filter only if dynamic search is enabled
+                if (dynamicItemSearchToolStripMenuItem?.Checked == true)
+                {
+                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+        }
 
         /// <summary>
         /// Updates if TileSize is changed
@@ -164,6 +288,14 @@ namespace UoFiddler.Controls.UserControls
 
                 var id = RefMarker._itemList[i];
                 var item = TileData.ItemTable[id];
+
+                // Check if item matches flag filters
+                if (RefMarker._selectedItemFlags != TileFlag.None && 
+                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                {
+                    continue; // Item doesn't have any of the selected flags
+                }
+
                 // For ItemData, 'Quality' stores the layer for wearable items
                 // Only consider items that are wearable, weapon or armor
                 var relevantFlags = TileFlag.Wearable | TileFlag.Weapon | TileFlag.Armor;
@@ -216,7 +348,16 @@ namespace UoFiddler.Controls.UserControls
                 int i = next ? (start + k) % count : (start - k) % count;
                 if (i < 0) i += count;
 
-                var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
+                var id = RefMarker._itemList[i];
+
+                // Check if item matches flag filters
+                if (RefMarker._selectedItemFlags != TileFlag.None && 
+                    (TileData.ItemTable[id].Flags & RefMarker._selectedItemFlags) == 0)
+                {
+                    continue; // Item doesn't have any of the selected flags
+                }
+
+                var searchResult = searchMethod(name, TileData.ItemTable[id].Name);
                 if (searchResult.HasErrors)
                 {
                     break;
@@ -229,7 +370,7 @@ namespace UoFiddler.Controls.UserControls
 
                 // we have to invalidate focus so it will scroll to item
                 RefMarker.ItemsTileView.FocusIndex = -1;
-                RefMarker.SelectedGraphicId = RefMarker._itemList[i];
+                RefMarker.SelectedGraphicId = id;
 
                 return true;
             }
@@ -265,6 +406,14 @@ namespace UoFiddler.Controls.UserControls
 
                 var id = RefMarker._itemList[i];
                 var item = TileData.ItemTable[id];
+
+                // Check if item matches flag filters
+                if (RefMarker._selectedItemFlags != TileFlag.None && 
+                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                {
+                    continue; // Item doesn't have any of the selected flags
+                }
+
                 if (item.Animation == animation)
                 {
                     RefMarker.ItemsTileView.FocusIndex = -1;
@@ -304,6 +453,14 @@ namespace UoFiddler.Controls.UserControls
 
                 var id = RefMarker._itemList[i];
                 var item = TileData.ItemTable[id];
+
+                // Check if item matches flag filters
+                if (RefMarker._selectedItemFlags != TileFlag.None && 
+                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                {
+                    continue; // Item doesn't have any of the selected flags
+                }
+
                 if (item.Weight == weight)
                 {
                     RefMarker.ItemsTileView.FocusIndex = -1;
@@ -343,7 +500,56 @@ namespace UoFiddler.Controls.UserControls
 
                 var id = RefMarker._itemList[i];
                 var item = TileData.ItemTable[id];
+
+                // Check if item matches flag filters
+                if (RefMarker._selectedItemFlags != TileFlag.None && 
+                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                {
+                    continue; // Item doesn't have any of the selected flags
+                }
+
                 if (item.StackingOffset == stackOffset)
+                {
+                    RefMarker.ItemsTileView.FocusIndex = -1;
+                    RefMarker.SelectedGraphicId = id;
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        public static bool SearchByHeight(int height, bool next)
+        {
+            if (!RefMarker.IsLoaded)
+            {
+                RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+            }
+
+            var count = RefMarker._itemList.Count;
+            if (count == 0)
+            {
+                return false;
+            }
+
+            int start = RefMarker._selectedGraphicId >= 0 ? RefMarker._itemList.IndexOf(RefMarker._selectedGraphicId) : 0;
+
+            for (int k = 1; k <= count; ++k)
+            {
+                int i = next ? (start + k) % count : (start - k) % count;
+                if (i < 0) i += count;
+
+                var id = RefMarker._itemList[i];
+                var item = TileData.ItemTable[id];
+
+                // Check if item matches flag filters
+                if (RefMarker._selectedItemFlags != TileFlag.None && 
+                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                {
+                    continue; // Item doesn't have any of the selected flags
+                }
+
+                if (item.Height == height)
                 {
                     RefMarker.ItemsTileView.FocusIndex = -1;
                     RefMarker.SelectedGraphicId = id;
@@ -597,9 +803,9 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(searchValue))
+            if (string.IsNullOrWhiteSpace(searchValue) && _selectedItemFlags == TileFlag.None)
             {
-                // empty -> restore full list
+                // empty search and no filters → restore full list
                 _itemList = new List<int>(_allItemList);
                 ItemsTileView.VirtualListSize = _itemList.Count;
                 ItemsTileView.Invalidate();
@@ -619,6 +825,20 @@ namespace UoFiddler.Controls.UserControls
                         var searchMethod = SearchHelper.GetSearchMethod();
                         foreach (var id in _allItemList)
                         {
+                            // Check if item matches flag filters
+                            if (_selectedItemFlags != TileFlag.None && 
+                                (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                            {
+                                continue; // Item doesn't have any of the selected flags
+                            }
+
+                            // If search value is empty, include if flag matches
+                            if (string.IsNullOrWhiteSpace(searchValue))
+                            {
+                                filtered.Add(id);
+                                continue;
+                            }
+
                             var result = searchMethod(searchValue, TileData.ItemTable[id].Name);
                             if (result.HasErrors)
                             {
@@ -638,6 +858,13 @@ namespace UoFiddler.Controls.UserControls
                         {
                             foreach (var id in _allItemList)
                             {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                {
+                                    continue;
+                                }
+
                                 if (TileData.ItemTable[id].Animation == animation)
                                 {
                                     filtered.Add(id);
@@ -652,6 +879,13 @@ namespace UoFiddler.Controls.UserControls
                         {
                             foreach (var id in _allItemList)
                             {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                {
+                                    continue;
+                                }
+
                                 if (TileData.ItemTable[id].Weight == weight)
                                 {
                                     filtered.Add(id);
@@ -666,6 +900,13 @@ namespace UoFiddler.Controls.UserControls
                         {
                             foreach (var id in _allItemList)
                             {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                {
+                                    continue;
+                                }
+
                                 var item = TileData.ItemTable[id];
                                 var relevantFlags = TileFlag.Wearable | TileFlag.Weapon | TileFlag.Armor;
                                 if (item.Quality == layer && (item.Flags & relevantFlags) != 0)
@@ -682,7 +923,35 @@ namespace UoFiddler.Controls.UserControls
                         {
                             foreach (var id in _allItemList)
                             {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                {
+                                    continue;
+                                }
+
                                 if (TileData.ItemTable[id].StackingOffset == stackOffset)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Height:
+                    {
+                        if (int.TryParse(searchValue, out int height))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                {
+                                    continue;
+                                }
+
+                                if (TileData.ItemTable[id].Height == height)
                                 {
                                     filtered.Add(id);
                                 }
@@ -722,6 +991,10 @@ namespace UoFiddler.Controls.UserControls
             searchTypeWeightToolStripMenuItem.Checked = false;
             searchTypeLayerToolStripMenuItem.Checked = false;
             searchTypeStackOffsetToolStripMenuItem.Checked = false;
+            if (searchTypeHeightToolStripMenuItem != null)
+            {
+                searchTypeHeightToolStripMenuItem.Checked = false;
+            }
 
             // Check the selected item and update current search type
             mi.Checked = true;
@@ -755,6 +1028,12 @@ namespace UoFiddler.Controls.UserControls
                 _currentSearchType = SearchType.StackOffset;
                 toolStripLabel2.Text = "Stack Offset:";
                 searchByNameToolStripTextBox.ToolTipText = "Search by stack offset value";
+            }
+            else if (mi == searchTypeHeightToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Height;
+                toolStripLabel2.Text = "Height:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by height value";
             }
 
             // Clear the search box when changing search type
@@ -861,8 +1140,8 @@ namespace UoFiddler.Controls.UserControls
             sb.AppendLine($"Hue: {item.Hue}");
             sb.AppendLine($"StackingOffset/Unk4: {item.StackingOffset}");
             sb.AppendLine($"Flags: {item.Flags}");
-            sb.AppendLine($"Graphic pixel size width, height: {bit?.Width ?? 0} {bit?.Height ?? 0} ");
-            sb.AppendLine($"Graphic pixel offset xMin, yMin, xMax, yMax: {xMin} {yMin} {xMax} {yMax}");
+            sb.AppendLine($"Graphic Size: {bit?.Width ?? 0} x {bit?.Height ?? 0} ");
+            sb.AppendLine($"Graphic Offset xMin, yMin, xMax, yMax: {xMin} {yMin} {xMax} {yMax}");
 
             if ((item.Flags & TileFlag.Animation) != 0)
             {
@@ -1930,6 +2209,12 @@ namespace UoFiddler.Controls.UserControls
                     if (int.TryParse(searchValue, out int stackOffset))
                     {
                         SearchByStackOffset(stackOffset, next);
+                    }
+                    break;
+                case SearchType.Height:
+                    if (int.TryParse(searchValue, out int height))
+                    {
+                        SearchByHeight(height, next);
                     }
                     break;
             }
