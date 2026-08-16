@@ -1,32 +1,24 @@
 name: Build & Release
 
+# The script now triggers ONLY when you push a semantic version tag
 on:
   push:
-    branches:
-      - "master"
     tags:
-      - "[0-9]+.[0-9]+.[0-9]+"
+      - "[0-9]*.[0-9]*.[0-9]*"
 
 permissions:
-  contents: write # Upgraded to allow release creation and asset uploading
+  contents: write # Grants full permission to upload assets to your release tab
 
 jobs:
   build-and-release:
     name: Build & Publish Release
     runs-on: windows-latest
 
-    strategy:
-      fail-fast: false
-      matrix:
-        configuration:
-          - Release
-
     env:
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
       DOTNET_NOLOGO: 1
       Solution_Name: UoFiddler.sln
-      # Dynamic name: uses version tag if available, falls back to "master" if pushing code
       Asset_Name: UOFiddler-${{ github.ref_name }}
 
     steps:
@@ -41,29 +33,20 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore & build the application
-        run: dotnet build $env:Solution_Name --configuration $env:Configuration
-        env:
-          Configuration: ${{ matrix.configuration }}
+        run: dotnet build $env:Solution_Name --configuration Release
 
-      # 1. Saves your compiled files to the Actions tab
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4.6.2
-        with:
-          name: ${{ env.Asset_Name }}-raw
-          path: ./UOFiddler/bin/Release/
-
-      # 2. Creates the clean production ZIP folder using PowerShell
+      # Creates the single ZIP file directly out of the Release directory
       - name: Compress Release Assets
         shell: pwsh
         run: |
           Compress-Archive -Path ./UOFiddler/bin/Release/* -DestinationPath ./${{ env.Asset_Name }}.zip
 
-      # 3. Only pushes to the website Releases tab IF you pushed a version tag (e.g. 1.0.0)
+      # Since the entire workflow only triggers on tags now, this will never skip
       - name: Create release
-        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           name: UOFiddler ${{ github.ref_name }}
+          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           draft: false
           prerelease: false

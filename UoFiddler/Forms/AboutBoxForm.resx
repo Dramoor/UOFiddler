@@ -118,14 +118,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.2.3
+    <value>Version 5.2.4
+- Can now right click in gumps menu on an object and select in the items tab if that item has a corresponding item set in the tiledata.
+
+Version 5.2.3
 - Added ability to set preview hue on items tab, this will set the hue for all items to view. 	
 
 Version 5.2.2
 - Added in ability to export images in the preview hue or hue 0;
 	
 Version 5.2.1
-- Can now right click in gumps menu on an object and select in the items tab if that item has a corresponding item set in the tiledata.
 - Added in Dynamic searching in the land tiles tab. Can also filter with no filter, impassible, or aplphablend flags.
 - Added in ability with shift and ctrl for multiple selections in the Land tile tab. Can remove multiple tiles with remove selected or export the images.
 - Added in ability with shift and ctrl for multiple selections in the Textures tab. Can remove multiple textures with remove selected or export the images.
