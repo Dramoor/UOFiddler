@@ -63,6 +63,7 @@ namespace UoFiddler.Controls.UserControls
             insertAtToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             InsertText = new System.Windows.Forms.ToolStripTextBox();
             removeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            removeSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             LandTilesToolStrip = new System.Windows.Forms.ToolStrip();
@@ -72,6 +73,11 @@ namespace UoFiddler.Controls.UserControls
             searchByNameToolStripTextBox = new System.Windows.Forms.ToolStripTextBox();
             searchByNameToolStripButton = new System.Windows.Forms.ToolStripButton();
             toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            dynamicLandSearchToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            filterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            filterNoneToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            filterImpassableToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            filterAlphaBlendToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             MiscToolStripDropDownButton = new System.Windows.Forms.ToolStripDropDownButton();
             exportAllToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             ExportAllAsBmp = new System.Windows.Forms.ToolStripMenuItem();
@@ -94,10 +100,11 @@ namespace UoFiddler.Controls.UserControls
             // 
             // LandTilesContextMenuStrip
             // 
-            LandTilesContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, toolStripSeparator6, exportImageToolStripMenuItem, toolStripSeparator3, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            LandTilesContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, toolStripSeparator6, exportImageToolStripMenuItem, toolStripSeparator3, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, removeSelectedToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             LandTilesContextMenuStrip.Name = "contextMenuStrip1";
             LandTilesContextMenuStrip.Size = new System.Drawing.Size(201, 248);
-            // 
+            LandTilesContextMenuStrip.Opening += LandTilesContextMenuStrip_Opening;
+            //
             // showFreeSlotsToolStripMenuItem
             // 
             showFreeSlotsToolStripMenuItem.CheckOnClick = true;
@@ -218,6 +225,14 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += OnClickRemove;
             // 
+            // removeSelectedToolStripMenuItem
+            // 
+            removeSelectedToolStripMenuItem.Enabled = false;
+            removeSelectedToolStripMenuItem.Name = "removeSelectedToolStripMenuItem";
+            removeSelectedToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            removeSelectedToolStripMenuItem.Text = "Remove Selected";
+            removeSelectedToolStripMenuItem.Click += OnClickRemoveSelected;
+            // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
@@ -282,12 +297,52 @@ namespace UoFiddler.Controls.UserControls
             // MiscToolStripDropDownButton
             // 
             MiscToolStripDropDownButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            MiscToolStripDropDownButton.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportAllToolStripMenuItem });
+            MiscToolStripDropDownButton.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { dynamicLandSearchToolStripMenuItem, filterToolStripMenuItem, exportAllToolStripMenuItem });
             MiscToolStripDropDownButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             MiscToolStripDropDownButton.Margin = new System.Windows.Forms.Padding(0, 1, 20, 2);
             MiscToolStripDropDownButton.Name = "MiscToolStripDropDownButton";
             MiscToolStripDropDownButton.Size = new System.Drawing.Size(45, 22);
             MiscToolStripDropDownButton.Text = "Misc";
+            // 
+            // dynamicLandSearchToolStripMenuItem
+            // 
+            dynamicLandSearchToolStripMenuItem.CheckOnClick = true;
+            dynamicLandSearchToolStripMenuItem.Name = "dynamicLandSearchToolStripMenuItem";
+            dynamicLandSearchToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            dynamicLandSearchToolStripMenuItem.Text = "Dynamic land searching";
+            dynamicLandSearchToolStripMenuItem.Click += DynamicLandSearchToolStripMenuItem_Click;
+            // 
+            // filterToolStripMenuItem
+            // 
+            filterToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { filterNoneToolStripMenuItem, filterImpassableToolStripMenuItem, filterAlphaBlendToolStripMenuItem });
+            filterToolStripMenuItem.Name = "filterToolStripMenuItem";
+            filterToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            filterToolStripMenuItem.Text = "Filter";
+            // 
+            // filterNoneToolStripMenuItem
+            // 
+            filterNoneToolStripMenuItem.CheckOnClick = true;
+            filterNoneToolStripMenuItem.Checked = true;
+            filterNoneToolStripMenuItem.Name = "filterNoneToolStripMenuItem";
+            filterNoneToolStripMenuItem.Size = new System.Drawing.Size(130, 22);
+            filterNoneToolStripMenuItem.Text = "None";
+            filterNoneToolStripMenuItem.Click += FilterNoneToolStripMenuItem_Click;
+            // 
+            // filterImpassableToolStripMenuItem
+            // 
+            filterImpassableToolStripMenuItem.CheckOnClick = true;
+            filterImpassableToolStripMenuItem.Name = "filterImpassableToolStripMenuItem";
+            filterImpassableToolStripMenuItem.Size = new System.Drawing.Size(130, 22);
+            filterImpassableToolStripMenuItem.Text = "Impassable";
+            filterImpassableToolStripMenuItem.Click += FilterImpassableToolStripMenuItem_Click;
+            // 
+            // filterAlphaBlendToolStripMenuItem
+            // 
+            filterAlphaBlendToolStripMenuItem.CheckOnClick = true;
+            filterAlphaBlendToolStripMenuItem.Name = "filterAlphaBlendToolStripMenuItem";
+            filterAlphaBlendToolStripMenuItem.Size = new System.Drawing.Size(130, 22);
+            filterAlphaBlendToolStripMenuItem.Text = "AlphaBlend";
+            filterAlphaBlendToolStripMenuItem.Click += FilterAlphaBlendToolStripMenuItem_Click;
             // 
             // exportAllToolStripMenuItem
             // 
@@ -391,7 +446,7 @@ namespace UoFiddler.Controls.UserControls
             LandTilesTileView.FocusIndex = -1;
             LandTilesTileView.Location = new System.Drawing.Point(0, 0);
             LandTilesTileView.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            LandTilesTileView.MultiSelect = false;
+            LandTilesTileView.MultiSelect = true;
             LandTilesTileView.Name = "LandTilesTileView";
             LandTilesTileView.Size = new System.Drawing.Size(716, 354);
             LandTilesTileView.TabIndex = 9;
@@ -446,6 +501,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem insertAtToolStripMenuItem;
         private System.Windows.Forms.ToolStripTextBox InsertText;
         private System.Windows.Forms.ToolStripMenuItem removeToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem removeSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem replaceToolStripMenuItem;
         private System.Windows.Forms.ToolStripButton SaveButton;
         private System.Windows.Forms.ToolStripMenuItem selectInRadarColorTabToolStripMenuItem;
@@ -471,6 +527,11 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripTextBox searchByNameToolStripTextBox;
         private System.Windows.Forms.ToolStripButton searchByNameToolStripButton;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripMenuItem dynamicLandSearchToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem filterToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem filterNoneToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem filterImpassableToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem filterAlphaBlendToolStripMenuItem;
         private System.Windows.Forms.Panel panel;
         private TileViewControl LandTilesTileView;
     }

@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -39,7 +40,17 @@ namespace UoFiddler.Controls.UserControls
         private static LandTilesControl _refMarker;
         private int _selectedGraphicId = -1;
         private readonly List<int> _tileList = new List<int>();
+        private List<int> _allLandTileList = new List<int>(); // full unfiltered list (used when dynamic filtering is enabled)
         private bool _showFreeSlots;
+
+        private enum LandTileFilterType
+        {
+            None,
+            Impassable,
+            AlphaBlend
+        }
+
+        private LandTileFilterType _currentLandTileFilter = LandTileFilterType.None;
 
         public int SelectedGraphicId
         {
@@ -135,6 +146,7 @@ namespace UoFiddler.Controls.UserControls
 
             _selectedGraphicId = -1;
             _tileList.Clear();
+            _allLandTileList.Clear();
 
             OnLoad(this, new MyEventArgs(MyEventArgs.Types.ForceReload));
         }
@@ -158,6 +170,7 @@ namespace UoFiddler.Controls.UserControls
                 if (Art.IsValidLand(i))
                 {
                     _tileList.Add(i);
+                    _allLandTileList.Add(i); // Populate the full unfiltered list
                 }
             }
 
@@ -335,6 +348,54 @@ namespace UoFiddler.Controls.UserControls
             Options.ChangedUltimaClass["Art"] = true;
         }
 
+        private void OnClickRemoveSelected(object sender, EventArgs e)
+        {
+            int selectionCount = LandTilesTileView.SelectedIndices.Count;
+            if (selectionCount <= 1)
+            {
+                return;
+            }
+
+            DialogResult result =
+                        MessageBox.Show($"Are you sure to remove {selectionCount} selected land tiles?", "Save",
+                        MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button1);
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
+
+            // Collect the indices to remove (need to do this before removing to avoid index shifting)
+            List<int> indicesToRemove = new List<int>(LandTilesTileView.SelectedIndices);
+
+            // Remove from Art in reverse order to avoid index issues
+            foreach (int index in indicesToRemove)
+            {
+                if (Art.IsValidLand(index))
+                {
+                    Art.RemoveLand(index);
+                    ControlEvents.FireLandTileChangeEvent(this, index);
+                }
+            }
+
+            if (!_showFreeSlots)
+            {
+                foreach (int index in indicesToRemove)
+                {
+                    _tileList.Remove(index);
+                }
+                LandTilesTileView.VirtualListSize = _tileList.Count;
+                SelectedGraphicId = _tileList.Count > 0 ? _tileList[0] : 0;
+            }
+            else
+            {
+                LandTilesTileView.VirtualListSize = _tileList.Count;
+            }
+
+            LandTilesTileView.Invalidate();
+
+            Options.ChangedUltimaClass["Art"] = true;
+        }
+
         private void OnClickReplace(object sender, EventArgs e)
         {
             if (_selectedGraphicId < 0)
@@ -489,42 +550,50 @@ namespace UoFiddler.Controls.UserControls
 
         private void OnClickExportBmp(object sender, EventArgs e)
         {
-            if (_selectedGraphicId < 0)
+            if (LandTilesTileView.SelectedIndices.Count > 1)
             {
-                return;
+                ExportMultipleLandTiles(ImageFormat.Bmp);
             }
-
-            ExportLandTileImage(_selectedGraphicId, ImageFormat.Bmp);
+            else if (_selectedGraphicId >= 0)
+            {
+                ExportLandTileImage(_selectedGraphicId, ImageFormat.Bmp);
+            }
         }
 
         private void OnClickExportTiff(object sender, EventArgs e)
         {
-            if (_selectedGraphicId < 0)
+            if (LandTilesTileView.SelectedIndices.Count > 1)
             {
-                return;
+                ExportMultipleLandTiles(ImageFormat.Tiff);
             }
-
-            ExportLandTileImage(_selectedGraphicId, ImageFormat.Tiff);
+            else if (_selectedGraphicId >= 0)
+            {
+                ExportLandTileImage(_selectedGraphicId, ImageFormat.Tiff);
+            }
         }
 
         private void OnClickExportJpg(object sender, EventArgs e)
         {
-            if (_selectedGraphicId < 0)
+            if (LandTilesTileView.SelectedIndices.Count > 1)
             {
-                return;
+                ExportMultipleLandTiles(ImageFormat.Jpeg);
             }
-
-            ExportLandTileImage(_selectedGraphicId, ImageFormat.Jpeg);
+            else if (_selectedGraphicId >= 0)
+            {
+                ExportLandTileImage(_selectedGraphicId, ImageFormat.Jpeg);
+            }
         }
 
         private void OnClickExportPng(object sender, EventArgs e)
         {
-            if (_selectedGraphicId < 0)
+            if (LandTilesTileView.SelectedIndices.Count > 1)
             {
-                return;
+                ExportMultipleLandTiles(ImageFormat.Png);
             }
-
-            ExportLandTileImage(_selectedGraphicId, ImageFormat.Png);
+            else if (_selectedGraphicId >= 0)
+            {
+                ExportLandTileImage(_selectedGraphicId, ImageFormat.Png);
+            }
         }
 
         private static void ExportLandTileImage(int index, ImageFormat imageFormat)
@@ -560,6 +629,27 @@ namespace UoFiddler.Controls.UserControls
             {
                 RadarColorControl.Select(_selectedGraphicId, true);
             }
+        }
+
+        private void LandTilesContextMenuStrip_Opening(object sender, CancelEventArgs e)
+        {
+            // Check if multiple tiles are selected
+            bool hasMultipleSelections = LandTilesTileView.SelectedIndices.Count > 1;
+            bool hasSingleSelection = LandTilesTileView.SelectedIndices.Count == 1;
+
+            // Replace: only enabled for single selection
+            replaceToolStripMenuItem.Enabled = hasSingleSelection;
+            replaceStartingFromToolStripMenuItem.Enabled = hasSingleSelection;
+
+            // Remove: only enabled for single selection
+            removeToolStripMenuItem.Enabled = hasSingleSelection;
+
+            // Remove Selected: only enabled for multiple selections
+            removeSelectedToolStripMenuItem.Enabled = hasMultipleSelections;
+
+            // Disable single-item-only operations when multiple items are selected
+            selectInTileDataTabToolStripMenuItem.Enabled = !hasMultipleSelections;
+            selectInRadarColorTabToolStripMenuItem.Enabled = !hasMultipleSelections;
         }
 
         private void OnClick_SaveAllBmp(object sender, EventArgs e)
@@ -620,6 +710,48 @@ namespace UoFiddler.Controls.UserControls
                 Cursor.Current = Cursors.Default;
 
                 MessageBox.Show($"All land tiles saved to {dialog.SelectedPath}", "Saved", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+            }
+        }
+
+        private void ExportMultipleLandTiles(ImageFormat imageFormat)
+        {
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+
+            using (FolderBrowserDialog dialog = new FolderBrowserDialog())
+            {
+                dialog.Description = "Select directory";
+                dialog.ShowNewFolderButton = true;
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+
+                Cursor.Current = Cursors.WaitCursor;
+
+                foreach (int index in LandTilesTileView.SelectedIndices)
+                {
+                    if (!Art.IsValidLand(index))
+                    {
+                        continue;
+                    }
+
+                    string fileName = Path.Combine(dialog.SelectedPath, $"Landtile {index}.{fileExtension}");
+                    var landTile = Art.GetLand(index);
+                    if (landTile is null)
+                    {
+                        continue;
+                    }
+
+                    using (Bitmap bit = new Bitmap(landTile))
+                    {
+                        bit.Save(fileName, imageFormat);
+                    }
+                }
+
+                Cursor.Current = Cursors.Default;
+
+                MessageBox.Show($"Selected land tiles saved to {dialog.SelectedPath}", "Saved", MessageBoxButtons.OK,
                     MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
             }
         }
@@ -865,12 +997,207 @@ namespace UoFiddler.Controls.UserControls
 
         private void SearchByNameToolStripTextBox_KeyUp(object sender, KeyEventArgs e)
         {
+            try
+            {
+                if (dynamicLandSearchToolStripMenuItem != null && dynamicLandSearchToolStripMenuItem.Checked)
+                {
+                    ApplyLandTileFilter(searchByNameToolStripTextBox.Text);
+                    return;
+                }
+            }
+            catch
+            {
+                // ignore in designer
+            }
+
             SearchName(searchByNameToolStripTextBox.Text, false);
         }
 
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
         {
+            try
+            {
+                if (dynamicLandSearchToolStripMenuItem != null && dynamicLandSearchToolStripMenuItem.Checked)
+                {
+                    ApplyLandTileFilter(searchByNameToolStripTextBox.Text);
+                    return;
+                }
+            }
+            catch
+            {
+                // ignore in designer
+            }
+
             SearchName(searchByNameToolStripTextBox.Text, true);
+        }
+
+        private void DynamicLandSearchToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem mi)
+            {
+                bool dynamic = mi.Checked;
+                // hide the Find Next button when dynamic searching is enabled
+                searchByNameToolStripButton.Visible = !dynamic;
+
+                if (!dynamic)
+                {
+                    // restore full list
+                    _tileList.Clear();
+                    _tileList.AddRange(_allLandTileList);
+                    LandTilesTileView.VirtualListSize = _tileList.Count;
+                    LandTilesTileView.Invalidate();
+                }
+                else
+                {
+                    // apply filter if any text is present
+                    ApplyLandTileFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+        }
+
+        private void FilterNoneToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Uncheck the other filter options
+            filterImpassableToolStripMenuItem.Checked = false;
+            filterAlphaBlendToolStripMenuItem.Checked = false;
+            filterNoneToolStripMenuItem.Checked = true;
+
+            _currentLandTileFilter = LandTileFilterType.None;
+
+            // Re-apply filter with current search text
+            try
+            {
+                if (dynamicLandSearchToolStripMenuItem != null && dynamicLandSearchToolStripMenuItem.Checked)
+                {
+                    ApplyLandTileFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+            catch
+            {
+                // ignore in designer
+            }
+        }
+
+        private void FilterImpassableToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Uncheck the other filter options
+            filterNoneToolStripMenuItem.Checked = false;
+            filterAlphaBlendToolStripMenuItem.Checked = false;
+            filterImpassableToolStripMenuItem.Checked = true;
+
+            _currentLandTileFilter = LandTileFilterType.Impassable;
+
+            // Re-apply filter with current search text
+            try
+            {
+                if (dynamicLandSearchToolStripMenuItem != null && dynamicLandSearchToolStripMenuItem.Checked)
+                {
+                    ApplyLandTileFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+            catch
+            {
+                // ignore in designer
+            }
+        }
+
+        private void FilterAlphaBlendToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // Uncheck the other filter options
+            filterNoneToolStripMenuItem.Checked = false;
+            filterImpassableToolStripMenuItem.Checked = false;
+            filterAlphaBlendToolStripMenuItem.Checked = true;
+
+            _currentLandTileFilter = LandTileFilterType.AlphaBlend;
+
+            // Re-apply filter with current search text
+            try
+            {
+                if (dynamicLandSearchToolStripMenuItem != null && dynamicLandSearchToolStripMenuItem.Checked)
+                {
+                    ApplyLandTileFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+            catch
+            {
+                // ignore in designer
+            }
+        }
+
+        private void ApplyLandTileFilter(string searchValue)
+        {
+            if (_allLandTileList == null || _allLandTileList.Count == 0)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(searchValue))
+            {
+                // empty - restore full list respecting filter type
+                _tileList.Clear();
+                foreach (int id in _allLandTileList)
+                {
+                    if (PassesLandTileFilter(id))
+                    {
+                        _tileList.Add(id);
+                    }
+                }
+                LandTilesTileView.VirtualListSize = _tileList.Count;
+                LandTilesTileView.Invalidate();
+                if (_tileList.Count > 0)
+                {
+                    SelectedGraphicId = _tileList[0];
+                }
+                return;
+            }
+
+            var filtered = new List<int>();
+            var searchMethod = SearchHelper.GetSearchMethod();
+
+            foreach (var id in _allLandTileList)
+            {
+                // Check if the tile passes the flag filter first
+                if (!PassesLandTileFilter(id))
+                {
+                    continue;
+                }
+
+                // Then check if it matches the search term
+                var result = searchMethod(searchValue, TileData.LandTable[id].Name);
+                if (result.HasErrors)
+                {
+                    break;
+                }
+
+                if (result.EntryFound)
+                {
+                    filtered.Add(id);
+                }
+            }
+
+            _tileList.Clear();
+            _tileList.AddRange(filtered);
+            LandTilesTileView.VirtualListSize = _tileList.Count;
+            LandTilesTileView.Invalidate();
+            if (_tileList.Count > 0)
+            {
+                SelectedGraphicId = _tileList[0];
+            }
+        }
+
+        private bool PassesLandTileFilter(int tileId)
+        {
+            switch (_currentLandTileFilter)
+            {
+                case LandTileFilterType.None:
+                    return true;
+                case LandTileFilterType.Impassable:
+                    return (TileData.LandTable[tileId].Flags & TileFlag.Impassable) != 0;
+                case LandTileFilterType.AlphaBlend:
+                    return (TileData.LandTable[tileId].Flags & TileFlag.AlphaBlend) != 0;
+                default:
+                    return true;
+            }
         }
     }
 }

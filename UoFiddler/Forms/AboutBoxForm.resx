@@ -120,7 +120,9 @@
   <data name="richTextBox1.Text" xml:space="preserve">
     <value>Version 5.2.1
 - Can now right click in gumps menu on an object and select in the items tab if that item has a corresponding item set in the tiledata.
-	
+- Added in Dynamic searching in the land tiles tab. Can also filter with no filter, impassible, or aplphablend flags.
+_ Added in ability with shift and ctrl for multiple selections. Can remove multiple tiles with remove selected or export the images.
+
 Version 5.2.0
 - Can now use the search in items tab to search by name, or by animation, layer, weight and stack offset. You can use this as a normal search, or with the dynamic search.
 - Added in ability to remove all selected tiles when having multiple selected in the items tab.
