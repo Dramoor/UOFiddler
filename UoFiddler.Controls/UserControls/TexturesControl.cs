@@ -11,9 +11,11 @@
 
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using Ultima;
 using UoFiddler.Controls.Classes;
@@ -201,6 +203,16 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
+        private void ContextMenuStrip_Opening(object sender, CancelEventArgs e)
+        {
+            bool hasMultipleSelections = TextureTileView.SelectedIndices.Count > 1;
+            bool hasSingleSelection = TextureTileView.SelectedIndices.Count == 1;
+            replaceToolStripMenuItem.Enabled = hasSingleSelection;
+            replaceStartingFromToolStripMenuItem.Enabled = hasSingleSelection;
+            removeToolStripMenuItem.Enabled = hasSingleSelection;
+            removeSelectedToolStripMenuItem.Enabled = hasMultipleSelections;
+        }
+
         private void OnClickRemove(object sender, EventArgs e)
         {
             if (_selectedTextureId < 0)
@@ -231,6 +243,53 @@ namespace UoFiddler.Controls.UserControls
                 SelectedTextureId = moveToIndex <= 0 ? 0 : _selectedTextureId; // TODO: get last index visible instead just curr -1
             }
 
+            TextureTileView.Invalidate();
+
+            Options.ChangedUltimaClass["Texture"] = true;
+        }
+
+        private void OnClickRemoveSelected(object sender, EventArgs e)
+        {
+            if (TextureTileView.SelectedIndices.Count <= 1)
+            {
+                return;
+            }
+
+            DialogResult result = MessageBox.Show(
+                $"Are you sure to remove {TextureTileView.SelectedIndices.Count} textures?",
+                "Remove Selected",
+                MessageBoxButtons.YesNo,
+                MessageBoxIcon.Question,
+                MessageBoxDefaultButton.Button2);
+            if (result != DialogResult.Yes)
+            {
+                return;
+            }
+
+            Cursor.Current = Cursors.WaitCursor;
+            var indicesToRemove = new List<int>(TextureTileView.SelectedIndices);
+            indicesToRemove.Reverse();
+
+            foreach (int index in indicesToRemove)
+            {
+                int textureId = _textureList[index];
+                if (Textures.TestTexture(textureId))
+                {
+                    Textures.Remove(textureId);
+                    ControlEvents.FireTextureChangeEvent(this, textureId);
+                }
+            }
+
+            if (!_showFreeSlots)
+            {
+                foreach (int textureId in indicesToRemove.Select(i => _textureList[i]).Distinct())
+                {
+                    _textureList.Remove(textureId);
+                }
+                TextureTileView.VirtualListSize = _textureList.Count;
+            }
+
+            Cursor.Current = Cursors.Default;
             TextureTileView.Invalidate();
 
             Options.ChangedUltimaClass["Texture"] = true;
@@ -377,22 +436,50 @@ namespace UoFiddler.Controls.UserControls
 
         private void OnClickExportBmp(object sender, EventArgs e)
         {
-            ExportTextureImage(_selectedTextureId, ImageFormat.Bmp);
+            if (TextureTileView.SelectedIndices.Count > 1)
+            {
+                ExportMultipleTextures(ImageFormat.Bmp);
+            }
+            else
+            {
+                ExportTextureImage(_selectedTextureId, ImageFormat.Bmp);
+            }
         }
 
         private void OnClickExportTiff(object sender, EventArgs e)
         {
-            ExportTextureImage(_selectedTextureId, ImageFormat.Tiff);
+            if (TextureTileView.SelectedIndices.Count > 1)
+            {
+                ExportMultipleTextures(ImageFormat.Tiff);
+            }
+            else
+            {
+                ExportTextureImage(_selectedTextureId, ImageFormat.Tiff);
+            }
         }
 
         private void OnClickExportJpg(object sender, EventArgs e)
         {
-            ExportTextureImage(_selectedTextureId, ImageFormat.Jpeg);
+            if (TextureTileView.SelectedIndices.Count > 1)
+            {
+                ExportMultipleTextures(ImageFormat.Jpeg);
+            }
+            else
+            {
+                ExportTextureImage(_selectedTextureId, ImageFormat.Jpeg);
+            }
         }
 
         private void OnClickExportPng(object sender, EventArgs e)
         {
-            ExportTextureImage(_selectedTextureId, ImageFormat.Png);
+            if (TextureTileView.SelectedIndices.Count > 1)
+            {
+                ExportMultipleTextures(ImageFormat.Png);
+            }
+            else
+            {
+                ExportTextureImage(_selectedTextureId, ImageFormat.Png);
+            }
         }
 
         private static void ExportTextureImage(int index, ImageFormat imageFormat)
@@ -412,6 +499,40 @@ namespace UoFiddler.Controls.UserControls
 
             MessageBox.Show($"Texture saved to {fileName}", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information,
                 MessageBoxDefaultButton.Button1);
+        }
+
+        private void ExportMultipleTextures(ImageFormat imageFormat)
+        {
+            Cursor.Current = Cursors.WaitCursor;
+            int successCount = 0;
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+
+            foreach (int index in TextureTileView.SelectedIndices)
+            {
+                if (!Textures.TestTexture(index))
+                {
+                    continue;
+                }
+
+                string fileName = Path.Combine(Options.OutputPath, $"Texture {index}.{fileExtension}");
+
+                try
+                {
+                    using (Bitmap bit = new Bitmap(Textures.GetTexture(index)))
+                    {
+                        bit.Save(fileName, imageFormat);
+                        successCount++;
+                    }
+                }
+                catch
+                {
+                    // Skip on error and continue
+                }
+            }
+
+            Cursor.Current = Cursors.Default;
+            MessageBox.Show($"Exported {successCount} texture(s) to {Options.OutputPath}", "Export Complete",
+                MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
         }
 
         private void TextureTileView_ItemSelectionChanged(object sender, ListViewItemSelectionChangedEventArgs e)

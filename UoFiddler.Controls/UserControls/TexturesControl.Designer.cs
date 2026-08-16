@@ -56,6 +56,7 @@ namespace UoFiddler.Controls.UserControls
             insertAtToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             InsertText = new System.Windows.Forms.ToolStripTextBox();
             removeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            removeSelectedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             saveToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             topMenuToolStrip = new System.Windows.Forms.ToolStrip();
@@ -82,9 +83,10 @@ namespace UoFiddler.Controls.UserControls
             // 
             // contextMenuStrip
             // 
-            contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, toolStripSeparator5, exportImageToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator3, saveToolStripMenuItem });
+            contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, toolStripSeparator5, exportImageToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, removeSelectedToolStripMenuItem, toolStripSeparator3, saveToolStripMenuItem });
             contextMenuStrip.Name = "contextMenuStrip1";
             contextMenuStrip.Size = new System.Drawing.Size(194, 198);
+            contextMenuStrip.Opening += ContextMenuStrip_Opening;
             // 
             // showFreeSlotsToolStripMenuItem
             // 
@@ -186,6 +188,14 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem.Size = new System.Drawing.Size(193, 22);
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += OnClickRemove;
+            // 
+            // removeSelectedToolStripMenuItem
+            // 
+            removeSelectedToolStripMenuItem.Enabled = false;
+            removeSelectedToolStripMenuItem.Name = "removeSelectedToolStripMenuItem";
+            removeSelectedToolStripMenuItem.Size = new System.Drawing.Size(193, 22);
+            removeSelectedToolStripMenuItem.Text = "Remove Selected";
+            removeSelectedToolStripMenuItem.Click += OnClickRemoveSelected;
             // 
             // toolStripSeparator3
             // 
@@ -306,7 +316,7 @@ namespace UoFiddler.Controls.UserControls
             TextureTileView.FocusIndex = -1;
             TextureTileView.Location = new System.Drawing.Point(0, 0);
             TextureTileView.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            TextureTileView.MultiSelect = false;
+            TextureTileView.MultiSelect = true;
             TextureTileView.Name = "TextureTileView";
             TextureTileView.Size = new System.Drawing.Size(675, 347);
             TextureTileView.TabIndex = 6;
@@ -371,6 +381,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem insertAtToolStripMenuItem;
         private System.Windows.Forms.ToolStripTextBox InsertText;
         private System.Windows.Forms.ToolStripMenuItem removeToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem removeSelectedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem replaceToolStripMenuItem;
         private System.Windows.Forms.ToolStripButton SaveButton;
         private System.Windows.Forms.ToolStrip topMenuToolStrip;
