@@ -39,7 +39,15 @@ jobs:
       - name: Compress Release Assets
         shell: pwsh
         run: |
-          Compress-Archive -Path ./UOFiddler/bin/Release/* -DestinationPath ./${{ env.Asset_Name }}.zip
+          $ReleasePath = ".\UoFiddler\bin\Release"
+          if (-Not (Test-Path $ReleasePath)) {
+            Write-Error "Release path not found: $ReleasePath"
+            exit 1
+          }
+          Get-ChildItem -Path $ReleasePath -Recurse | Write-Host
+          Compress-Archive -Path "$ReleasePath\*" -DestinationPath "./${{ env.Asset_Name }}.zip" -Force
+          Write-Host "Archive created: ${{ env.Asset_Name }}.zip"
+          Get-Item "./${{ env.Asset_Name }}.zip" | Select-Object FullName, Length
 
       # Since the entire workflow only triggers on tags now, this will never skip
       - name: Create release
