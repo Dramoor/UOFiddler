@@ -118,8 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.2.2
-- Added ability to set preview hue on items tab, this will set the hue for all items to view. 
+    <value>Version 5.2.3
+- Added ability to set preview hue on items tab, this will set the hue for all items to view. 	
+
+Version 5.2.2
 - Added in ability to export images in the preview hue or hue 0;
 	
 Version 5.2.1
