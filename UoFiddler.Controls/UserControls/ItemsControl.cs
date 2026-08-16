@@ -49,6 +49,10 @@ namespace UoFiddler.Controls.UserControls
         // Item flag filtering
         private TileFlag _selectedItemFlags = TileFlag.None;
 
+        // Item hue preview
+        private int _previewHue = -1;
+        private bool _detailPartialHue;
+
         /// <summary>
         /// Enum for search types
         /// </summary>
@@ -199,6 +203,90 @@ namespace UoFiddler.Controls.UserControls
                     ApplyNameFilter(searchByNameToolStripTextBox.Text);
                 }
             }
+        }
+
+        private HuePopUpItemForm _huePreviewForm;
+
+        /// <summary>
+        /// Opens hue selector for preview hue
+        /// </summary>
+        private void OnClick_PreviewHue(object sender, EventArgs e)
+        {
+            if (_huePreviewForm?.IsDisposed != false)
+            {
+                _huePreviewForm = new HuePopUpItemForm(UpdatePreviewHue, _previewHue);
+            }
+            else
+            {
+                _huePreviewForm.SetHue(_previewHue);
+            }
+
+            _huePreviewForm.TopMost = true;
+            _huePreviewForm.Show();
+        }
+
+        /// <summary>
+        /// Updates preview hue and refreshes tile view and detail preview
+        /// </summary>
+        private void UpdatePreviewHue(int selectedHue)
+        {
+            _previewHue = selectedHue;
+
+            // Update "Remove Hue Preview" menu item visibility
+            if (removeHuePreviewToolStripMenuItem != null)
+            {
+                removeHuePreviewToolStripMenuItem.Enabled = _previewHue >= 0 && _previewHue != -1;
+            }
+
+            // Update "Export with Hue" menu item visibility (Misc menu)
+            if (exportWithHueToolStripMenuItem != null)
+            {
+                exportWithHueToolStripMenuItem.Enabled = _previewHue >= 0;
+            }
+
+            // Update "Export Image with Hue" menu item visibility (context menu)
+            if (extractWithHueToolStripMenuItem != null)
+            {
+                extractWithHueToolStripMenuItem.Enabled = _previewHue >= 0;
+            }
+
+            // Refresh the tile view to apply the hue
+            ItemsTileView.Invalidate();
+
+            // Refresh detail preview
+            UpdateDetail(_selectedGraphicId);
+        }
+
+        /// <summary>
+        /// Removes the hue preview (sets to -1)
+        /// </summary>
+        private void OnClick_RemoveHuePreview(object sender, EventArgs e)
+        {
+            _previewHue = -1;
+
+            // Update "Remove Hue Preview" menu item visibility
+            if (removeHuePreviewToolStripMenuItem != null)
+            {
+                removeHuePreviewToolStripMenuItem.Enabled = false;
+            }
+
+            // Update "Export with Hue" menu item visibility (Misc menu)
+            if (exportWithHueToolStripMenuItem != null)
+            {
+                exportWithHueToolStripMenuItem.Enabled = false;
+            }
+
+            // Update "Export Image with Hue" menu item visibility (context menu)
+            if (extractWithHueToolStripMenuItem != null)
+            {
+                extractWithHueToolStripMenuItem.Enabled = false;
+            }
+
+            // Refresh the tile view
+            ItemsTileView.Invalidate();
+
+            // Refresh detail preview
+            UpdateDetail(_selectedGraphicId);
         }
 
         /// <summary>
@@ -1077,6 +1165,10 @@ namespace UoFiddler.Controls.UserControls
             }
 
             ItemData item = TileData.ItemTable[graphic];
+
+            // Extract partial hue flag from item
+            _detailPartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+
             Bitmap bit = Art.GetStatic(graphic);
 
             int xMin = 0;
@@ -1102,15 +1194,36 @@ namespace UoFiddler.Controls.UserControls
                 var distance = bit.Size.Height + 10;
                 splitContainer2.SplitterDistance = distance < defaultSplitterDistance ? defaultSplitterDistance : distance;
 
-                Bitmap newBit = new Bitmap(DetailPictureBox.Size.Width, DetailPictureBox.Size.Height);
-                using (Graphics newGraph = Graphics.FromImage(newBit))
+                Bitmap displayBit = bit;
+
+                // Apply hue preview if set
+                if (_previewHue >= 0)
                 {
-                    newGraph.Clear(_backgroundDetailColor);
-                    newGraph.DrawImage(bit, (DetailPictureBox.Size.Width - bit.Width) / 2, 5);
+                    displayBit = new Bitmap(bit);
+                    Hue hue = Hues.List[_previewHue];
+                    hue.ApplyTo(displayBit, _detailPartialHue);
                 }
 
-                DetailPictureBox.Image?.Dispose();
-                DetailPictureBox.Image = newBit;
+                try
+                {
+                    Bitmap newBit = new Bitmap(DetailPictureBox.Size.Width, DetailPictureBox.Size.Height);
+                    using (Graphics newGraph = Graphics.FromImage(newBit))
+                    {
+                        newGraph.Clear(_backgroundDetailColor);
+                        newGraph.DrawImage(displayBit, (DetailPictureBox.Size.Width - displayBit.Width) / 2, 5);
+                    }
+
+                    DetailPictureBox.Image?.Dispose();
+                    DetailPictureBox.Image = newBit;
+                }
+                finally
+                {
+                    // Dispose the hued copy if we created one
+                    if (_previewHue >= 0 && displayBit != bit)
+                    {
+                        displayBit?.Dispose();
+                    }
+                }
 
                 Art.Measure(bit, out xMin, out yMin, out xMax, out yMax);
             }
@@ -1490,7 +1603,27 @@ namespace UoFiddler.Controls.UserControls
             ExportSelectedImages(ImageFormat.Png);
         }
 
-        private void ExportSelectedImages(ImageFormat imageFormat)
+        private void Extract_Image_WithHue_ClickBmp(object sender, EventArgs e)
+        {
+            ExportSelectedImages(ImageFormat.Bmp, applyHue: true);
+        }
+
+        private void Extract_Image_WithHue_ClickTiff(object sender, EventArgs e)
+        {
+            ExportSelectedImages(ImageFormat.Tiff, applyHue: true);
+        }
+
+        private void Extract_Image_WithHue_ClickJpg(object sender, EventArgs e)
+        {
+            ExportSelectedImages(ImageFormat.Jpeg, applyHue: true);
+        }
+
+        private void Extract_Image_WithHue_ClickPng(object sender, EventArgs e)
+        {
+            ExportSelectedImages(ImageFormat.Png, applyHue: true);
+        }
+
+        private void ExportSelectedImages(ImageFormat imageFormat, bool applyHue = false)
         {
             // If multi-select is enabled and there are selected indices, export all selected.
             var selected = ItemsTileView.SelectedIndices;
@@ -1513,10 +1646,19 @@ namespace UoFiddler.Controls.UserControls
                     }
 
                     string fileExtension = Utils.GetFileExtensionFor(imageFormat);
-                    string fileName = Path.Combine(Options.OutputPath, $"Item {graphic}.{fileExtension}");
+                    string hueSuffix = (applyHue && _previewHue >= 0) ? $" - Hue {_previewHue}" : "";
+                    string fileName = Path.Combine(Options.OutputPath, $"Item {graphic}{hueSuffix}.{fileExtension}");
 
-                    using (Bitmap bit = new Bitmap(Art.GetStatic(graphic)))
+                    var artBitmap = Art.GetStatic(graphic);
+                    using (Bitmap bit = new Bitmap(artBitmap))
                     {
+                        if (applyHue && _previewHue >= 0)
+                        {
+                            ItemData item = TileData.ItemTable[graphic];
+                            bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                            Hue hue = Hues.List[_previewHue];
+                            hue.ApplyTo(bit, usePartialHue);
+                        }
                         bit.Save(fileName, imageFormat);
                     }
 
@@ -1535,11 +1677,11 @@ namespace UoFiddler.Controls.UserControls
                     return;
                 }
 
-                ExportItemImage(_selectedGraphicId, imageFormat);
+                ExportItemImage(_selectedGraphicId, imageFormat, applyHue);
             }
         }
 
-        private static void ExportItemImage(int index, ImageFormat imageFormat)
+        private void ExportItemImage(int index, ImageFormat imageFormat, bool applyHue = false)
         {
             if (!Art.IsValidStatic(index))
             {
@@ -1547,10 +1689,19 @@ namespace UoFiddler.Controls.UserControls
             }
 
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
-            string fileName = Path.Combine(Options.OutputPath, $"Item {index}.{fileExtension}");
+            string hueSuffix = (applyHue && _previewHue >= 0) ? $" - Hue {_previewHue}" : "";
+            string fileName = Path.Combine(Options.OutputPath, $"Item {index}{hueSuffix}.{fileExtension}");
 
-            using (Bitmap bit = new Bitmap(Art.GetStatic(index)))
+            var artBitmap = Art.GetStatic(index);
+            using (Bitmap bit = new Bitmap(artBitmap))
             {
+                if (applyHue && _previewHue >= 0)
+                {
+                    ItemData item = TileData.ItemTable[index];
+                    bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                    Hue hue = Hues.List[_previewHue];
+                    hue.ApplyTo(bit, usePartialHue);
+                }
                 bit.Save(fileName, imageFormat);
             }
 
@@ -1724,7 +1875,27 @@ namespace UoFiddler.Controls.UserControls
             ExportAllItemImages(ImageFormat.Png);
         }
 
-        private void ExportAllItemImages(ImageFormat imageFormat)
+        private void OnClick_SaveAllBmpWithHue(object sender, EventArgs e)
+        {
+            ExportAllItemImages(ImageFormat.Bmp, applyHue: true);
+        }
+
+        private void OnClick_SaveAllTiffWithHue(object sender, EventArgs e)
+        {
+            ExportAllItemImages(ImageFormat.Tiff, applyHue: true);
+        }
+
+        private void OnClick_SaveAllJpgWithHue(object sender, EventArgs e)
+        {
+            ExportAllItemImages(ImageFormat.Jpeg, applyHue: true);
+        }
+
+        private void OnClick_SaveAllPngWithHue(object sender, EventArgs e)
+        {
+            ExportAllItemImages(ImageFormat.Png, applyHue: true);
+        }
+
+        private void ExportAllItemImages(ImageFormat imageFormat, bool applyHue = false)
         {
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
 
@@ -1752,7 +1923,8 @@ namespace UoFiddler.Controls.UserControls
                             continue;
                         }
 
-                        string fileName = Path.Combine(dialog.SelectedPath, $"Item 0x{index:X4}.{fileExtension}");
+                        string hueSuffix = (applyHue && _previewHue >= 0) ? $" - Hue {_previewHue}" : "";
+                        string fileName = Path.Combine(dialog.SelectedPath, $"Item 0x{index:X4}{hueSuffix}.{fileExtension}");
                         var artBitmap = Art.GetStatic(index);
                         if (artBitmap is null)
                         {
@@ -1761,6 +1933,13 @@ namespace UoFiddler.Controls.UserControls
 
                         using (Bitmap bit = new Bitmap(artBitmap))
                         {
+                            if (applyHue && _previewHue >= 0)
+                            {
+                                ItemData item = TileData.ItemTable[index];
+                                bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                                Hue hue = Hues.List[_previewHue];
+                                hue.ApplyTo(bit, usePartialHue);
+                            }
                             bit.Save(fileName, imageFormat);
                         }
                     }
@@ -1829,50 +2008,73 @@ namespace UoFiddler.Controls.UserControls
             }
 
             var bitmap = Art.GetStatic(_itemList[e.Index], out bool patched);
-            if (bitmap == null)
+
+            // Apply hue preview if set
+            if (bitmap != null && _previewHue >= 0)
             {
-                e.Graphics.Clip = new Region(rect);
-
-                rect.X += 5;
-                rect.Y += 5;
-
-                rect.Width -= 10;
-                rect.Height -= 10;
-
-                e.Graphics.FillRectangle(Brushes.Red, rect);
-                e.Graphics.Clip = previousClip;
+                bitmap = new Bitmap(bitmap);
+                Hue hue = Hues.List[_previewHue];
+                // Check if this item has the PartialHue flag
+                ItemData item = TileData.ItemTable[_itemList[e.Index]];
+                bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                hue.ApplyTo(bitmap, usePartialHue);
             }
-            else
-            {
-                if (patched && !selected)
-                {
-                    e.Graphics.FillRectangle(Brushes.LightCoral, rect);
-                }
 
-                if (Options.ArtItemClip)
+            try
+            {
+                if (bitmap == null)
                 {
-                    e.Graphics.DrawImage(bitmap, itemPoint);
+                    e.Graphics.Clip = new Region(rect);
+
+                    rect.X += 5;
+                    rect.Y += 5;
+
+                    rect.Width -= 10;
+                    rect.Height -= 10;
+
+                    e.Graphics.FillRectangle(Brushes.Red, rect);
+                    e.Graphics.Clip = previousClip;
                 }
                 else
                 {
-                    int width = bitmap.Width;
-                    int height = bitmap.Height;
-                    if (width > ItemsTileView.TileSize.Width)
+                    if (patched && !selected)
                     {
-                        width = ItemsTileView.TileSize.Width;
-                        height = ItemsTileView.TileSize.Height * bitmap.Height / bitmap.Width;
+                        e.Graphics.FillRectangle(Brushes.LightCoral, rect);
                     }
 
-                    if (height > ItemsTileView.TileSize.Height)
+                    if (Options.ArtItemClip)
                     {
-                        height = ItemsTileView.TileSize.Height;
-                        width = ItemsTileView.TileSize.Width * bitmap.Width / bitmap.Height;
+                        e.Graphics.DrawImage(bitmap, itemPoint);
+                    }
+                    else
+                    {
+                        int width = bitmap.Width;
+                        int height = bitmap.Height;
+                        if (width > ItemsTileView.TileSize.Width)
+                        {
+                            width = ItemsTileView.TileSize.Width;
+                            height = ItemsTileView.TileSize.Height * bitmap.Height / bitmap.Width;
+                        }
+
+                        if (height > ItemsTileView.TileSize.Height)
+                        {
+                            height = ItemsTileView.TileSize.Height;
+                            width = ItemsTileView.TileSize.Width * bitmap.Width / bitmap.Height;
+                        }
+
+                        e.Graphics.DrawImage(bitmap, new Rectangle(itemPoint, new Size(width, height)));
                     }
 
-                    e.Graphics.DrawImage(bitmap, new Rectangle(itemPoint, new Size(width, height)));
+                    e.Graphics.Clip = previousClip;
                 }
-
-                e.Graphics.Clip = previousClip;
+            }
+            finally
+            {
+                // Dispose the hue-adjusted bitmap copy if we created one
+                if (_previewHue >= 0 && bitmap != null && Art.GetStatic(_itemList[e.Index], out _) != bitmap)
+                {
+                    bitmap.Dispose();
+                }
             }
         }
 

@@ -60,6 +60,11 @@ namespace UoFiddler.Controls.UserControls
             tiffToolStripMenuItem = new ToolStripMenuItem();
             asJpgToolStripMenuItem1 = new ToolStripMenuItem();
             asPngToolStripMenuItem1 = new ToolStripMenuItem();
+            extractWithHueToolStripMenuItem = new ToolStripMenuItem();
+            bmpWithHueToolStripMenuItem = new ToolStripMenuItem();
+            tiffWithHueToolStripMenuItem = new ToolStripMenuItem();
+            asJpgWithHueToolStripMenuItem1 = new ToolStripMenuItem();
+            asPngWithHueToolStripMenuItem1 = new ToolStripMenuItem();
             toolStripSeparator7 = new ToolStripSeparator();
             selectInAllTabsToolStripMenuItem = new ToolStripMenuItem();
             selectInTileDataTabToolStripMenuItem = new ToolStripMenuItem();
@@ -106,6 +111,14 @@ namespace UoFiddler.Controls.UserControls
             searchTypeHeightToolStripMenuItem = new ToolStripMenuItem();
             dynamicItemSearchToolStripMenuItem = new ToolStripMenuItem();
             filterToolStripMenuItem = new ToolStripMenuItem();
+            hueToolStripMenuItem = new ToolStripMenuItem();
+            previewHueToolStripMenuItem = new ToolStripMenuItem();
+            removeHuePreviewToolStripMenuItem = new ToolStripMenuItem();
+            exportWithHueToolStripMenuItem = new ToolStripMenuItem();
+            exportWithHueAsBmpToolStripMenuItem = new ToolStripMenuItem();
+            exportWithHueAsTiffToolStripMenuItem = new ToolStripMenuItem();
+            exportWithHueAsJpgToolStripMenuItem = new ToolStripMenuItem();
+            exportWithHueAsPngToolStripMenuItem = new ToolStripMenuItem();
             asTiffToolStripMenuItem = new ToolStripMenuItem();
             asJpgToolStripMenuItem = new ToolStripMenuItem();
             asPngToolStripMenuItem = new ToolStripMenuItem();
@@ -231,7 +244,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // TileViewContextMenuStrip
             // 
-            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, toolStripSeparator7, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInAllTabsToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, removeAllToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, extractWithHueToolStripMenuItem, toolStripSeparator7, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInAllTabsToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, removeAllToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             TileViewContextMenuStrip.Name = "contextMenuStrip1";
             TileViewContextMenuStrip.Size = new System.Drawing.Size(213, 314);
             TileViewContextMenuStrip.Opening += TileViewContextMenuStrip_Opening;
@@ -297,6 +310,42 @@ namespace UoFiddler.Controls.UserControls
             asPngToolStripMenuItem1.Size = new System.Drawing.Size(115, 22);
             asPngToolStripMenuItem1.Text = "As Png";
             asPngToolStripMenuItem1.Click += Extract_Image_ClickPng;
+            // 
+            // extractWithHueToolStripMenuItem
+            // 
+            extractWithHueToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { bmpWithHueToolStripMenuItem, tiffWithHueToolStripMenuItem, asJpgWithHueToolStripMenuItem1, asPngWithHueToolStripMenuItem1 });
+            extractWithHueToolStripMenuItem.Name = "extractWithHueToolStripMenuItem";
+            extractWithHueToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            extractWithHueToolStripMenuItem.Text = "Export Image with Hue..";
+            extractWithHueToolStripMenuItem.Enabled = false;
+            // 
+            // bmpWithHueToolStripMenuItem
+            // 
+            bmpWithHueToolStripMenuItem.Name = "bmpWithHueToolStripMenuItem";
+            bmpWithHueToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            bmpWithHueToolStripMenuItem.Text = "As Bmp";
+            bmpWithHueToolStripMenuItem.Click += Extract_Image_WithHue_ClickBmp;
+            // 
+            // tiffWithHueToolStripMenuItem
+            // 
+            tiffWithHueToolStripMenuItem.Name = "tiffWithHueToolStripMenuItem";
+            tiffWithHueToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            tiffWithHueToolStripMenuItem.Text = "As Tiff";
+            tiffWithHueToolStripMenuItem.Click += Extract_Image_WithHue_ClickTiff;
+            // 
+            // asJpgWithHueToolStripMenuItem1
+            // 
+            asJpgWithHueToolStripMenuItem1.Name = "asJpgWithHueToolStripMenuItem1";
+            asJpgWithHueToolStripMenuItem1.Size = new System.Drawing.Size(115, 22);
+            asJpgWithHueToolStripMenuItem1.Text = "As Jpg";
+            asJpgWithHueToolStripMenuItem1.Click += Extract_Image_WithHue_ClickJpg;
+            // 
+            // asPngWithHueToolStripMenuItem1
+            // 
+            asPngWithHueToolStripMenuItem1.Name = "asPngWithHueToolStripMenuItem1";
+            asPngWithHueToolStripMenuItem1.Size = new System.Drawing.Size(115, 22);
+            asPngWithHueToolStripMenuItem1.Text = "As Png";
+            asPngWithHueToolStripMenuItem1.Click += Extract_Image_WithHue_ClickPng;
             // 
             // toolStripSeparator7
             // 
@@ -543,7 +592,7 @@ namespace UoFiddler.Controls.UserControls
             // MiscToolStripDropDownButton
             // 
             MiscToolStripDropDownButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
-            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { searchTypeToolStripMenuItem, dynamicItemSearchToolStripMenuItem, filterToolStripMenuItem, ExportAllToolStripMenuItem });
+            MiscToolStripDropDownButton.DropDownItems.AddRange(new ToolStripItem[] { searchTypeToolStripMenuItem, dynamicItemSearchToolStripMenuItem, filterToolStripMenuItem, hueToolStripMenuItem, ExportAllToolStripMenuItem, exportWithHueToolStripMenuItem });
             MiscToolStripDropDownButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             MiscToolStripDropDownButton.Name = "MiscToolStripDropDownButton";
             MiscToolStripDropDownButton.Size = new System.Drawing.Size(45, 25);
@@ -554,6 +603,28 @@ namespace UoFiddler.Controls.UserControls
             filterToolStripMenuItem.Name = "filterToolStripMenuItem";
             filterToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
             filterToolStripMenuItem.Text = "Filter";
+            // 
+            // hueToolStripMenuItem
+            // 
+            hueToolStripMenuItem.Name = "hueToolStripMenuItem";
+            hueToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            hueToolStripMenuItem.Text = "Hue";
+            hueToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { previewHueToolStripMenuItem, removeHuePreviewToolStripMenuItem });
+            // 
+            // previewHueToolStripMenuItem
+            // 
+            previewHueToolStripMenuItem.Name = "previewHueToolStripMenuItem";
+            previewHueToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            previewHueToolStripMenuItem.Text = "Preview Hue";
+            previewHueToolStripMenuItem.Click += OnClick_PreviewHue;
+            // 
+            // removeHuePreviewToolStripMenuItem
+            // 
+            removeHuePreviewToolStripMenuItem.Name = "removeHuePreviewToolStripMenuItem";
+            removeHuePreviewToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            removeHuePreviewToolStripMenuItem.Text = "Remove Hue Preview";
+            removeHuePreviewToolStripMenuItem.Enabled = false;
+            removeHuePreviewToolStripMenuItem.Click += OnClick_RemoveHuePreview;
             // 
             // searchTypeToolStripMenuItem
             // 
@@ -653,6 +724,42 @@ namespace UoFiddler.Controls.UserControls
             asPngToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
             asPngToolStripMenuItem.Text = "As Png";
             asPngToolStripMenuItem.Click += OnClick_SaveAllPng;
+            // 
+            // exportWithHueToolStripMenuItem
+            // 
+            exportWithHueToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { exportWithHueAsBmpToolStripMenuItem, exportWithHueAsTiffToolStripMenuItem, exportWithHueAsJpgToolStripMenuItem, exportWithHueAsPngToolStripMenuItem });
+            exportWithHueToolStripMenuItem.Name = "exportWithHueToolStripMenuItem";
+            exportWithHueToolStripMenuItem.Size = new System.Drawing.Size(180, 22);
+            exportWithHueToolStripMenuItem.Text = "Export with Hue";
+            exportWithHueToolStripMenuItem.Enabled = false;
+            // 
+            // exportWithHueAsBmpToolStripMenuItem
+            // 
+            exportWithHueAsBmpToolStripMenuItem.Name = "exportWithHueAsBmpToolStripMenuItem";
+            exportWithHueAsBmpToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            exportWithHueAsBmpToolStripMenuItem.Text = "As Bmp";
+            exportWithHueAsBmpToolStripMenuItem.Click += OnClick_SaveAllBmpWithHue;
+            // 
+            // exportWithHueAsTiffToolStripMenuItem
+            // 
+            exportWithHueAsTiffToolStripMenuItem.Name = "exportWithHueAsTiffToolStripMenuItem";
+            exportWithHueAsTiffToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            exportWithHueAsTiffToolStripMenuItem.Text = "As Tiff";
+            exportWithHueAsTiffToolStripMenuItem.Click += OnClick_SaveAllTiffWithHue;
+            // 
+            // exportWithHueAsJpgToolStripMenuItem
+            // 
+            exportWithHueAsJpgToolStripMenuItem.Name = "exportWithHueAsJpgToolStripMenuItem";
+            exportWithHueAsJpgToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            exportWithHueAsJpgToolStripMenuItem.Text = "As Jpg";
+            exportWithHueAsJpgToolStripMenuItem.Click += OnClick_SaveAllJpgWithHue;
+            // 
+            // exportWithHueAsPngToolStripMenuItem
+            // 
+            exportWithHueAsPngToolStripMenuItem.Name = "exportWithHueAsPngToolStripMenuItem";
+            exportWithHueAsPngToolStripMenuItem.Size = new System.Drawing.Size(115, 22);
+            exportWithHueAsPngToolStripMenuItem.Text = "As Png";
+            exportWithHueAsPngToolStripMenuItem.Click += OnClick_SaveAllPngWithHue;
             // 
             // collapsibleSplitter1
             // 
@@ -773,5 +880,18 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripSeparator toolStripSeparator5;
         private ToolStripSeparator toolStripSeparator7;
         private ToolStripMenuItem filterToolStripMenuItem;
+        private ToolStripMenuItem hueToolStripMenuItem;
+        private ToolStripMenuItem previewHueToolStripMenuItem;
+        private ToolStripMenuItem removeHuePreviewToolStripMenuItem;
+        private ToolStripMenuItem exportWithHueToolStripMenuItem;
+        private ToolStripMenuItem exportWithHueAsBmpToolStripMenuItem;
+        private ToolStripMenuItem exportWithHueAsTiffToolStripMenuItem;
+        private ToolStripMenuItem exportWithHueAsJpgToolStripMenuItem;
+        private ToolStripMenuItem exportWithHueAsPngToolStripMenuItem;
+        private ToolStripMenuItem extractWithHueToolStripMenuItem;
+        private ToolStripMenuItem bmpWithHueToolStripMenuItem;
+        private ToolStripMenuItem tiffWithHueToolStripMenuItem;
+        private ToolStripMenuItem asJpgWithHueToolStripMenuItem1;
+        private ToolStripMenuItem asPngWithHueToolStripMenuItem1;
     }
 }
