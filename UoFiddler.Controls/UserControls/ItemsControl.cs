@@ -1922,7 +1922,7 @@ namespace UoFiddler.Controls.UserControls
                         {
                             continue;
                         }
-                        
+                         
                         string hueSuffix = (applyHue && _previewHue >= 0) ? $" - Hue {_previewHue}" : "";
                         string fileName = Path.Combine(dialog.SelectedPath, $"Item 0x{index:X4}{hueSuffix}.{fileExtension}");
                         var artBitmap = Art.GetStatic(index);
