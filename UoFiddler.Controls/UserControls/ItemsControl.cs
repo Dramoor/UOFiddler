@@ -360,7 +360,7 @@ namespace UoFiddler.Controls.UserControls
             {
                 RefMarker.OnLoad(RefMarker, EventArgs.Empty);
             }
-
+             
             var count = RefMarker._itemList.Count;
             if (count == 0)
             {
