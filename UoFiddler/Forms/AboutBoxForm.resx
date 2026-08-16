@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.2.5
+    <value>Version 5.2.6
+- Fixed issue with filters not working right on the items search.	
+	
+Version 5.2.5
 - Added in Dynamic searching in the land tiles tab. Can also filter with no filter, impassible, or aplphablend flags.
 
 Version 5.2.4

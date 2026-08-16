@@ -379,9 +379,9 @@ namespace UoFiddler.Controls.UserControls
 
                 // Check if item matches flag filters
                 if (RefMarker._selectedItemFlags != TileFlag.None && 
-                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                    (item.Flags & RefMarker._selectedItemFlags) != RefMarker._selectedItemFlags)
                 {
-                    continue; // Item doesn't have any of the selected flags
+                    continue; // Item doesn't have all of the selected flags
                 }
 
                 // For ItemData, 'Quality' stores the layer for wearable items
@@ -440,9 +440,9 @@ namespace UoFiddler.Controls.UserControls
 
                 // Check if item matches flag filters
                 if (RefMarker._selectedItemFlags != TileFlag.None && 
-                    (TileData.ItemTable[id].Flags & RefMarker._selectedItemFlags) == 0)
+                    (TileData.ItemTable[id].Flags & RefMarker._selectedItemFlags) != RefMarker._selectedItemFlags)
                 {
-                    continue; // Item doesn't have any of the selected flags
+                    continue; // Item doesn't have all of the selected flags
                 }
 
                 var searchResult = searchMethod(name, TileData.ItemTable[id].Name);
@@ -497,9 +497,9 @@ namespace UoFiddler.Controls.UserControls
 
                 // Check if item matches flag filters
                 if (RefMarker._selectedItemFlags != TileFlag.None && 
-                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                    (item.Flags & RefMarker._selectedItemFlags) != RefMarker._selectedItemFlags)
                 {
-                    continue; // Item doesn't have any of the selected flags
+                    continue; // Item doesn't have all of the selected flags
                 }
 
                 if (item.Animation == animation)
@@ -544,9 +544,9 @@ namespace UoFiddler.Controls.UserControls
 
                 // Check if item matches flag filters
                 if (RefMarker._selectedItemFlags != TileFlag.None && 
-                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                    (item.Flags & RefMarker._selectedItemFlags) != RefMarker._selectedItemFlags)
                 {
-                    continue; // Item doesn't have any of the selected flags
+                    continue; // Item doesn't have all of the selected flags
                 }
 
                 if (item.Weight == weight)
@@ -591,9 +591,9 @@ namespace UoFiddler.Controls.UserControls
 
                 // Check if item matches flag filters
                 if (RefMarker._selectedItemFlags != TileFlag.None && 
-                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                    (item.Flags & RefMarker._selectedItemFlags) != RefMarker._selectedItemFlags)
                 {
-                    continue; // Item doesn't have any of the selected flags
+                    continue; // Item doesn't have all of the selected flags
                 }
 
                 if (item.StackingOffset == stackOffset)
@@ -632,9 +632,9 @@ namespace UoFiddler.Controls.UserControls
 
                 // Check if item matches flag filters
                 if (RefMarker._selectedItemFlags != TileFlag.None && 
-                    (item.Flags & RefMarker._selectedItemFlags) == 0)
+                    (item.Flags & RefMarker._selectedItemFlags) != RefMarker._selectedItemFlags)
                 {
-                    continue; // Item doesn't have any of the selected flags
+                    continue; // Item doesn't have all of the selected flags
                 }
 
                 if (item.Height == height)
@@ -915,9 +915,9 @@ namespace UoFiddler.Controls.UserControls
                         {
                             // Check if item matches flag filters
                             if (_selectedItemFlags != TileFlag.None && 
-                                (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
                             {
-                                continue; // Item doesn't have any of the selected flags
+                                continue; // Item doesn't have all of the selected flags
                             }
 
                             // If search value is empty, include if flag matches
@@ -948,7 +948,7 @@ namespace UoFiddler.Controls.UserControls
                             {
                                 // Check if item matches flag filters
                                 if (_selectedItemFlags != TileFlag.None && 
-                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
                                 {
                                     continue;
                                 }
@@ -969,7 +969,7 @@ namespace UoFiddler.Controls.UserControls
                             {
                                 // Check if item matches flag filters
                                 if (_selectedItemFlags != TileFlag.None && 
-                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
                                 {
                                     continue;
                                 }
@@ -990,7 +990,7 @@ namespace UoFiddler.Controls.UserControls
                             {
                                 // Check if item matches flag filters
                                 if (_selectedItemFlags != TileFlag.None && 
-                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
                                 {
                                     continue;
                                 }
@@ -1013,7 +1013,7 @@ namespace UoFiddler.Controls.UserControls
                             {
                                 // Check if item matches flag filters
                                 if (_selectedItemFlags != TileFlag.None && 
-                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
                                 {
                                     continue;
                                 }
@@ -1034,7 +1034,7 @@ namespace UoFiddler.Controls.UserControls
                             {
                                 // Check if item matches flag filters
                                 if (_selectedItemFlags != TileFlag.None && 
-                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) == 0)
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
                                 {
                                     continue;
                                 }
