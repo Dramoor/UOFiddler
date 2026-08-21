@@ -142,6 +142,8 @@ namespace UoFiddler.Controls.UserControls
         private bool _sortAlpha;
         private int _displayType;
         private bool _loaded;
+        private List<TreeNode> _searchResults = new List<TreeNode>();
+        private int _currentSearchIndex = -1;
 
         /// <summary>
         /// ReLoads if loaded
@@ -984,6 +986,105 @@ namespace UoFiddler.Controls.UserControls
         {
             MainPictureBox.ShowFrameBounds = !MainPictureBox.ShowFrameBounds;
             ShowFrameBoundsCheckBox.Checked = MainPictureBox.ShowFrameBounds;
+        }
+
+        private void SearchTextBox_TextChanged(object sender, EventArgs e)
+        {
+            PerformSearch();
+        }
+
+        private void SearchTextBox_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Return)
+            {
+                e.Handled = true;
+                NavigateNext();
+            }
+        }
+
+        private void NextButton_Click(object sender, EventArgs e)
+        {
+            NavigateNext();
+        }
+
+        private void PrevButton_Click(object sender, EventArgs e)
+        {
+            NavigatePrev();
+        }
+
+        private void PerformSearch()
+        {
+            _searchResults.Clear();
+            _currentSearchIndex = -1;
+
+            string searchText = searchTextBox.Text.ToLower();
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
+                return;
+            }
+
+            // Search through all nodes in the treeview
+            foreach (TreeNode rootNode in TreeViewMobs.Nodes)
+            {
+                SearchNodeRecursive(rootNode, searchText);
+            }
+
+            // Automatically select the first result
+            if (_searchResults.Count > 0)
+            {
+                _currentSearchIndex = 0;
+                SelectSearchResult(0);
+            }
+        }
+
+        private void SearchNodeRecursive(TreeNode node, string searchText)
+        {
+            if (node.Text.ToLower().Contains(searchText))
+            {
+                _searchResults.Add(node);
+            }
+
+            foreach (TreeNode childNode in node.Nodes)
+            {
+                SearchNodeRecursive(childNode, searchText);
+            }
+        }
+
+        private void NavigateNext()
+        {
+            if (_searchResults.Count == 0)
+            {
+                PerformSearch();
+            }
+
+            if (_searchResults.Count > 0)
+            {
+                _currentSearchIndex = (_currentSearchIndex + 1) % _searchResults.Count;
+                SelectSearchResult(_currentSearchIndex);
+            }
+        }
+
+        private void NavigatePrev()
+        {
+            if (_searchResults.Count == 0)
+            {
+                PerformSearch();
+            }
+
+            if (_searchResults.Count > 0)
+            {
+                _currentSearchIndex = (_currentSearchIndex - 1 + _searchResults.Count) % _searchResults.Count;
+                SelectSearchResult(_currentSearchIndex);
+            }
+        }
+
+        private void SelectSearchResult(int index)
+        {
+            if (index >= 0 && index < _searchResults.Count)
+            {
+                TreeViewMobs.SelectedNode = _searchResults[index];
+                _searchResults[index].EnsureVisible();
+            }
         }
     }
 

@@ -44,6 +44,10 @@ namespace UoFiddler.Controls.UserControls
             TreeViewMobs = new System.Windows.Forms.TreeView();
             contextMenuStrip2 = new System.Windows.Forms.ContextMenuStrip(components);
             removeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            searchPanel = new System.Windows.Forms.Panel();
+            nextButton = new System.Windows.Forms.Button();
+            prevButton = new System.Windows.Forms.Button();
+            searchTextBox = new System.Windows.Forms.TextBox();
             tabControl1 = new System.Windows.Forms.TabControl();
             tabPage1 = new System.Windows.Forms.TabPage();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -94,6 +98,7 @@ namespace UoFiddler.Controls.UserControls
             splitContainer1.Panel2.SuspendLayout();
             splitContainer1.SuspendLayout();
             contextMenuStrip2.SuspendLayout();
+            searchPanel.SuspendLayout();
             tabControl1.SuspendLayout();
             tabPage1.SuspendLayout();
             tableLayoutPanel1.SuspendLayout();
@@ -120,6 +125,7 @@ namespace UoFiddler.Controls.UserControls
             // splitContainer1.Panel1
             // 
             splitContainer1.Panel1.Controls.Add(TreeViewMobs);
+            splitContainer1.Panel1.Controls.Add(searchPanel);
             // 
             // splitContainer1.Panel2
             // 
@@ -136,11 +142,11 @@ namespace UoFiddler.Controls.UserControls
             TreeViewMobs.Dock = System.Windows.Forms.DockStyle.Fill;
             TreeViewMobs.HideSelection = false;
             TreeViewMobs.LabelEdit = true;
-            TreeViewMobs.Location = new System.Drawing.Point(0, 0);
+            TreeViewMobs.Location = new System.Drawing.Point(0, 25);
             TreeViewMobs.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             TreeViewMobs.Name = "TreeViewMobs";
             TreeViewMobs.ShowNodeToolTips = true;
-            TreeViewMobs.Size = new System.Drawing.Size(239, 400);
+            TreeViewMobs.Size = new System.Drawing.Size(239, 375);
             TreeViewMobs.TabIndex = 0;
             TreeViewMobs.AfterSelect += TreeViewMobs_AfterSelect;
             // 
@@ -156,6 +162,48 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem.Size = new System.Drawing.Size(117, 22);
             removeToolStripMenuItem.Text = "Remove";
             removeToolStripMenuItem.Click += OnClickRemove;
+            // 
+            // searchPanel
+            // 
+            searchPanel.Controls.Add(prevButton);
+            searchPanel.Controls.Add(nextButton);
+            searchPanel.Controls.Add(searchTextBox);
+            searchPanel.Dock = System.Windows.Forms.DockStyle.Top;
+            searchPanel.Location = new System.Drawing.Point(0, 0);
+            searchPanel.Name = "searchPanel";
+            searchPanel.Size = new System.Drawing.Size(239, 25);
+            searchPanel.TabIndex = 1;
+            // 
+            // nextButton
+            // 
+            nextButton.Dock = System.Windows.Forms.DockStyle.Right;
+            nextButton.Location = new System.Drawing.Point(213, 0);
+            nextButton.Name = "nextButton";
+            nextButton.Size = new System.Drawing.Size(20, 23);
+            nextButton.TabIndex = 2;
+            nextButton.Text = ">";
+            nextButton.Click += NextButton_Click;
+            // 
+            // prevButton
+            // 
+            prevButton.Dock = System.Windows.Forms.DockStyle.Right;
+            prevButton.Location = new System.Drawing.Point(196, 0);
+            prevButton.Name = "prevButton";
+            prevButton.Size = new System.Drawing.Size(20, 23);
+            prevButton.TabIndex = 1;
+            prevButton.Text = "<";
+            prevButton.Click += PrevButton_Click;
+            // 
+            // searchTextBox
+            // 
+            searchTextBox.Dock = System.Windows.Forms.DockStyle.Fill;
+            searchTextBox.Location = new System.Drawing.Point(0, 0);
+            searchTextBox.Name = "searchTextBox";
+            searchTextBox.PlaceholderText = "Search...";
+            searchTextBox.Size = new System.Drawing.Size(239, 23);
+            searchTextBox.TabIndex = 0;
+            searchTextBox.TextChanged += SearchTextBox_TextChanged;
+            searchTextBox.KeyDown += SearchTextBox_KeyDown;
             // 
             // tabControl1
             // 
@@ -236,13 +284,13 @@ namespace UoFiddler.Controls.UserControls
             // 
             contextMenuStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { extractImageToolStripMenuItem, extractAnimationToolStripMenuItem });
             contextMenuStrip1.Name = "contextMenuStrip1";
-            contextMenuStrip1.Size = new System.Drawing.Size(174, 48);
+            contextMenuStrip1.Size = new System.Drawing.Size(173, 48);
             // 
             // extractImageToolStripMenuItem
             // 
             extractImageToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { asBMpToolStripMenuItem, asTiffToolStripMenuItem, asJpgToolStripMenuItem, asPngToolStripMenuItem2 });
             extractImageToolStripMenuItem.Name = "extractImageToolStripMenuItem";
-            extractImageToolStripMenuItem.Size = new System.Drawing.Size(173, 22);
+            extractImageToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             extractImageToolStripMenuItem.Text = "Export Image..";
             // 
             // asBMpToolStripMenuItem
@@ -277,7 +325,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             extractAnimationToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { asBmpToolStripMenuItem1, asTiffToolStripMenuItem1, asJpgToolStripMenuItem1, asPngToolStripMenuItem1, asAnimatedGifToolStripMenuItem, asAnimatedGifnoLoopingToolStripMenuItem });
             extractAnimationToolStripMenuItem.Name = "extractAnimationToolStripMenuItem";
-            extractAnimationToolStripMenuItem.Size = new System.Drawing.Size(173, 22);
+            extractAnimationToolStripMenuItem.Size = new System.Drawing.Size(172, 22);
             extractAnimationToolStripMenuItem.Text = "Export Animation..";
             // 
             // asBmpToolStripMenuItem1
@@ -344,13 +392,13 @@ namespace UoFiddler.Controls.UserControls
             // 
             contextMenuStrip3.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { exportFrameToolStripMenuItem });
             contextMenuStrip3.Name = "contextMenuStrip3";
-            contextMenuStrip3.Size = new System.Drawing.Size(151, 26);
+            contextMenuStrip3.Size = new System.Drawing.Size(150, 26);
             // 
             // exportFrameToolStripMenuItem
             // 
             exportFrameToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { asBmpToolStripMenuItem2, asTiffToolStripMenuItem2, asJpgToolStripMenuItem2, asPngToolStripMenuItem });
             exportFrameToolStripMenuItem.Name = "exportFrameToolStripMenuItem";
-            exportFrameToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            exportFrameToolStripMenuItem.Size = new System.Drawing.Size(149, 22);
             exportFrameToolStripMenuItem.Text = "Export Frame..";
             // 
             // asBmpToolStripMenuItem2
@@ -495,40 +543,40 @@ namespace UoFiddler.Controls.UserControls
             sortAlphaToolStripMenuItem.CheckOnClick = true;
             sortAlphaToolStripMenuItem.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             sortAlphaToolStripMenuItem.Name = "sortAlphaToolStripMenuItem";
-            sortAlphaToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            sortAlphaToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
             sortAlphaToolStripMenuItem.Text = "Sort alphabetically";
             sortAlphaToolStripMenuItem.Click += OnClick_Sort;
             // 
             // hueToolStripMenuItem
             // 
             hueToolStripMenuItem.Name = "hueToolStripMenuItem";
-            hueToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            hueToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
             hueToolStripMenuItem.Text = "Hue";
             hueToolStripMenuItem.Click += OnClick_Hue;
             // 
             // toolStripSeparator1
             // 
             toolStripSeparator1.Name = "toolStripSeparator1";
-            toolStripSeparator1.Size = new System.Drawing.Size(198, 6);
+            toolStripSeparator1.Size = new System.Drawing.Size(199, 6);
             // 
             // rewriteXmlToolStripMenuItem
             // 
             rewriteXmlToolStripMenuItem.Name = "rewriteXmlToolStripMenuItem";
-            rewriteXmlToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            rewriteXmlToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
             rewriteXmlToolStripMenuItem.Text = "Rewrite xml";
             rewriteXmlToolStripMenuItem.Click += RewriteXml;
             // 
             // tryToFindNewGraphicsToolStripMenuItem
             // 
             tryToFindNewGraphicsToolStripMenuItem.Name = "tryToFindNewGraphicsToolStripMenuItem";
-            tryToFindNewGraphicsToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            tryToFindNewGraphicsToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
             tryToFindNewGraphicsToolStripMenuItem.Text = "Try to find new Graphics";
             tryToFindNewGraphicsToolStripMenuItem.Click += OnClickFindNewEntries;
             // 
             // animationEditToolStripMenuItem
             // 
             animationEditToolStripMenuItem.Name = "animationEditToolStripMenuItem";
-            animationEditToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            animationEditToolStripMenuItem.Size = new System.Drawing.Size(202, 22);
             animationEditToolStripMenuItem.Text = "Animation Edit";
             animationEditToolStripMenuItem.Click += OnClickAnimationEdit;
             // 
@@ -565,7 +613,7 @@ namespace UoFiddler.Controls.UserControls
             AnimulFileLabel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             AnimulFileLabel.Name = "AnimulFileLabel";
             AnimulFileLabel.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            AnimulFileLabel.Size = new System.Drawing.Size(60, 17);
+            AnimulFileLabel.Size = new System.Drawing.Size(57, 17);
             AnimulFileLabel.Text = "AnimFile:";
             AnimulFileLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
@@ -574,7 +622,7 @@ namespace UoFiddler.Controls.UserControls
             AnimulIndexLabel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             AnimulIndexLabel.Name = "AnimulIndexLabel";
             AnimulIndexLabel.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            AnimulIndexLabel.Size = new System.Drawing.Size(50, 17);
+            AnimulIndexLabel.Size = new System.Drawing.Size(38, 17);
             AnimulIndexLabel.Text = "Index:";
             AnimulIndexLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
@@ -594,6 +642,8 @@ namespace UoFiddler.Controls.UserControls
             ((System.ComponentModel.ISupportInitialize)splitContainer1).EndInit();
             splitContainer1.ResumeLayout(false);
             contextMenuStrip2.ResumeLayout(false);
+            searchPanel.ResumeLayout(false);
+            searchPanel.PerformLayout();
             tabControl1.ResumeLayout(false);
             tabPage1.ResumeLayout(false);
             tableLayoutPanel1.ResumeLayout(false);
@@ -663,5 +713,9 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.CheckBox AnimateCheckBox;
         private System.Windows.Forms.CheckBox ShowFrameBoundsCheckBox;
         private System.Windows.Forms.Label directionLabel;
+        private System.Windows.Forms.Panel searchPanel;
+        private System.Windows.Forms.TextBox searchTextBox;
+        private System.Windows.Forms.Button nextButton;
+        private System.Windows.Forms.Button prevButton;
     }
 }
