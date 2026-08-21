@@ -118,7 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.2.6
+    <value>Version 5.2.7
+- Added in the ability to search for animations on the animation tab based on the names provided in your animationlist.xml file.
+- Bottom of Animations Tab will now show the Anim.mul file used for the selected animation along with the file slot inside that mul file.
+
+Version 5.2.6
 - Fixed issue with filters not working right on the items search.	
 	
 Version 5.2.5
