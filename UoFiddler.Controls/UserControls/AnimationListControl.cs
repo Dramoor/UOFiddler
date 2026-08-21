@@ -326,6 +326,17 @@ namespace UoFiddler.Controls.UserControls
             GraphicLabel.Text = $"Graphic: {_currentSelect} (0x{_currentSelect:X})";
             HueLabel.Text = $"Hue: {hue + 1} (0x{hue + 1:X})";
 
+            // Get the file type and slot number for this animation
+            int bodyForSlot = _currentSelect;
+            Animations.Translate(ref bodyForSlot);
+            int fileType = BodyConverter.Convert(ref bodyForSlot);
+            // Note: BodyConverter.Convert modifies bodyForSlot by reference to contain the slot number
+
+            // Display the file type and slot number from the anim file
+            string fileTypeName = fileType == 1 ? "anim.mul" : $"anim{fileType}.mul";
+            AnimulFileLabel.Text = $"AnimFile: {fileTypeName}";
+            AnimulIndexLabel.Text = $"Index: {bodyForSlot}";
+
             LoadListViewFrames();
         }
 

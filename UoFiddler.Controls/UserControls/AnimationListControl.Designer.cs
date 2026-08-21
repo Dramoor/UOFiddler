@@ -87,6 +87,8 @@ namespace UoFiddler.Controls.UserControls
             GraphicLabel = new System.Windows.Forms.ToolStripStatusLabel();
             BaseGraphicLabel = new System.Windows.Forms.ToolStripStatusLabel();
             HueLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            AnimulFileLabel = new System.Windows.Forms.ToolStripStatusLabel();
+            AnimulIndexLabel = new System.Windows.Forms.ToolStripStatusLabel();
             ((System.ComponentModel.ISupportInitialize)splitContainer1).BeginInit();
             splitContainer1.Panel1.SuspendLayout();
             splitContainer1.Panel2.SuspendLayout();
@@ -469,7 +471,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // statusStrip1
             // 
-            statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { SettingsButton, GraphicLabel, BaseGraphicLabel, HueLabel });
+            statusStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { SettingsButton, GraphicLabel, BaseGraphicLabel, HueLabel, AnimulFileLabel, AnimulIndexLabel });
             statusStrip1.Location = new System.Drawing.Point(0, 378);
             statusStrip1.Name = "statusStrip1";
             statusStrip1.Padding = new System.Windows.Forms.Padding(1, 0, 16, 0);
@@ -558,6 +560,24 @@ namespace UoFiddler.Controls.UserControls
             HueLabel.Text = "Hue:";
             HueLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
+            // AnimulFileLabel
+            // 
+            AnimulFileLabel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            AnimulFileLabel.Name = "AnimulFileLabel";
+            AnimulFileLabel.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            AnimulFileLabel.Size = new System.Drawing.Size(60, 17);
+            AnimulFileLabel.Text = "AnimFile:";
+            AnimulFileLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // AnimulIndexLabel
+            // 
+            AnimulIndexLabel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            AnimulIndexLabel.Name = "AnimulIndexLabel";
+            AnimulIndexLabel.RightToLeft = System.Windows.Forms.RightToLeft.No;
+            AnimulIndexLabel.Size = new System.Drawing.Size(50, 17);
+            AnimulIndexLabel.Text = "Index:";
+            AnimulIndexLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
             // AnimationListControl
             // 
             AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -608,6 +628,8 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem asTiffToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem asTiffToolStripMenuItem2;
         private System.Windows.Forms.ToolStripStatusLabel BaseGraphicLabel;
+        private System.Windows.Forms.ToolStripStatusLabel AnimulFileLabel;
+        private System.Windows.Forms.ToolStripStatusLabel AnimulIndexLabel;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip1;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip2;
         private System.Windows.Forms.ContextMenuStrip contextMenuStrip3;
