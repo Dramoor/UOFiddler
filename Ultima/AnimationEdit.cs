@@ -128,26 +128,30 @@ namespace Ultima
                     currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
                 }
 
+                // Determine target animation length based on the target animation type
+                int targetAnimLength = currType == 0 ? 22 : currType == 1 ? 13 : 35;
+
                 bin.Write((short)currType);
                 long indexPos = bin.BaseStream.Position;
-                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+                long animPos = bin.BaseStream.Position + (12 * targetAnimLength * 5);
 
-                for (int i = index; i < index + (animLength * 5); i++)
+                for (int i = 0; i < (targetAnimLength * 5); i++)
                 {
-                    int action = (i - index) / 5;
-                    int directionOffset = (i - index) % 5;
+                    int action = i / 5;
+                    int directionOffset = i % 5;
 
-                    if (targetToSourceMap == null || targetToSourceMap.Length != animLength)
+                    if (targetToSourceMap == null || targetToSourceMap.Length != targetAnimLength)
                     {
                         // fallback to default behavior for this entry
+                        int fallbackIndex = index + (action * 5) + directionOffset;
                         AnimIdx anim;
                         if (cache != null)
                         {
-                            anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                            anim = cache[fallbackIndex] != null ? cache[fallbackIndex] : cache[fallbackIndex] = new AnimIdx(fallbackIndex, fileIndex);
                         }
                         else
                         {
-                            anim = cache[i] = new AnimIdx(i, fileIndex);
+                            anim = cache[fallbackIndex] = new AnimIdx(fallbackIndex, fileIndex);
                         }
 
                         if (anim == null)

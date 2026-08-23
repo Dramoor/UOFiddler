@@ -2216,8 +2216,8 @@ namespace UoFiddler.Controls.Forms
                                 if (!AnimationEdit.IsActionDefined(_fileType, _currentBody, src))
                                     continue;
 
-                                // Determine base label from the SOURCE animation type (animLength of the currently loaded animation)
-                                int effectiveSourceType = Animations.GetAnimLength(_currentBody, _fileType) == 22 ? 0 : Animations.GetAnimLength(_currentBody, _fileType) == 13 ? 1 : 2;
+                                // Determine base label from the SOURCE animation type (from srcType parameter)
+                                int effectiveSourceType = srcType >= 0 ? srcType : (Animations.GetAnimLength(_currentBody, _fileType) == 22 ? 0 : Animations.GetAnimLength(_currentBody, _fileType) == 13 ? 1 : 2);
                                 string baseLabel;
                                 if (effectiveSourceType == 1 && src < lowdropdownLabels.Length)
                                 {
