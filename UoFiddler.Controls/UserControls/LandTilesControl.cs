@@ -639,6 +639,9 @@ namespace UoFiddler.Controls.UserControls
             using (new WaitCursorScope(this))
             {
                 Art.Save(Options.OutputPath);
+
+                // If currently using UOP, convert the saved MUL files back to UOP format
+                UopConversionHelper.ConvertArtToUopIfNeeded(Options.OutputPath);
             }
             Options.ChangedUltimaClass["Art"] = false;
             FileSavedDialog.Show(FindForm(), Options.OutputPath, "Files saved successfully.");

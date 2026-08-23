@@ -141,6 +141,11 @@ namespace Ultima
             return GetIdxLength() >= 0x13FDC;
         }
 
+        public static bool IsUsingUopLegacy()
+        {
+            return _fileIndex?.MulPath?.EndsWith(".uop") == true;
+        }
+
         public static ushort GetLegalItemId(int itemId, bool checkMaxId = true)
         {
             if (itemId < 0)

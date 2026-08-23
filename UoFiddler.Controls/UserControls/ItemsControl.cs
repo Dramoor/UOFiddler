@@ -786,6 +786,9 @@ namespace UoFiddler.Controls.UserControls
                 ProgressBarDialog barDialog = new ProgressBarDialog(Art.GetIdxLength(), "Save");
                 Art.Save(Options.OutputPath);
                 barDialog.Dispose();
+
+                // If currently using UOP, convert the saved MUL files back to UOP format
+                UopConversionHelper.ConvertArtToUopIfNeeded(Options.OutputPath);
             }
 
             Options.ChangedUltimaClass["Art"] = false;
