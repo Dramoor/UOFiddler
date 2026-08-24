@@ -478,5 +478,230 @@ namespace UoFiddler.Controls.Helpers
                 return false;
             }
         }
+
+        /// <summary>
+        /// Converts saved sounds MUL/IDX files to UOP format if the system is currently using UOP.
+        /// </summary>
+        /// <param name="outputPath">Path where sound.mul and soundidx.mul were saved</param>
+        /// <returns>True if conversion was successful or skipped, false if it failed</returns>
+        public static bool ConvertSoundsToUopIfNeeded(string outputPath)
+        {
+            _logger.LogInformation("Converting sounds to UOP format if needed for output path: {OutputPath}", outputPath);
+
+            try
+            {
+                // Only convert if we're currently using UOP format
+                bool isUsingUop = Sounds.IsUsingUopLegacy();
+                _logger.LogInformation("Sounds.IsUsingUopLegacy() returned: {IsUsingUop}", isUsingUop);
+
+                if (!isUsingUop)
+                {
+                    _logger.LogInformation("Sounds are not using UOP format, skipping conversion");
+                    return true;
+                }
+
+                string mulFile = Path.Combine(outputPath, "sound.mul");
+                string idxFile = Path.Combine(outputPath, "soundidx.mul");
+                string uopFile = Path.Combine(outputPath, "soundLegacyMUL.uop");
+
+                _logger.LogInformation("Looking for MUL files: {Mul}, {Idx}", mulFile, idxFile);
+
+                // Verify the MUL files exist before attempting conversion
+                if (!File.Exists(mulFile))
+                {
+                    _logger.LogError("MUL file not found during UOP conversion: {Path}", mulFile);
+                    return false;
+                }
+
+                if (!File.Exists(idxFile))
+                {
+                    _logger.LogError("IDX file not found during UOP conversion: {Path}", idxFile);
+                    return false;
+                }
+
+                _logger.LogInformation(
+                    "Converting saved sounds MUL/IDX to UOP format: {Mul} + {Idx} -> {Uop}",
+                    mulFile, idxFile, uopFile);
+
+                // Load the converter through reflection (avoids direct plugin dependency)
+                bool conversionSuccess = TryConvertSoundsToUop(mulFile, idxFile, uopFile);
+
+                if (conversionSuccess)
+                {
+                    // Verify the output file was actually created
+                    if (File.Exists(uopFile))
+                    {
+                        var fileInfo = new FileInfo(uopFile);
+                        _logger.LogInformation("Successfully converted sounds MUL/IDX to UOP: {Uop} (Size: {Size} bytes)", uopFile, fileInfo.Length);
+                        return true;
+                    }
+                    else
+                    {
+                        _logger.LogError("Conversion reported success but UOP file was not created: {Uop}", uopFile);
+                        return false;
+                    }
+                }
+                else
+                {
+                    _logger.LogError("UOP conversion failed");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    "Error converting sounds MUL/IDX to UOP: {Error}", ex.Message);
+                return false;
+            }
+        }
+
+        /// <summary>
+        /// Attempts to convert MUL files to UOP using the LegacyMulFileConverter via reflection.
+        /// </summary>
+        private static bool TryConvertSoundsToUop(string mulFile, string idxFile, string uopFile)
+        {
+            try
+            {
+                // Try to load the plugin assembly explicitly
+                System.Reflection.Assembly pluginAssembly = null;
+                string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+
+                // Try multiple possible plugin paths
+                string[] possiblePaths = new[]
+                {
+                    Path.Combine(baseDir, "plugins", "UOPPacker.dll"),
+                    Path.Combine(baseDir, "plugins", "UoFiddler.Plugin.UopPacker.dll"),
+                    Path.Combine(baseDir, "UOPPacker.dll"),
+                    Path.Combine(baseDir, "UoFiddler.Plugin.UopPacker.dll"),
+                    Path.Combine(baseDir, "..", "plugins", "UOPPacker.dll"),
+                    Path.Combine(baseDir, "..", "plugins", "UoFiddler.Plugin.UopPacker.dll"),
+                    Path.Combine(baseDir, "..", "UoFiddler.Plugin.UopPacker", "bin", "Debug", "UOPPacker.dll"),
+                    Path.Combine(baseDir, "..", "UoFiddler.Plugin.UopPacker", "bin", "Release", "UOPPacker.dll")
+                };
+
+                foreach (string pluginPath in possiblePaths)
+                {
+                    string fullPath = Path.GetFullPath(pluginPath);
+
+                    if (File.Exists(fullPath))
+                    {
+                        try
+                        {
+                            pluginAssembly = System.Reflection.Assembly.LoadFrom(fullPath);
+                            break;
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning("Failed to load plugin assembly from {Path}: {Error}", fullPath, ex.Message);
+                        }
+                    }
+                }
+
+                // Try to get the converter type from either already-loaded or newly-loaded assembly
+                Type converterType = null;
+                if (pluginAssembly != null)
+                {
+                    converterType = pluginAssembly.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter");
+                }
+
+                if (converterType == null)
+                {
+                    converterType = Type.GetType("UoFiddler.Plugin.UopPacker.Classes.LegacyMulFileConverter", false);
+                }
+
+                if (converterType == null)
+                {
+                    _logger.LogWarning(
+                        "UOP Packer plugin not found - cannot convert to UOP format. " +
+                        "Sounds were saved as MUL/IDX files only.");
+                    return true; // Not fatal - MUL files are saved
+                }
+
+                var fileTypeEnum = pluginAssembly?.GetType("UoFiddler.Plugin.UopPacker.Classes.FileType") 
+                    ?? Type.GetType("UoFiddler.Plugin.UopPacker.Classes.FileType", false);
+
+                if (fileTypeEnum == null)
+                {
+                    _logger.LogWarning("FileType enum not found in UOP Packer plugin.");
+                    return true; // Not fatal
+                }
+
+                // CompressionFlag is a nested enum in Ultima.FileIndex
+                var ultimaAssembly = typeof(Sounds).Assembly; // Sounds is in Ultima namespace
+                var fileIndexType = ultimaAssembly.GetType("Ultima.FileIndex", false);
+                var compressionFlagEnum = fileIndexType?.GetNestedType("CompressionFlag");
+
+                if (compressionFlagEnum == null)
+                {
+                    // Fallback: use integer 0 directly (CompressionFlag.None = 0)
+                    compressionFlagEnum = typeof(int);
+                }
+
+                var toUopMethod = converterType.GetMethod("ToUop",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+
+                if (toUopMethod == null)
+                {
+                    _logger.LogWarning("ToUop method not found in LegacyMulFileConverter.");
+                    return true; // Not fatal
+                }
+
+                // Parse enum values: FileType.SoundLegacyMul and CompressionFlag.None
+                object fileTypeSoundLegacy = Enum.Parse(fileTypeEnum, "SoundLegacyMul");
+                object compressionNone;
+
+                // If we have the real enum type, parse it; otherwise use integer 0
+                if (compressionFlagEnum == typeof(int))
+                {
+                    compressionNone = 0; // CompressionFlag.None = 0
+                }
+                else
+                {
+                    compressionNone = Enum.Parse(compressionFlagEnum, "None");
+                }
+
+                _logger.LogInformation("Invoking LegacyMulFileConverter.ToUop for Sounds with FileType={FileType}", "SoundLegacyMul");
+                _logger.LogInformation("Input: mul={Mul}, idx={Idx}", mulFile, idxFile);
+                _logger.LogInformation("Output: uop={Uop}", uopFile);
+
+                // Invoke: ToUop(mulFile, idxFile, uopFile, fileType, typeIndex, compression, housing, progress, components)
+                try
+                {
+                    var result = toUopMethod.Invoke(null, new object[]
+                    {
+                        mulFile,              // inFile
+                        idxFile,              // inFileIdx
+                        uopFile,              // outFile
+                        fileTypeSoundLegacy,  // type
+                        0,                    // typeIndex
+                        compressionNone,      // compressionFlag
+                        "",                   // housingBinFile (default)
+                        null,                 // progress (default)
+                        ""                    // componentsFile (default)
+                    });
+                    _logger.LogInformation("ToUop invoke completed successfully for Sounds");
+                }
+                catch (System.Reflection.TargetInvocationException tex)
+                {
+                    _logger.LogError("ToUop method threw exception: {Error}", tex.InnerException?.ToString());
+                    throw;
+                }
+
+                return true;
+            }
+            catch (System.Reflection.TargetInvocationException ex)
+            {
+                _logger.LogError(
+                    "ToUop method threw exception: {Error} - {Message}",
+                    ex.InnerException?.GetType().Name, ex.InnerException?.Message);
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(
+                    "Reflection-based UOP conversion failed: {Error}", ex.Message);
+                return false;
+            }
+        }
     }
 }

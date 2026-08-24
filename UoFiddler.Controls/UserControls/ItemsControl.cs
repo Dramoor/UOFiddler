@@ -2125,6 +2125,13 @@ namespace UoFiddler.Controls.UserControls
             extractToolStripMenuItem.Text = selectedCount > 1 ? $"Export {selectedCount} Images..." : "Export Image..";
             replaceToolStripMenuItem.Text = selectedCount > 1 ? $"Replace {selectedCount}..." : "Replace...";
 
+            // Disable "Select in" menu items when multiple items are selected
+            bool isSingleSelection = selectedCount == 1;
+            selectInAllTabsToolStripMenuItem.Enabled = isSingleSelection;
+            selectInTileDataTabToolStripMenuItem.Enabled = isSingleSelection;
+            selectInRadarColorTabToolStripMenuItem.Enabled = isSingleSelection;
+            selectInClilocTabToolStripMenuItem.Enabled = isSingleSelection;
+
             if (SelectedGraphicId <= 0)
             {
                 selectInGumpsTabMaleToolStripMenuItem.Enabled = false;
@@ -2134,7 +2141,7 @@ namespace UoFiddler.Controls.UserControls
             {
                 var itemData = TileData.ItemTable[SelectedGraphicId];
 
-                if (itemData.Animation > 0)
+                if (itemData.Animation > 0 && isSingleSelection)
                 {
                     selectInGumpsTabMaleToolStripMenuItem.Enabled =
                         GumpControl.HasGumpId(itemData.Animation + _maleGumpOffset);

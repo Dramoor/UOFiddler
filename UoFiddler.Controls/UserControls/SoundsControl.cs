@@ -147,6 +147,10 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _loaded = true;
+
+                // Update UOP status label
+                uopLoadedLabel.Text = Sounds.IsUsingUopLegacy() ? "Loaded: UOP" : "Loaded: MUL";
+
                 _playing = false;
 
                 if (oldItem != null)
@@ -446,6 +450,9 @@ namespace UoFiddler.Controls.UserControls
                 string path = Options.OutputPath;
                 Sounds.Save(path);
                 Options.ChangedUltimaClass["Sound"] = false;
+
+                // Convert MUL/IDX to UOP if system is using UOP format
+                UopConversionHelper.ConvertSoundsToUopIfNeeded(path);
             }
 
             FileSavedDialog.Show(FindForm(), Options.OutputPath, "Files saved successfully.");

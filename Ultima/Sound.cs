@@ -301,6 +301,14 @@ namespace Ultima
             return len;
         }
 
+        /// <summary>
+        /// Determines if Sounds are currently using UOP (soundLegacyMUL.uop) format
+        /// </summary>
+        public static bool IsUsingUopLegacy()
+        {
+            return _fileIndex?.MulPath?.EndsWith(".uop") == true;
+        }
+
         public static void Add(int id, string name, string file)
         {
             using (FileStream wav = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))

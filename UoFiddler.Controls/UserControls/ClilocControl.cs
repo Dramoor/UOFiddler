@@ -32,6 +32,9 @@ namespace UoFiddler.Controls.UserControls
             _source = new BindingSource();
             FindEntry.TextBox.PreviewKeyDown += FindEntry_PreviewKeyDown;
 
+            // Handle visibility changes to execute pending navigation when tab becomes visible
+            VisibleChanged += OnVisibleChanged;
+
             // Set RefMarker immediately so cross-tab selection works before tab is first clicked
             RefMarker = this;
         }
@@ -96,6 +99,24 @@ namespace UoFiddler.Controls.UserControls
             }
 
             OnLoad(this, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Handles visibility changes to execute pending navigation when tab becomes visible
+        /// </summary>
+        private void OnVisibleChanged(object sender, EventArgs e)
+        {
+            if (Visible && _loaded && _pendingNavigationNumber >= 0)
+            {
+                if (IsHandleCreated)
+                {
+                    BeginInvoke(new Action(() => ExecutePendingNavigation()));
+                }
+                else
+                {
+                    ExecutePendingNavigation();
+                }
+            }
         }
 
         public static ClilocControl RefMarker

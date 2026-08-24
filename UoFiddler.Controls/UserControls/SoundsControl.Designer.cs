@@ -61,6 +61,7 @@ namespace UoFiddler.Controls.UserControls
             toolStripStatusSpacer = new System.Windows.Forms.ToolStripStatusLabel();
             playing = new System.Windows.Forms.ToolStripProgressBar();
             stopButton = new System.Windows.Forms.ToolStripDropDownButton();
+            uopLoadedLabel = new System.Windows.Forms.ToolStripStatusLabel();
             splitContainer1 = new System.Windows.Forms.SplitContainer();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
@@ -236,7 +237,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // statusStripSounds
             // 
-            statusStripSounds.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { seconds, toolStripStatusSpacer, playing, stopButton });
+            statusStripSounds.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { seconds, toolStripStatusSpacer, playing, stopButton, uopLoadedLabel });
             statusStripSounds.Location = new System.Drawing.Point(0, 677);
             statusStripSounds.Name = "statusStripSounds";
             statusStripSounds.Padding = new System.Windows.Forms.Padding(1, 0, 16, 0);
@@ -273,6 +274,14 @@ namespace UoFiddler.Controls.UserControls
             stopButton.Text = "Stop";
             stopButton.Visible = false;
             stopButton.Click += OnClickStop;
+            // 
+            // uopLoadedLabel
+            // 
+            uopLoadedLabel.AutoSize = false;
+            uopLoadedLabel.Name = "uopLoadedLabel";
+            uopLoadedLabel.Size = new System.Drawing.Size(120, 17);
+            uopLoadedLabel.Text = "Loaded:";
+            uopLoadedLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // splitContainer1
             // 
@@ -757,6 +766,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem showFreeSlotsToolStripMenuItem;
         private System.Windows.Forms.StatusStrip statusStripSounds;
         private System.Windows.Forms.ToolStripDropDownButton stopButton;
+        private System.Windows.Forms.ToolStripStatusLabel uopLoadedLabel;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.ToolStripSeparator toolStripMenuItem1;
         private System.Windows.Forms.ToolStripStatusLabel toolStripStatusSpacer;
