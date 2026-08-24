@@ -1384,6 +1384,206 @@ namespace UoFiddler.Controls.Forms
                 MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
         }
 
+        private void OnClickCopyActionToLocation(object sender, EventArgs e)
+        {
+            if (_fileType == 0 || _currentAction < 0)
+            {
+                return;
+            }
+
+            int animLength = Animations.GetAnimLength(_currentBody, _fileType);
+            MobType mobType = Animations.GetBodyMobType(_currentBody, _fileType);
+            string[] actionNames = ResolveActionNames(mobType);
+
+            using (var dialog = new CopyActionDialog(_fileType, _currentBody, actionNames, _currentAction))
+            {
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+
+                int targetAction = dialog.SelectedAction;
+                if (targetAction < 0 || targetAction >= animLength)
+                {
+                    return;
+                }
+
+                if (targetAction == _currentAction)
+                {
+                    return;
+                }
+
+                for (int d = 0; d < 5; d++)
+                {
+                    AnimIdx targetAnim = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
+                    if (targetAnim != null && targetAnim.Frames?.Count > 0)
+                    {
+                        MessageBox.Show("Target action has data in at least one direction. Use 'To Location Overwrite' to replace existing animations.", "Copy Action",
+                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+                }
+
+                if (!CopyActionAllDirections(_currentBody, _currentAction, targetAction, overwrite: false))
+                {
+                    return;
+                }
+
+                RefreshTreeNodeAfterActionWrite(_currentBody, targetAction);
+                MessageBox.Show("Action copied successfully (all directions).", "Copy Action", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Options.ChangedUltimaClass["Animations"] = true;
+                AfterSelectTreeView(this, null);
+            }
+        }
+
+        private void OnClickCopyActionToLocationOverwrite(object sender, EventArgs e)
+        {
+            if (_fileType == 0 || _currentAction < 0)
+            {
+                return;
+            }
+
+            int animLength = Animations.GetAnimLength(_currentBody, _fileType);
+            MobType mobType = Animations.GetBodyMobType(_currentBody, _fileType);
+            string[] actionNames = ResolveActionNames(mobType);
+
+            using (var dialog = new CopyActionDialog(_fileType, _currentBody, actionNames, _currentAction))
+            {
+                if (dialog.ShowDialog() != DialogResult.OK)
+                {
+                    return;
+                }
+
+                int targetAction = dialog.SelectedAction;
+                if (targetAction < 0 || targetAction >= animLength)
+                {
+                    return;
+                }
+
+                if (targetAction == _currentAction)
+                {
+                    return;
+                }
+
+                DialogResult result = MessageBox.Show($"Are you sure you want to overwrite action {targetAction} (all directions)?", "Copy Action Overwrite",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                if (!CopyActionAllDirections(_currentBody, _currentAction, targetAction, overwrite: true))
+                {
+                    return;
+                }
+
+                RefreshTreeNodeAfterActionWrite(_currentBody, targetAction);
+                MessageBox.Show("Action copied successfully (all directions).", "Copy Action", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Options.ChangedUltimaClass["Animations"] = true;
+                AfterSelectTreeView(this, null);
+            }
+        }
+
+        private bool CopyActionAllDirections(int body, int sourceAction, int targetAction, bool overwrite)
+        {
+            bool hasAnySourceData = false;
+
+            for (int d = 0; d < 5; d++)
+            {
+                AnimIdx sourceAnim = AnimationEdit.GetAnimation(_fileType, body, sourceAction, d);
+                AnimIdx targetAnim = AnimationEdit.GetAnimation(_fileType, body, targetAction, d);
+                if (targetAnim == null)
+                {
+                    continue;
+                }
+
+                if (overwrite)
+                {
+                    targetAnim.ClearFrames();
+                }
+
+                if (sourceAnim == null || sourceAnim.Frames == null || sourceAnim.Frames.Count == 0)
+                {
+                    continue;
+                }
+
+                hasAnySourceData = true;
+
+                ushort[] copiedPalette = (ushort[])sourceAnim.Palette.Clone();
+                targetAnim.ReplacePalette(copiedPalette);
+
+                Bitmap[] sourceBitmaps = sourceAnim.GetFrames();
+                if (sourceBitmaps == null)
+                {
+                    continue;
+                }
+
+                for (int i = 0; i < sourceBitmaps.Length; i++)
+                {
+                    Bitmap frameBmp = sourceBitmaps[i];
+                    if (frameBmp == null)
+                    {
+                        continue;
+                    }
+
+                    try
+                    {
+                        Point center = sourceAnim.Frames[i].Center;
+                        targetAnim.AddFrame(frameBmp, center.X, center.Y);
+                    }
+                    finally
+                    {
+                        frameBmp.Dispose();
+                    }
+                }
+            }
+
+            if (!hasAnySourceData)
+            {
+                MessageBox.Show("Source action is empty in all directions.", "Copy Action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return false;
+            }
+
+            return true;
+        }
+
+        private void RefreshTreeNodeAfterActionWrite(int body, int action)
+        {
+            TreeNode bodyNode = GetNode(body);
+            if (bodyNode == null)
+            {
+                if (_showOnlyValid)
+                {
+                    OnLoad(this, EventArgs.Empty);
+                    bodyNode = GetNode(body);
+                }
+                else
+                {
+                    return;
+                }
+            }
+
+            if (bodyNode == null || action < 0 || action >= bodyNode.Nodes.Count)
+            {
+                return;
+            }
+
+            bool actionDefined = AnimationEdit.IsActionDefined(_fileType, body, action);
+            bodyNode.Nodes[action].ForeColor = actionDefined ? Color.Empty : _invalidColor;
+
+            bool hasAnyValidAction = false;
+            for (int i = 0; i < bodyNode.Nodes.Count; i++)
+            {
+                if (AnimationEdit.IsActionDefined(_fileType, body, i))
+                {
+                    hasAnyValidAction = true;
+                    break;
+                }
+            }
+
+            bodyNode.ForeColor = hasAnyValidAction ? Color.Empty : _invalidColor;
+        }
+
         //My Soulblighter Modification
         private void OnClickRemoveFrame(object sender, EventArgs e)
         {

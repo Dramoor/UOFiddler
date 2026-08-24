@@ -59,6 +59,9 @@
             exportActionAsGifWithMountAllDirectionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            copyActionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            copyActionToLocationToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            copyActionToLocationOverwriteToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             AnimationFileToolStrip = new System.Windows.Forms.ToolStrip();
             SelectFileToolStripComboBox = new System.Windows.Forms.ToolStripComboBox();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -261,7 +264,7 @@
             // ContextMenuStripTreeView
             // 
             ContextMenuStripTreeView.ImageScalingSize = new System.Drawing.Size(20, 20);
-            ContextMenuStripTreeView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addToolStripMenuItem, removeToolStripMenuItem, extractImagesToolStripMenuItem1, exportActionToolStripMenuItem, importToolStripMenuItem1, exportToolStripMenuItem1 });
+            ContextMenuStripTreeView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addToolStripMenuItem, removeToolStripMenuItem, extractImagesToolStripMenuItem1, exportActionToolStripMenuItem, copyActionToolStripMenuItem, importToolStripMenuItem1, exportToolStripMenuItem1 });
             ContextMenuStripTreeView.Name = "contextMenuStrip2";
             ContextMenuStripTreeView.Size = new System.Drawing.Size(158, 114);
             // 
@@ -450,6 +453,27 @@
             exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
             exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Text = "All Directions (with Mount)";
             exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Click += OnClickExportActionAsGifLoopingWithMountAllDirections;
+            // 
+            // copyActionToolStripMenuItem
+            // 
+            copyActionToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { copyActionToLocationToolStripMenuItem, copyActionToLocationOverwriteToolStripMenuItem });
+            copyActionToolStripMenuItem.Name = "copyActionToolStripMenuItem";
+            copyActionToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
+            copyActionToolStripMenuItem.Text = "Copy Action";
+            // 
+            // copyActionToLocationToolStripMenuItem
+            // 
+            copyActionToLocationToolStripMenuItem.Name = "copyActionToLocationToolStripMenuItem";
+            copyActionToLocationToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
+            copyActionToLocationToolStripMenuItem.Text = "To Location";
+            copyActionToLocationToolStripMenuItem.Click += OnClickCopyActionToLocation;
+            // 
+            // copyActionToLocationOverwriteToolStripMenuItem
+            // 
+            copyActionToLocationOverwriteToolStripMenuItem.Name = "copyActionToLocationOverwriteToolStripMenuItem";
+            copyActionToLocationOverwriteToolStripMenuItem.Size = new System.Drawing.Size(186, 22);
+            copyActionToLocationOverwriteToolStripMenuItem.Text = "To Location Overwrite";
+            copyActionToLocationOverwriteToolStripMenuItem.Click += OnClickCopyActionToLocationOverwrite;
             // 
             // AnimationFileToolStrip
             //
@@ -1856,6 +1880,9 @@
         private System.Windows.Forms.ToolStripMenuItem exportActionAsGifWithMountAllDirectionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyActionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyActionToLocationToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyActionToLocationOverwriteToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fromGifToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fromImageToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fromTxtToolStripMenuItem;
