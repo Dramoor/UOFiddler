@@ -55,6 +55,7 @@ namespace UoFiddler.Controls.UserControls
             asPngToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             toolStripSeparator6 = new System.Windows.Forms.ToolStripSeparator();
             jumpToMaleFemale = new System.Windows.Forms.ToolStripMenuItem();
+            selectInItemsTabToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
             replaceGumpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             insertToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -88,6 +89,7 @@ namespace UoFiddler.Controls.UserControls
             bottomMenuToolStrip = new System.Windows.Forms.ToolStrip();
             IDLabel = new System.Windows.Forms.ToolStripLabel();
             SizeLabel = new System.Windows.Forms.ToolStripLabel();
+            FileFormatLabel = new System.Windows.Forms.ToolStripLabel();
             ProgressBar = new System.Windows.Forms.ToolStripProgressBar();
             Preload = new System.Windows.Forms.ToolStripButton();
             toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
@@ -134,7 +136,7 @@ namespace UoFiddler.Controls.UserControls
             listView.HideSelection = false;
             listView.Location = new System.Drawing.Point(0, 50);
             listView.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
-            listView.MultiSelect = false;
+            listView.MultiSelect = true;
             listView.Name = "listView";
             listView.OwnerDraw = true;
             listView.Size = new System.Drawing.Size(289, 380);
@@ -144,11 +146,13 @@ namespace UoFiddler.Controls.UserControls
             listView.DrawItem += ListView_DrawItem;
             listView.RetrieveVirtualItem += ListView_RetrieveVirtualItem;
             listView.SelectedIndexChanged += ListView_SelectedIndexChanged;
+            listView.MouseDown += ListView_MouseDown;
+            listView.MouseUp += ListView_MouseUp;
             listView.KeyUp += Gump_KeyUp;
             // 
             // contextMenuStrip
             // 
-            contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, changeBackgroundColorToolStripMenuItem, toolStripSeparator2, extractImageToolStripMenuItem, toolStripSeparator6, jumpToMaleFemale, toolStripSeparator5, replaceGumpToolStripMenuItem, insertToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            contextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, changeBackgroundColorToolStripMenuItem, toolStripSeparator2, extractImageToolStripMenuItem, toolStripSeparator6, jumpToMaleFemale, selectInItemsTabToolStripMenuItem, toolStripSeparator5, replaceGumpToolStripMenuItem, insertToolStripMenuItem, toolStripMenuItem1, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             contextMenuStrip.Name = "contextMenuStrip1";
             contextMenuStrip.Size = new System.Drawing.Size(190, 226);
             // 
@@ -225,6 +229,13 @@ namespace UoFiddler.Controls.UserControls
             jumpToMaleFemale.Text = "Jump to Male/Female";
             jumpToMaleFemale.Click += JumpToMaleFemale_Click;
             // 
+            // selectInItemsTabToolStripMenuItem
+            // 
+            selectInItemsTabToolStripMenuItem.Name = "selectInItemsTabToolStripMenuItem";
+            selectInItemsTabToolStripMenuItem.Size = new System.Drawing.Size(189, 22);
+            selectInItemsTabToolStripMenuItem.Text = "Select in Items Tab";
+            selectInItemsTabToolStripMenuItem.Click += OnClickSelectInItemsTab;
+            // 
             // toolStripSeparator5
             // 
             toolStripSeparator5.Name = "toolStripSeparator5";
@@ -272,7 +283,6 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem.Click += OnClickRemove;
             // 
             // toolStripSeparator1
-            // 
             toolStripSeparator1.Name = "toolStripSeparator1";
             toolStripSeparator1.Size = new System.Drawing.Size(186, 6);
             // 
@@ -437,7 +447,7 @@ namespace UoFiddler.Controls.UserControls
             bottomMenuToolStrip.AutoSize = false;
             bottomMenuToolStrip.Dock = System.Windows.Forms.DockStyle.Bottom;
             bottomMenuToolStrip.GripStyle = System.Windows.Forms.ToolStripGripStyle.Hidden;
-            bottomMenuToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { IDLabel, SizeLabel, ProgressBar, Preload, toolStripSeparator3 });
+            bottomMenuToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { IDLabel, SizeLabel, FileFormatLabel, ProgressBar, Preload, toolStripSeparator3 });
             bottomMenuToolStrip.Location = new System.Drawing.Point(0, 405);
             bottomMenuToolStrip.Name = "bottomMenuToolStrip";
             bottomMenuToolStrip.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
@@ -460,6 +470,14 @@ namespace UoFiddler.Controls.UserControls
             SizeLabel.Size = new System.Drawing.Size(100, 17);
             SizeLabel.Text = "Size:";
             SizeLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // FileFormatLabel
+            // 
+            FileFormatLabel.AutoSize = false;
+            FileFormatLabel.Name = "FileFormatLabel";
+            FileFormatLabel.Size = new System.Drawing.Size(100, 17);
+            FileFormatLabel.Text = "Format: ";
+            FileFormatLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // ProgressBar
             // 
@@ -531,6 +549,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem extractImageToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem findNextFreeSlotToolStripMenuItem;
         private System.Windows.Forms.ToolStripLabel IDLabel;
+        private System.Windows.Forms.ToolStripLabel FileFormatLabel;
         private System.Windows.Forms.ToolStripTextBox InsertText;
         private System.Windows.Forms.ToolStripMenuItem insertToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem jumpToMaleFemale;
@@ -542,6 +561,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem removeToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem replaceGumpToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem saveToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectInItemsTabToolStripMenuItem;
         private System.Windows.Forms.ToolStripLabel SizeLabel;
         private System.Windows.Forms.SplitContainer splitContainer1;
         private System.Windows.Forms.ToolStrip bottomMenuToolStrip;

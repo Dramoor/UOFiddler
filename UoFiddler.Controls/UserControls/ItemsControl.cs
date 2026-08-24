@@ -40,6 +40,14 @@ namespace UoFiddler.Controls.UserControls
 
             InitializeFilterMenuItems();
             InitializeExportWithHueMenu();
+
+            // Hook into VisibleChanged to execute pending navigation when the tab is activated
+            VisibleChanged += (_, _) => {
+                if (Visible && IsLoaded && _pendingNavigationGraphicId >= 0)
+                {
+                    ExecutePendingNavigation();
+                }
+            };
         }
 
         private static readonly Regex _hexIndexRegex = new(@"0[xX][0-9a-fA-F]+", RegexOptions.Compiled);
@@ -73,6 +81,7 @@ namespace UoFiddler.Controls.UserControls
         private SearchType _currentSearchType = SearchType.Name;
 
         private int _selectedGraphicId = -1;
+        private int _pendingNavigationGraphicId = -1;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int SelectedGraphicId
@@ -81,6 +90,14 @@ namespace UoFiddler.Controls.UserControls
             set
             {
                 _selectedGraphicId = value < 0 ? 0 : value;
+
+                // If the control isn't loaded or visible yet, defer the update
+                if (!IsLoaded || !Visible)
+                {
+                    _pendingNavigationGraphicId = _selectedGraphicId;
+                    return;
+                }
+
                 ItemsTileView.FocusIndex = _itemList.Count == 0 ? -1 : _itemList.IndexOf(_selectedGraphicId);
 
                 UpdateToolStripLabels(_selectedGraphicId);
@@ -1497,6 +1514,20 @@ namespace UoFiddler.Controls.UserControls
         private void UpdateFileLoadedLabel()
         {
             FileLoadedLabel.Text = Art.IsUsingUopLegacy() ? "Loaded: UOP" : "Loaded: MUL";
+        }
+
+        private void ExecutePendingNavigation()
+        {
+            if (_pendingNavigationGraphicId >= 0 && IsLoaded && Visible)
+            {
+                int graphicToSelect = _pendingNavigationGraphicId;
+                _pendingNavigationGraphicId = -1; // Clear after execution
+
+                ItemsTileView.FocusIndex = _itemList.Count == 0 ? -1 : _itemList.IndexOf(graphicToSelect);
+
+                UpdateToolStripLabels(graphicToSelect);
+                UpdateDetail(graphicToSelect);
+            }
         }
 
         private void OnClickSave(object sender, EventArgs e)

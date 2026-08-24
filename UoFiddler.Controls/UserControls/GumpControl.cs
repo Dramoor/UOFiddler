@@ -63,6 +63,10 @@ namespace UoFiddler.Controls.UserControls
         private readonly HashSet<string> _activeTagFilters = new(StringComparer.OrdinalIgnoreCase);
         private int _pendingNavigationGumpId = -1;
 
+        // Multi-selection support
+        private HashSet<int> _manualSelection = new();
+        private int _lastSelectionIndex = -1;
+
         /// <summary>
         /// Gump ids currently listed, ascending. The list is virtual, so this is the only place a row's
         /// identity lives - with free slots hidden a row's position is not its id.
@@ -158,8 +162,12 @@ namespace UoFiddler.Controls.UserControls
         {
             get
             {
-                int position = listView.SelectedIndices.Count > 0 ? listView.SelectedIndices[0] : -1;
+                if (_manualSelection.Count == 0)
+                {
+                    return -1;
+                }
 
+                int position = _manualSelection.Min();
                 return position >= 0 && position < _ids.Count ? _ids[position] : -1;
             }
         }
@@ -171,10 +179,51 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
-            listView.SelectedIndices.Clear();
-            listView.SelectedIndices.Add(position);
-            _selectedPosition = position;
+            _manualSelection.Clear();
+            _manualSelection.Add(position);
+            _lastSelectionIndex = position;
             listView.EnsureVisible(position);
+            ListView_SelectedIndexChanged(null, EventArgs.Empty);
+        }
+
+        /// <summary>
+        /// Updates the FileFormatLabel to show whether Gumps are using UOP or MUL format.
+        /// </summary>
+        private void UpdateFileFormatLabel()
+        {
+            try
+            {
+                string format = Gumps.IsUsingUopLegacy() ? "UOP" : "MUL";
+                FileFormatLabel.Text = $"Format: {format}";
+            }
+            catch
+            {
+                FileFormatLabel.Text = "Format: Unknown";
+            }
+        }
+
+        /// <summary>
+        /// Updates the export menu items to show the count of selected gumps.
+        /// Shows "Export Image" for 1, "Export N Images" for multiple, "Export All Images" for none.
+        /// </summary>
+        private void UpdateExportLabel()
+        {
+            string exportText;
+            if (_manualSelection.Count == 0)
+            {
+                exportText = "Export All Images";
+            }
+            else if (_manualSelection.Count == 1)
+            {
+                exportText = "Export Image";
+            }
+            else
+            {
+                exportText = $"Export {_manualSelection.Count} Images";
+            }
+
+            // Update the "Extract Image" menu item text
+            extractImageToolStripMenuItem.Text = exportText;
         }
 
         /// <summary>
@@ -238,6 +287,9 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _loaded = true;
+                UpdateFileFormatLabel();
+                UpdateExportLabel();
+                UpdateRemoveLabel();
 
                 // Execute any pending navigation after the control is fully loaded
                 ExecutePendingNavigation();
@@ -486,7 +538,7 @@ namespace UoFiddler.Controls.UserControls
 
             Brush fontBrush = Brushes.Gray;
 
-            bool isSelected = e.ItemIndex == _selectedPosition;
+            bool isSelected = _manualSelection.Contains(e.ItemIndex);
             int i = _ids[e.ItemIndex];
             bool hasEntry = _gumpEntries.TryGetValue(i, out GumpEntry entry);
 
@@ -550,7 +602,7 @@ namespace UoFiddler.Controls.UserControls
 
         private void ListView_SelectedIndexChanged(object sender, EventArgs e)
         {
-            _selectedPosition = listView.SelectedIndices.Count > 0 ? listView.SelectedIndices[0] : -1;
+            _selectedPosition = _manualSelection.Count > 0 ? _manualSelection.Min() : -1;
 
             int i = SelectedGumpId;
             if (i < 0)
@@ -558,6 +610,8 @@ namespace UoFiddler.Controls.UserControls
                 pictureBox.BackgroundImage = null;
                 listView.Invalidate();
 
+                UpdateExportLabel();
+                UpdateRemoveLabel();
                 return;
             }
 
@@ -583,6 +637,75 @@ namespace UoFiddler.Controls.UserControls
 
             listView.Invalidate();
             JumpToMaleFemaleInvalidate();
+            UpdateExportLabel();
+            UpdateRemoveLabel();
+        }
+
+        private void ListView_MouseDown(object sender, MouseEventArgs e)
+        {
+            // Right-click: let the context menu handler deal with it
+            if (e.Button == MouseButtons.Right)
+            {
+                return;
+            }
+
+            ListViewHitTestInfo hit = listView.HitTest(e.Location);
+            if (hit.Item == null || hit.Item.Index < 0)
+            {
+                return;
+            }
+
+            int clickedIndex = hit.Item.Index;
+            bool isCtrlPressed = (Control.ModifierKeys & Keys.Control) == Keys.Control;
+            bool isShiftPressed = (Control.ModifierKeys & Keys.Shift) == Keys.Shift;
+
+            if (!isCtrlPressed && !isShiftPressed)
+            {
+                // Plain click: single selection
+                _manualSelection.Clear();
+                _manualSelection.Add(clickedIndex);
+                _lastSelectionIndex = clickedIndex;
+            }
+            else if (isCtrlPressed)
+            {
+                // Ctrl: toggle selection
+                if (_manualSelection.Contains(clickedIndex))
+                {
+                    _manualSelection.Remove(clickedIndex);
+                }
+                else
+                {
+                    _manualSelection.Add(clickedIndex);
+                }
+                _lastSelectionIndex = clickedIndex;
+            }
+            else if (isShiftPressed)
+            {
+                // Shift: range selection
+                if (_lastSelectionIndex >= 0)
+                {
+                    int start = Math.Min(_lastSelectionIndex, clickedIndex);
+                    int end = Math.Max(_lastSelectionIndex, clickedIndex);
+                    _manualSelection.Clear();
+                    for (int i = start; i <= end; i++)
+                    {
+                        _manualSelection.Add(i);
+                    }
+                }
+                else
+                {
+                    _manualSelection.Clear();
+                    _manualSelection.Add(clickedIndex);
+                    _lastSelectionIndex = clickedIndex;
+                }
+            }
+
+            ListView_SelectedIndexChanged(null, EventArgs.Empty);
+        }
+
+        private void ListView_MouseUp(object sender, MouseEventArgs e)
+        {
+            // Optional: can be used for additional behaviors if needed
         }
 
         private void JumpToMaleFemaleInvalidate()
@@ -668,38 +791,97 @@ namespace UoFiddler.Controls.UserControls
                 ProgressBarDialog barDialog = new ProgressBarDialog(Gumps.GetCount(), "Save");
                 Gumps.Save(Options.OutputPath);
                 barDialog.Dispose();
+
+                // If currently using UOP, convert the saved MUL files back to UOP format
+                UopConversionHelper.ConvertGumpsToUopIfNeeded(Options.OutputPath);
             }
 
             Options.ChangedUltimaClass["Gumps"] = false;
             FileSavedDialog.Show(FindForm(), Options.OutputPath, "Files saved successfully.");
         }
 
+        private void UpdateRemoveLabel()
+        {
+            string removeText;
+            if (_manualSelection.Count == 0)
+            {
+                removeText = "Remove Image";
+            }
+            else if (_manualSelection.Count == 1)
+            {
+                removeText = "Remove Image";
+            }
+            else
+            {
+                removeText = $"Remove {_manualSelection.Count} Images";
+            }
+
+            // Update the "Remove" menu item text
+            removeToolStripMenuItem.Text = removeText;
+        }
+
         private void OnClickRemove(object sender, EventArgs e)
         {
-            int i = SelectedGumpId;
-            if (i < 0)
+            // Handle both single and multiple selection removal
+            if (_manualSelection.Count == 0)
             {
-                return;
-            }
-
-            DialogResult result = MessageBox.Show($"Are you sure to remove {i}", "Remove", MessageBoxButtons.YesNo,
-                MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
-            if (result != DialogResult.Yes)
-            {
-                return;
-            }
-
-            Gumps.RemoveGump(i);
-            ControlEvents.FireGumpChangeEvent(this, i);
-            if (!_showFreeSlots)
-            {
-                int position = _ids.BinarySearch(i);
-                if (position >= 0)
+                // If no selection, remove the item shown in preview (SelectedGumpId)
+                int i = SelectedGumpId;
+                if (i < 0)
                 {
-                    listView.SelectedIndices.Clear();
-                    _selectedPosition = -1;
-                    _ids.RemoveAt(position);
-                    listView.VirtualListSize = _ids.Count;
+                    return;
+                }
+
+                DialogResult result = MessageBox.Show($"Are you sure to remove {i}", "Remove",
+                    MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                Gumps.RemoveGump(i);
+                ControlEvents.FireGumpChangeEvent(this, i);
+                if (!_showFreeSlots)
+                {
+                    int position = _ids.BinarySearch(i);
+                    if (position >= 0)
+                    {
+                        listView.SelectedIndices.Clear();
+                        _selectedPosition = -1;
+                        _ids.RemoveAt(position);
+                        listView.VirtualListSize = _ids.Count;
+                    }
+                }
+            }
+            else
+            {
+                // Handle multiple selection removal
+                DialogResult result = MessageBox.Show(
+                    $"Are you sure to remove {_manualSelection.Count} gump(s)?",
+                    "Remove", MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
+                if (result != DialogResult.Yes)
+                {
+                    return;
+                }
+
+                var toRemove = _manualSelection.ToList();
+                foreach (int idx in toRemove.OrderByDescending(x => x))
+                {
+                    if (idx >= 0 && idx < _ids.Count)
+                    {
+                        int gumpId = _ids[idx];
+                        Gumps.RemoveGump(gumpId);
+                        ControlEvents.FireGumpChangeEvent(this, gumpId);
+                    }
+                }
+
+                _manualSelection.Clear();
+                _lastSelectionIndex = -1;
+
+                if (!_showFreeSlots)
+                {
+                    PopulateListBox(!_showFreeSlots);
                 }
             }
 
@@ -737,6 +919,59 @@ namespace UoFiddler.Controls.UserControls
                     break;
                 }
             }
+        }
+
+        private void OnClickSelectInItemsTab(object sender, EventArgs e)
+        {
+            if (_manualSelection.Count == 0)
+            {
+                return;
+            }
+
+            int gumpId = SelectedGumpId;
+            if (gumpId < 0)
+            {
+                return;
+            }
+
+            // Try to search for this graphic in the Items tab
+            // Note: This assumes the gump ID corresponds to an item graphic ID
+            if (ItemsControl.SearchGraphic(gumpId))
+            {
+                // Successfully found and selected
+                return;
+            }
+
+            // Fallback: just activate Items tab
+            TabPageNavigator.ActivateOwningTabPage(_refMarker);
+        }
+
+        private void ExportSelectedGumps(ImageFormat imageFormat)
+        {
+            if (_manualSelection.Count == 0)
+            {
+                return;
+            }
+
+            using (new WaitCursorScope(this))
+            {
+                foreach (int idx in _manualSelection)
+                {
+                    if (idx >= 0 && idx < _ids.Count)
+                    {
+                        int gumpId = _ids[idx];
+                        Bitmap bmp = Gumps.GetGump(gumpId);
+                        if (bmp != null)
+                        {
+                            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+                            string path = Path.Combine(Options.OutputPath, $"Gump {Utils.FormatExportId(gumpId)}.{fileExtension}");
+                            bmp.Save(path, imageFormat);
+                        }
+                    }
+                }
+            }
+
+            FileSavedDialog.Show(FindForm(), Options.OutputPath, "Files saved successfully.");
         }
 
         private void OnTextChanged_InsertAt(object sender, EventArgs e)
@@ -803,29 +1038,75 @@ namespace UoFiddler.Controls.UserControls
 
         private void Extract_Image_ClickBmp(object sender, EventArgs e)
         {
-            int i = SelectedGumpId;
-            ExportGumpImage(i, ImageFormat.Bmp);
+            ExportImages(ImageFormat.Bmp);
         }
 
         private void Extract_Image_ClickTiff(object sender, EventArgs e)
         {
-            int i = SelectedGumpId;
-            ExportGumpImage(i, ImageFormat.Tiff);
+            ExportImages(ImageFormat.Tiff);
         }
 
         private void Extract_Image_ClickJpg(object sender, EventArgs e)
         {
-            int i = SelectedGumpId;
-            ExportGumpImage(i, ImageFormat.Jpeg);
+            ExportImages(ImageFormat.Jpeg);
         }
 
         private void Extract_Image_ClickPng(object sender, EventArgs e)
         {
-            int i = SelectedGumpId;
-            ExportGumpImage(i, ImageFormat.Png);
+            ExportImages(ImageFormat.Png);
         }
 
-        private static void ExportGumpImage(int index, ImageFormat imageFormat)
+        private void OnClick_SaveAllBmp(object sender, EventArgs e)
+        {
+            ExportImages(ImageFormat.Bmp);
+        }
+
+        private void OnClick_SaveAllTiff(object sender, EventArgs e)
+        {
+            ExportImages(ImageFormat.Tiff);
+        }
+
+        private void OnClick_SaveAllJpg(object sender, EventArgs e)
+        {
+            ExportImages(ImageFormat.Jpeg);
+        }
+
+        private void OnClick_SaveAllPng(object sender, EventArgs e)
+        {
+            ExportImages(ImageFormat.Png);
+        }
+
+        /// <summary>
+        /// Unified export handler that handles single, multiple, or all gumps based on selection state.
+        /// If multiple items are selected, exports all selected items.
+        /// If one item is selected, exports just that item.
+        /// If nothing is selected, exports all valid gumps to a user-chosen folder.
+        /// </summary>
+        private void ExportImages(ImageFormat imageFormat)
+        {
+            if (_manualSelection.Count > 1)
+            {
+                // Multiple selected: export all selected
+                ExportSelectedGumps(imageFormat);
+            }
+            else if (_manualSelection.Count == 1)
+            {
+                // Single selected: export that one
+                int position = _manualSelection.Min();
+                if (position >= 0 && position < _ids.Count)
+                {
+                    int gumpId = _ids[position];
+                    ExportGumpImage(gumpId, imageFormat);
+                }
+            }
+            else
+            {
+                // Nothing selected: export all
+                ExportAllGumps(imageFormat);
+            }
+        }
+
+        private void ExportGumpImage(int index, ImageFormat imageFormat)
         {
             // The menu entries reach this with the selected id, which is -1 when nothing is selected.
             if (index < 0 || !Gumps.IsValidIndex(index))
@@ -847,26 +1128,6 @@ namespace UoFiddler.Controls.UserControls
                 MessageBoxButtons.OK,
                 MessageBoxIcon.Information,
                 MessageBoxDefaultButton.Button1);
-        }
-
-        private void OnClick_SaveAllBmp(object sender, EventArgs e)
-        {
-            ExportAllGumps(ImageFormat.Bmp);
-        }
-
-        private void OnClick_SaveAllTiff(object sender, EventArgs e)
-        {
-            ExportAllGumps(ImageFormat.Tiff);
-        }
-
-        private void OnClick_SaveAllJpg(object sender, EventArgs e)
-        {
-            ExportAllGumps(ImageFormat.Jpeg);
-        }
-
-        private void OnClick_SaveAllPng(object sender, EventArgs e)
-        {
-            ExportAllGumps(ImageFormat.Png);
         }
 
         private void ExportAllGumps(ImageFormat imageFormat)

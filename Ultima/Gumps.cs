@@ -191,8 +191,17 @@ namespace Ultima
         }
 
         /// <summary>
+        /// Checks if Gumps are loaded from UOP format (legacy MUL in UOP container).
+        /// </summary>
+        /// <returns>True if using UOP format, false if using traditional MUL format.</returns>
+        public static bool IsUsingUopLegacy()
+        {
+            return _fileIndex?.MulPath?.EndsWith(".uop") == true;
+        }
+
+        /// <summary>
         /// Works out once, and remembers, whether an entry actually holds a drawable gump.
-        /// See <see cref="_contentState"/> for why the index alone cannot answer this.
+        /// See <see cref="ContentState"/> for why the index alone cannot answer this.
         /// </summary>
         private static bool ProbeContent(int index, int packedExtra)
         {
