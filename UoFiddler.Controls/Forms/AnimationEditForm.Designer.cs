@@ -44,6 +44,21 @@
             fromvdToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             tovdToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsBmpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsTiffToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsJpgToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsPngToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifThisDirectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifAllDirectionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifLoopingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifLoopingThisDirectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifLoopingAllDirectionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifWithMountThisDirectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifWithMountAllDirectionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             AnimationFileToolStrip = new System.Windows.Forms.ToolStrip();
             SelectFileToolStripComboBox = new System.Windows.Forms.ToolStripComboBox();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
@@ -246,7 +261,7 @@
             // ContextMenuStripTreeView
             // 
             ContextMenuStripTreeView.ImageScalingSize = new System.Drawing.Size(20, 20);
-            ContextMenuStripTreeView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addToolStripMenuItem, removeToolStripMenuItem, extractImagesToolStripMenuItem1, importToolStripMenuItem1, exportToolStripMenuItem1 });
+            ContextMenuStripTreeView.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { addToolStripMenuItem, removeToolStripMenuItem, extractImagesToolStripMenuItem1, exportActionToolStripMenuItem, importToolStripMenuItem1, exportToolStripMenuItem1 });
             ContextMenuStripTreeView.Name = "contextMenuStrip2";
             ContextMenuStripTreeView.Size = new System.Drawing.Size(158, 114);
             // 
@@ -331,8 +346,113 @@
             tovdToolStripMenuItem.Text = "To .vd";
             tovdToolStripMenuItem.Click += OnClickExportToVD;
             // 
-            // AnimationFileToolStrip
+            // exportActionToolStripMenuItem
             // 
+            exportActionToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportActionAsBmpToolStripMenuItem, exportActionAsTiffToolStripMenuItem, exportActionAsJpgToolStripMenuItem, exportActionAsPngToolStripMenuItem, exportActionAsGifToolStripMenuItem, exportActionAsGifLoopingToolStripMenuItem });
+            exportActionToolStripMenuItem.Name = "exportActionToolStripMenuItem";
+            exportActionToolStripMenuItem.Size = new System.Drawing.Size(157, 22);
+            exportActionToolStripMenuItem.Text = "Export Action";
+            // 
+            // exportActionAsBmpToolStripMenuItem
+            // 
+            exportActionAsBmpToolStripMenuItem.Name = "exportActionAsBmpToolStripMenuItem";
+            exportActionAsBmpToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsBmpToolStripMenuItem.Text = "As Bmp";
+            exportActionAsBmpToolStripMenuItem.Click += OnClickExportActionAsBmp;
+            // 
+            // exportActionAsTiffToolStripMenuItem
+            // 
+            exportActionAsTiffToolStripMenuItem.Name = "exportActionAsTiffToolStripMenuItem";
+            exportActionAsTiffToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsTiffToolStripMenuItem.Text = "As Tiff";
+            exportActionAsTiffToolStripMenuItem.Click += OnClickExportActionAsTiff;
+            // 
+            // exportActionAsJpgToolStripMenuItem
+            // 
+            exportActionAsJpgToolStripMenuItem.Name = "exportActionAsJpgToolStripMenuItem";
+            exportActionAsJpgToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsJpgToolStripMenuItem.Text = "As Jpg";
+            exportActionAsJpgToolStripMenuItem.Click += OnClickExportActionAsJpg;
+            // 
+            // exportActionAsPngToolStripMenuItem
+            // 
+            exportActionAsPngToolStripMenuItem.Name = "exportActionAsPngToolStripMenuItem";
+            exportActionAsPngToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsPngToolStripMenuItem.Text = "As Png";
+            exportActionAsPngToolStripMenuItem.Click += OnClickExportActionAsPng;
+            // 
+            // exportActionAsGifToolStripMenuItem
+            // 
+            exportActionAsGifToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportActionAsGifThisDirectionToolStripMenuItem, exportActionAsGifAllDirectionsToolStripMenuItem, exportActionAsGifWithMountThisDirectionToolStripMenuItem, exportActionAsGifWithMountAllDirectionsToolStripMenuItem });
+            exportActionAsGifToolStripMenuItem.Name = "exportActionAsGifToolStripMenuItem";
+            exportActionAsGifToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifToolStripMenuItem.Text = "As animated Gif (no looping)";
+            // 
+            // exportActionAsGifThisDirectionToolStripMenuItem
+            // 
+            exportActionAsGifThisDirectionToolStripMenuItem.Name = "exportActionAsGifThisDirectionToolStripMenuItem";
+            exportActionAsGifThisDirectionToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifThisDirectionToolStripMenuItem.Text = "This Direction";
+            exportActionAsGifThisDirectionToolStripMenuItem.Click += OnClickExportActionAsGifThisDirection;
+            // 
+            // exportActionAsGifAllDirectionsToolStripMenuItem
+            // 
+            exportActionAsGifAllDirectionsToolStripMenuItem.Name = "exportActionAsGifAllDirectionsToolStripMenuItem";
+            exportActionAsGifAllDirectionsToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifAllDirectionsToolStripMenuItem.Text = "All Directions";
+            exportActionAsGifAllDirectionsToolStripMenuItem.Click += OnClickExportActionAsGifAllDirections;
+            // 
+            // exportActionAsGifLoopingToolStripMenuItem
+            // 
+            exportActionAsGifLoopingToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { exportActionAsGifLoopingThisDirectionToolStripMenuItem, exportActionAsGifLoopingAllDirectionsToolStripMenuItem, exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem, exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem });
+            exportActionAsGifLoopingToolStripMenuItem.Name = "exportActionAsGifLoopingToolStripMenuItem";
+            exportActionAsGifLoopingToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifLoopingToolStripMenuItem.Text = "As animated Gif (looping)";
+            // 
+            // exportActionAsGifLoopingThisDirectionToolStripMenuItem
+            // 
+            exportActionAsGifLoopingThisDirectionToolStripMenuItem.Name = "exportActionAsGifLoopingThisDirectionToolStripMenuItem";
+            exportActionAsGifLoopingThisDirectionToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifLoopingThisDirectionToolStripMenuItem.Text = "This Direction";
+            exportActionAsGifLoopingThisDirectionToolStripMenuItem.Click += OnClickExportActionAsGifLoopingThisDirection;
+            // 
+            // exportActionAsGifLoopingAllDirectionsToolStripMenuItem
+            // 
+            exportActionAsGifLoopingAllDirectionsToolStripMenuItem.Name = "exportActionAsGifLoopingAllDirectionsToolStripMenuItem";
+            exportActionAsGifLoopingAllDirectionsToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifLoopingAllDirectionsToolStripMenuItem.Text = "All Directions";
+            exportActionAsGifLoopingAllDirectionsToolStripMenuItem.Click += OnClickExportActionAsGifLoopingAllDirections;
+            // 
+            // exportActionAsGifWithMountThisDirectionToolStripMenuItem
+            // 
+            exportActionAsGifWithMountThisDirectionToolStripMenuItem.Name = "exportActionAsGifWithMountThisDirectionToolStripMenuItem";
+            exportActionAsGifWithMountThisDirectionToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifWithMountThisDirectionToolStripMenuItem.Text = "This Direction (with Mount)";
+            exportActionAsGifWithMountThisDirectionToolStripMenuItem.Click += OnClickExportActionAsGifWithMountThisDirection;
+            // 
+            // exportActionAsGifWithMountAllDirectionsToolStripMenuItem
+            // 
+            exportActionAsGifWithMountAllDirectionsToolStripMenuItem.Name = "exportActionAsGifWithMountAllDirectionsToolStripMenuItem";
+            exportActionAsGifWithMountAllDirectionsToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifWithMountAllDirectionsToolStripMenuItem.Text = "All Directions (with Mount)";
+            exportActionAsGifWithMountAllDirectionsToolStripMenuItem.Click += OnClickExportActionAsGifWithMountAllDirections;
+            // 
+            // exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem
+            // 
+            exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem.Name = "exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem";
+            exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem.Text = "This Direction (with Mount)";
+            exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem.Click += OnClickExportActionAsGifLoopingWithMountThisDirection;
+            // 
+            // exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem
+            // 
+            exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Name = "exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem";
+            exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Size = new System.Drawing.Size(147, 22);
+            exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Text = "All Directions (with Mount)";
+            exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Click += OnClickExportActionAsGifLoopingWithMountAllDirections;
+            // 
+            // AnimationFileToolStrip
+            //
             AnimationFileToolStrip.ImageScalingSize = new System.Drawing.Size(20, 20);
             AnimationFileToolStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { SelectFileToolStripComboBox });
             AnimationFileToolStrip.Location = new System.Drawing.Point(0, 0);
@@ -1721,6 +1841,21 @@
         private System.Windows.Forms.ToolStripMenuItem exportToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem exportToolStripMenuItem1;
         private System.Windows.Forms.ToolStripMenuItem extractImagesToolStripMenuItem1;
+        private System.Windows.Forms.ToolStripMenuItem exportActionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsBmpToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsTiffToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsJpgToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsPngToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifThisDirectionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifAllDirectionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifLoopingToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifLoopingThisDirectionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifLoopingAllDirectionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifWithMountThisDirectionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifWithMountAllDirectionsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fromGifToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fromImageToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem fromTxtToolStripMenuItem;

@@ -10,6 +10,7 @@
  ***************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -667,6 +668,13 @@ namespace UoFiddler.Controls.Forms
             UpdateSecondAnimWarning();
             AnimationPictureBox.Invalidate();
             SetPaletteBox();
+
+            // Show/hide "with mount" menu options based on file type and action
+            bool canShowMountOptions = _fileType == 2 && (_currentAction == 0 || _currentAction == 1 || _currentAction == 2);
+            exportActionAsGifWithMountThisDirectionToolStripMenuItem.Visible = canShowMountOptions;
+            exportActionAsGifWithMountAllDirectionsToolStripMenuItem.Visible = canShowMountOptions;
+            exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem.Visible = canShowMountOptions;
+            exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Visible = canShowMountOptions;
         }
 
         private void DrawFrameItem(object sender, DrawListViewItemEventArgs e)
@@ -1816,6 +1824,435 @@ namespace UoFiddler.Controls.Forms
             AnimationEdit.ExportToVD(_fileType, _currentBody, fileName);
 
             FileSavedDialog.Show(FindForm(), Options.OutputPath, "Animation saved successfully.");
+        }
+
+        private void OnClickExportActionAsBmp(object sender, EventArgs e)
+        {
+            ExportActionFrames(ImageFormat.Bmp);
+        }
+
+        private void OnClickExportActionAsTiff(object sender, EventArgs e)
+        {
+            ExportActionFrames(ImageFormat.Tiff);
+        }
+
+        private void OnClickExportActionAsJpg(object sender, EventArgs e)
+        {
+            ExportActionFrames(ImageFormat.Jpeg);
+        }
+
+        private void OnClickExportActionAsPng(object sender, EventArgs e)
+        {
+            ExportActionFrames(ImageFormat.Png);
+        }
+
+        private void ExportActionFrames(ImageFormat imageFormat)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+            if (currentBits == null || currentBits.Length == 0)
+            {
+                return;
+            }
+
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+            string fileName = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}");
+
+            for (int i = 0; i < currentBits.Length; i++)
+            {
+                if (currentBits[i] == null)
+                    continue;
+
+                using (Bitmap newBitmap = new Bitmap(currentBits[i].Width, currentBits[i].Height))
+                {
+                    using (Graphics newGraph = Graphics.FromImage(newBitmap))
+                    {
+                        newGraph.FillRectangle(Brushes.White, 0, 0, newBitmap.Width, newBitmap.Height);
+                        newGraph.DrawImage(currentBits[i], new Point(0, 0));
+                        newGraph.Save();
+                    }
+
+                    newBitmap.Save($"{fileName}-{i}.{fileExtension}", imageFormat);
+                }
+            }
+
+            MessageBox.Show($"Animation frames saved to '{fileName}-X.{fileExtension}'", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void OnClickExportActionAsGifThisDirection(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: false, allDirections: false);
+        }
+
+        private void OnClickExportActionAsGifAllDirections(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: false, allDirections: true);
+        }
+
+        private void OnClickExportActionAsGifLoopingThisDirection(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: true, allDirections: false);
+        }
+
+        private void OnClickExportActionAsGifLoopingAllDirections(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: true, allDirections: true);
+        }
+
+        private void ExportActionAsGif(bool looping, bool allDirections, bool withMount = false)
+        {
+            if (allDirections)
+            {
+                ExportActionAsGifAllDirections(looping, withMount);
+            }
+            else
+            {
+                if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+                {
+                    return;
+                }
+
+                AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+                if (edit == null)
+                {
+                    return;
+                }
+
+                Bitmap[] currentBits = edit.GetFrames();
+                if (currentBits == null || currentBits.Length == 0)
+                {
+                    return;
+                }
+
+                // If with mount, pre-calculate canvas dimensions that work for all frames
+                int canvasWidth = -1, canvasHeight = -1, canvasLeft = -1, canvasTop = -1;
+                if (withMount && _fileType == 2)
+                {
+                    (canvasWidth, canvasHeight, canvasLeft, canvasTop) = CalculateMountCanvasDimensions(_currentDir);
+                }
+
+                var animFrames = new List<AnimatedFrame>();
+
+                for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
+                {
+                    if (currentBits[i] != null)
+                    {
+                        Bitmap frameToAdd = currentBits[i];
+                        Point frameCenter = edit.Frames[i].Center;
+
+                        // If with mount is requested and applicable, overlay the mount
+                        if (withMount && _fileType == 2)
+                        {
+                            (frameToAdd, frameCenter) = OverlayMountOnFrame(currentBits[i], edit.Frames[i].Center, _currentDir, i, canvasWidth, canvasHeight, canvasLeft, canvasTop);
+                        }
+
+                        animFrames.Add(new AnimatedFrame(frameToAdd, frameCenter));
+                    }
+                }
+
+                if (animFrames.Count == 0)
+                {
+                    return;
+                }
+
+                var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_{_currentDir}.gif");
+
+                animFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
+                MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+            }
+        }
+
+        private void ExportActionAsGifAllDirections(bool looping, bool withMount = false)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            var allFrames = new List<AnimatedFrame>();
+
+            // If with mount, pre-calculate canvas dimensions that work for all frames/directions
+            Dictionary<int, (int width, int height, int left, int top)> canvasDimsByDir = new();
+            if (withMount && _fileType == 2)
+            {
+                int[] uniqueDirs = { 0, 1, 2, 3, 4 };
+                foreach (int dir in uniqueDirs)
+                {
+                    canvasDimsByDir[dir] = CalculateMountCanvasDimensions(dir);
+                }
+            }
+
+            // Collect frames in circular order: 0, 1, 2, 3, 4, 3 reversed, 2 reversed, 1 reversed
+            // This creates a full 360-degree rotation effect when played
+            int[] directionOrder = { 0, 1, 2, 3, 4, 3, 2, 1 };
+            bool[] mirrorOrder = { false, false, false, false, false, true, true, true };
+
+            for (int orderIndex = 0; orderIndex < directionOrder.Length; orderIndex++)
+            {
+                int dir = directionOrder[orderIndex];
+                bool mirror = mirrorOrder[orderIndex];
+
+                AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, dir);
+                if (edit != null)
+                {
+                    Bitmap[] currentBits = edit.GetFrames();
+                    if (currentBits != null && edit.Frames != null)
+                    {
+                        for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
+                        {
+                            if (currentBits[i] != null)
+                            {
+                                Bitmap frameToUse = currentBits[i];
+                                Point frameCenter = edit.Frames[i].Center;
+
+                                // If with mount is requested and applicable, overlay the mount
+                                if (withMount && _fileType == 2)
+                                {
+                                    var (w, h, l, t) = canvasDimsByDir[dir];
+                                    (frameToUse, frameCenter) = OverlayMountOnFrame(currentBits[i], edit.Frames[i].Center, dir, i, w, h, l, t);
+                                }
+
+                                if (mirror)
+                                {
+                                    var mirroredBitmap = new Bitmap(frameToUse.Width, frameToUse.Height);
+                                    using (Graphics g = Graphics.FromImage(mirroredBitmap))
+                                    {
+                                        g.ScaleTransform(-1, 1);
+                                        g.TranslateTransform(-frameToUse.Width, 0);
+                                        g.DrawImage(frameToUse, 0, 0);
+                                    }
+                                    allFrames.Add(new AnimatedFrame(mirroredBitmap, frameCenter));
+                                }
+                                else
+                                {
+                                    allFrames.Add(new AnimatedFrame(frameToUse, frameCenter));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (allFrames.Count == 0)
+            {
+                return;
+            }
+
+            var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_AllDir.gif");
+
+            allFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
+            MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void OnClickExportActionAsGifWithMountThisDirection(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: false, allDirections: false, withMount: true);
+        }
+
+        private void OnClickExportActionAsGifWithMountAllDirections(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: false, allDirections: true, withMount: true);
+        }
+
+        private void OnClickExportActionAsGifLoopingWithMountThisDirection(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: true, allDirections: false, withMount: true);
+        }
+
+        private void OnClickExportActionAsGifLoopingWithMountAllDirections(object sender, EventArgs e)
+        {
+            ExportActionAsGif(looping: true, allDirections: true, withMount: true);
+        }
+
+        private (int width, int height, int left, int top) CalculateMountCanvasDimensions(int direction)
+        {
+            // Get the mount overlay based on action
+            int overlayAction = -1;
+            if (_currentAction == 0) overlayAction = 23; // Walk -> mount walk
+            else if (_currentAction == 1) overlayAction = 24; // Run -> mount run
+            else if (_currentAction == 2) overlayAction = 25; // Idle -> mount idle
+
+            if (overlayAction == -1)
+            {
+                return (0, 0, 0, 0);
+            }
+
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, direction);
+            if (edit == null || edit.Frames == null || edit.Frames.Count == 0)
+            {
+                return (0, 0, 0, 0);
+            }
+
+            // Mount always uses body 400 from anim.mul (fileType 1)
+            int overlayBody = 400;
+            int overlayFileType = 1;
+            var mountEdit = Ultima.AnimationEdit.GetAnimation(overlayFileType, overlayBody, overlayAction, direction);
+            if (mountEdit == null || mountEdit.Frames == null || mountEdit.Frames.Count == 0)
+            {
+                return (0, 0, 0, 0);
+            }
+
+            var mountBits = mountEdit.GetFrames();
+            var baseBits = edit.GetFrames();
+            if (mountBits == null || mountBits.Length == 0 || baseBits == null)
+            {
+                return (0, 0, 0, 0);
+            }
+
+            // Calculate bounds assuming reference point at (0, 0)
+            // Both animal and mount are drawn relative to this point using:
+            // x = refX - frame.Center.X
+            // y = refY - frame.Center.Y - frame.Height
+
+            int minX = int.MaxValue, maxX = int.MinValue;
+            int minY = int.MaxValue, maxY = int.MinValue;
+
+            int refX = 0; // Reference point
+            int refY = 0;
+
+            // Check all animal frames
+            for (int i = 0; i < Math.Min(edit.Frames.Count, baseBits.Length); i++)
+            {
+                if (baseBits[i] != null)
+                {
+                    var baseFrame = edit.Frames[i];
+                    int baseW = baseBits[i].Width;
+                    int baseH = baseBits[i].Height;
+                    int baseCx = baseFrame.Center.X;
+                    int baseCy = baseFrame.Center.Y;
+
+                    // Animal drawn at: (refX - baseCx, refY - baseCy - baseH)
+                    int animalLeft = refX - baseCx;
+                    int animalTop = refY - baseCy - baseH;
+                    int animalRight = animalLeft + baseW;
+                    int animalBottom = animalTop + baseH;
+
+                    minX = Math.Min(minX, animalLeft);
+                    maxX = Math.Max(maxX, animalRight);
+                    minY = Math.Min(minY, animalTop);
+                    maxY = Math.Max(maxY, animalBottom);
+                }
+            }
+
+            // Check all mount frames
+            for (int i = 0; i < Math.Min(mountEdit.Frames.Count, mountBits.Length); i++)
+            {
+                if (mountBits[i] != null)
+                {
+                    var mountFrame = mountEdit.Frames[i];
+                    int mountW = mountBits[i].Width;
+                    int mountH = mountBits[i].Height;
+                    int mountCx = mountFrame.Center.X;
+                    int mountCy = mountFrame.Center.Y;
+
+                    // Mount drawn at: (refX - mountCx, refY - mountCy - mountH)
+                    int mountLeft = refX - mountCx;
+                    int mountTop = refY - mountCy - mountH;
+                    int mountRight = mountLeft + mountW;
+                    int mountBottom = mountTop + mountH;
+
+                    minX = Math.Min(minX, mountLeft);
+                    maxX = Math.Max(maxX, mountRight);
+                    minY = Math.Min(minY, mountTop);
+                    maxY = Math.Max(maxY, mountBottom);
+                }
+            }
+
+            // Handle edge case where no valid frames were found
+            if (minX == int.MaxValue || maxX == int.MinValue || minY == int.MaxValue || maxY == int.MinValue)
+            {
+                return (0, 0, 0, 0);
+            }
+
+            // Calculate canvas dimensions and offset to make room for negative coordinates
+            int offsetX = -minX;
+            int offsetY = -minY;
+            int canvasWidth = maxX - minX;
+            int canvasHeight = maxY - minY;
+
+            return (canvasWidth, canvasHeight, offsetX, offsetY);
+        }
+
+        private (Bitmap bitmap, Point center) OverlayMountOnFrame(Bitmap baseBitmap, Point baseCenter, int direction, int frameIndex, int canvasWidth, int canvasHeight, int canvasLeft, int canvasTop)
+        {
+            // Get the mount overlay based on action
+            int overlayAction = -1;
+            if (_currentAction == 0) overlayAction = 23; // Walk -> mount walk
+            else if (_currentAction == 1) overlayAction = 24; // Run -> mount run
+            else if (_currentAction == 2) overlayAction = 25; // Idle -> mount idle
+
+            if (overlayAction == -1)
+            {
+                return (baseBitmap, baseCenter);
+            }
+
+            // Mount always uses body 400 from anim.mul (fileType 1)
+            int overlayBody = 400;
+            int overlayFileType = 1;
+            var mountEdit = Ultima.AnimationEdit.GetAnimation(overlayFileType, overlayBody, overlayAction, direction);
+
+            if (mountEdit == null || mountEdit.GetFrames() == null || frameIndex >= mountEdit.GetFrames().Length || mountEdit.Frames.Count <= frameIndex)
+            {
+                return (baseBitmap, baseCenter);
+            }
+
+            var mountFrames = mountEdit.GetFrames();
+            if (mountFrames[frameIndex] == null)
+            {
+                return (baseBitmap, baseCenter);
+            }
+
+            var mountFrame = mountEdit.Frames[frameIndex];
+            int mountW = mountFrames[frameIndex].Width;
+            int mountH = mountFrames[frameIndex].Height;
+            int mountCx = mountFrame.Center.X;
+            int mountCy = mountFrame.Center.Y;
+
+            int baseW = baseBitmap.Width;
+            int baseH = baseBitmap.Height;
+
+            // Create the new bitmap with the pre-calculated canvas dimensions
+            Bitmap result = new Bitmap(canvasWidth, canvasHeight);
+            using (Graphics g = Graphics.FromImage(result))
+            {
+                // Fill with transparent background
+                g.Clear(Color.Transparent);
+
+                // Reference point is where the mount's bottom-center effectively sits
+                // Mount drawn at: (refX - mountCx, refY - mountCy - mountH)
+                // Animal drawn at: (refX - baseCx, refY - baseCy - baseH)
+                // Both centered at the same reference point
+
+                int refX = canvasLeft;
+                int refY = canvasTop;
+
+                // Animal drawn first (underneath)
+                int baseX = refX - baseCenter.X;
+                int baseY = refY - baseCenter.Y - baseH;
+                g.DrawImage(baseBitmap, baseX, baseY);
+
+                // Mount drawn on top (in front) of the animal
+                int mountX = refX - mountCx;
+                int mountY = refY - mountCy - mountH;
+                g.DrawImage(mountFrames[frameIndex], mountX, mountY);
+            }
+
+            // Return the new frame with the canvas center as the center point
+            Point newCenter = new Point(canvasLeft, canvasTop);
+            return (result, newCenter);
         }
 
         private void OnClickShowOnlyValid(object sender, EventArgs e)
