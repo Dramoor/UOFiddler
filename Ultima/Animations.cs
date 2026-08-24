@@ -7,7 +7,7 @@ namespace Ultima
 {
     public static class Animations
     {
-        public const int MaxAnimationValue = 2048; // bodyconv.def says it's maximum animation value so max bodyId?
+        public const int MaxAnimationValue = 4096; // bodyconv.def says it's maximum animation value so max bodyId?
 
         // Upper bound on the action index for UOP bodies. Mirrors the UOP loader's internal
         // scan range and is exposed so callers (e.g. the animation tree) can probe actions with
@@ -540,6 +540,29 @@ namespace Ultima
         private static int GetAnimLengthLegacy(int body, int fileType)
         {
             return MobTypes.GetActionCount(LegacyRangeToMobType(body, fileType));
+        }
+
+        /// <summary>
+        /// Gets the file path and index for a specific animation body, action, and direction.
+        /// Used by UI layers to display file location information.
+        /// </summary>
+        /// <param name="body">The animation body ID</param>
+        /// <param name="action">The animation action</param>
+        /// <param name="direction">The animation direction</param>
+        /// <param name="fileType">The animation file type (Anim.mul, Anim2.mul, etc.)</param>
+        /// <param name="filePath">Output: the path to the animation file, or null if not found</param>
+        /// <param name="index">Output: the index into the animation file</param>
+        public static void GetAnimationFileInfo(int body, int action, int direction, int fileType, out string filePath, out int index)
+        {
+            filePath = null;
+            index = 0;
+
+            GetFileIndex(body, action, direction, fileType, out FileIndex fileIndex, out int outIndex);
+            if (fileIndex?.MulPath != null)
+            {
+                filePath = Path.GetFileName(fileIndex.MulPath);
+                index = outIndex;
+            }
         }
 
         /// <summary>

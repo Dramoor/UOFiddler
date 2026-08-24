@@ -152,6 +152,12 @@ namespace UoFiddler.Controls.UserControls
         // rendering can map back to the correct node.
         private readonly List<TreeNode> _listViewNodes = new List<TreeNode>();
 
+        // Search state tracking for Prev/Next navigation
+        private List<TreeNode> _searchResults = new List<TreeNode>();
+        private int _currentSearchResultIndex = -1;
+        private string _lastSearchText = string.Empty;
+        private bool _lastSearchWasById;
+
         /// <summary>
         /// ReLoads if loaded
         /// </summary>
@@ -353,8 +359,20 @@ namespace UoFiddler.Controls.UserControls
             GraphicLabel.Text = $"Graphic: {_currentSelect} (0x{_currentSelect:X})";
             HueLabel.Text = $"Hue: {hue + 1} (0x{hue + 1:X})";
 
+            // Get the file type and slot number for this animation
+            int bodyForSlot = _currentSelect;
+            Animations.Translate(ref bodyForSlot);
+            int fileType = BodyConverter.Convert(ref bodyForSlot);
+            // Note: BodyConverter.Convert modifies bodyForSlot by reference to contain the slot number
+
+            // Display the file type and slot number from the anim file
+            string fileTypeName = fileType == 1 ? "anim.mul" : $"anim{fileType}.mul";
+            AnimulFileLabel.Text = $"AnimFile: {fileTypeName}";
+            AnimulIndexLabel.Text = $"Index: {bodyForSlot}";
+
             LoadListViewFrames();
         }
+
 
         /// <summary>
         /// Clears the right-hand preview: empties the animation picture box, the frame list and the
@@ -728,30 +746,118 @@ namespace UoFiddler.Controls.UserControls
             string text = searchToolStripTextBox.Text;
             if (string.IsNullOrWhiteSpace(text))
             {
+                _searchResults.Clear();
+                _currentSearchResultIndex = -1;
+                return;
+            }
+
+            // If the text changed, reset search results
+            if (text != _lastSearchText)
+            {
+                PerformSearch(text);
+            }
+            else if (e.KeyCode == Keys.Return)
+            {
+                // Enter key moves to next result
+                e.Handled = true;
+                FindNextResult();
+            }
+            else if (e.KeyCode == Keys.Return && e.Shift)
+            {
+                // Shift+Enter moves to previous result
+                e.Handled = true;
+                FindPrevResult();
+            }
+        }
+
+        /// <summary>
+        /// Performs a new search with the given text and finds all matching results.
+        /// Automatically selects and displays the first result.
+        /// </summary>
+        private void PerformSearch(string searchText)
+        {
+            _searchResults.Clear();
+            _currentSearchResultIndex = -1;
+            _lastSearchText = searchText;
+
+            if (string.IsNullOrWhiteSpace(searchText))
+            {
                 return;
             }
 
             // A numeric value (decimal or 0x hex) searches by body id; anything else is a
             // case-insensitive substring match against the displayed body name.
-            bool byId = Utils.ConvertStringToInt(text, out int id, 0, Animations.MaxAnimationValue);
+            _lastSearchWasById = Utils.ConvertStringToInt(searchText, out int id, 0, Animations.MaxAnimationValue);
 
             foreach (TreeNode root in TreeViewMobs.Nodes)
             {
                 foreach (TreeNode node in root.Nodes)
                 {
-                    bool match = byId
+                    bool match = _lastSearchWasById
                         ? ((int[])node.Tag)[0] == id
-                        : node.Text.IndexOf(text, StringComparison.OrdinalIgnoreCase) >= 0;
+                        : node.Text.IndexOf(searchText, StringComparison.OrdinalIgnoreCase) >= 0;
                     if (!match)
                     {
                         continue;
                     }
 
-                    TreeViewMobs.SelectedNode = node;
-                    node.EnsureVisible();
-                    return;
+                    _searchResults.Add(node);
                 }
             }
+
+            // If results found, select the first one
+            if (_searchResults.Count > 0)
+            {
+                _currentSearchResultIndex = 0;
+                SelectSearchResult(0);
+            }
+        }
+
+        /// <summary>
+        /// Selects and displays a result at the given index in the search results.
+        /// </summary>
+        private void SelectSearchResult(int index)
+        {
+            if (index < 0 || index >= _searchResults.Count)
+            {
+                return;
+            }
+
+            TreeNode node = _searchResults[index];
+            TreeViewMobs.SelectedNode = node;
+            node.EnsureVisible();
+        }
+
+        private void FindNextResult()
+        {
+            if (_searchResults.Count == 0)
+            {
+                return;
+            }
+
+            _currentSearchResultIndex = (_currentSearchResultIndex + 1) % _searchResults.Count;
+            SelectSearchResult(_currentSearchResultIndex);
+        }
+
+        private void FindPrevResult()
+        {
+            if (_searchResults.Count == 0)
+            {
+                return;
+            }
+
+            _currentSearchResultIndex = (_currentSearchResultIndex - 1 + _searchResults.Count) % _searchResults.Count;
+            SelectSearchResult(_currentSearchResultIndex);
+        }
+
+        private void PrevSearchButton_Click(object sender, EventArgs e)
+        {
+            FindPrevResult();
+        }
+
+        private void NextSearchButton_Click(object sender, EventArgs e)
+        {
+            FindNextResult();
         }
 
         private void LoadListView()
