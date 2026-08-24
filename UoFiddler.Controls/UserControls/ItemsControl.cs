@@ -37,12 +37,40 @@ namespace UoFiddler.Controls.UserControls
 
             RefMarker = this;
             DetailTextBox.AddBasicContextMenu();
+
+            InitializeFilterMenuItems();
+            InitializeExportWithHueMenu();
         }
 
         private static readonly Regex _hexIndexRegex = new(@"0[xX][0-9a-fA-F]+", RegexOptions.Compiled);
 
+        /// <summary>
+        /// Enum for search types
+        /// </summary>
+        private enum SearchType
+        {
+            Name,
+            Animation,
+            Weight,
+            Layer,
+            StackOffset,
+            Height
+        }
+
         private List<int> _itemList = new List<int>();
+        // full unfiltered list of items (used when dynamic filtering is enabled)
+        private List<int> _allItemList = new List<int>();
         private bool _showFreeSlots;
+
+        // Item flag filtering
+        private TileFlag _selectedItemFlags = TileFlag.None;
+
+        // Item hue preview
+        private int _previewHue = -1;
+        private bool _detailPartialHue;
+
+        // Current search type
+        private SearchType _currentSearchType = SearchType.Name;
 
         private int _selectedGraphicId = -1;
 
@@ -96,6 +124,608 @@ namespace UoFiddler.Controls.UserControls
             if (_selectedGraphicId != -1)
             {
                 UpdateDetail(_selectedGraphicId);
+            }
+        }
+
+        /// <summary>
+        /// Initializes dynamic filter menu items (only the runtime-generated TileFlag filters)
+        /// </summary>
+        private void InitializeFilterMenuItems()
+        {
+            try
+            {
+                if (filterToolStripMenuItem == null)
+                {
+                    return;
+                }
+
+                // Add "None" option to clear all filters
+                var filterNoneMenuItem = new ToolStripMenuItem
+                {
+                    Name = "filterNone",
+                    Text = "None",
+                    CheckOnClick = true,
+                    Checked = true
+                };
+                filterNoneMenuItem.Click += FilterNone_Click;
+                filterToolStripMenuItem.DropDownItems.Add(filterNoneMenuItem);
+
+                // Add separator
+                filterToolStripMenuItem.DropDownItems.Add(new ToolStripSeparator());
+
+                // Scan all items to find which flags are actually used
+                var usedFlags = new HashSet<TileFlag>();
+                for (int i = 0; i < TileData.ItemTable.Length; i++)
+                {
+                    var item = TileData.ItemTable[i];
+                    if (item.Flags != TileFlag.None)
+                    {
+                        // Add each individual flag that's set on this item
+                        foreach (TileFlag flag in Enum.GetValues(typeof(TileFlag)))
+                        {
+                            if (flag != TileFlag.None && (item.Flags & flag) != 0)
+                            {
+                                usedFlags.Add(flag);
+                            }
+                        }
+                    }
+                }
+
+                // Add checkboxes only for flags that are actually used
+                foreach (var flag in usedFlags.OrderBy(f => f.ToString()))
+                {
+                    var menuItem = new ToolStripMenuItem
+                    {
+                        Name = $"filter{flag}",
+                        Text = flag.ToString(),
+                        CheckOnClick = true,
+                        Tag = flag
+                    };
+                    menuItem.Click += FilterFlag_Click;
+                    filterToolStripMenuItem.DropDownItems.Add(menuItem);
+                }
+            }
+            catch
+            {
+                // Ignore errors in designer
+            }
+        }
+
+        /// <summary>
+        /// Initializes the Export with Hue submenu with format options
+        /// </summary>
+        private void InitializeExportWithHueMenu()
+        {
+            try
+            {
+                if (exportWithHueToolStripMenuItem == null)
+                {
+                    return;
+                }
+
+                exportWithHueToolStripMenuItem.DropDownItems.Clear();
+
+                var bmpHueItem = new ToolStripMenuItem
+                {
+                    Name = "exportWithHueBmpToolStripMenuItem",
+                    Text = "As Bmp",
+                    Enabled = false
+                };
+                bmpHueItem.Click += Extract_Image_WithHue_ClickBmp;
+                exportWithHueToolStripMenuItem.DropDownItems.Add(bmpHueItem);
+
+                var tiffHueItem = new ToolStripMenuItem
+                {
+                    Name = "exportWithHueTiffToolStripMenuItem",
+                    Text = "As Tiff",
+                    Enabled = false
+                };
+                tiffHueItem.Click += Extract_Image_WithHue_ClickTiff;
+                exportWithHueToolStripMenuItem.DropDownItems.Add(tiffHueItem);
+
+                var jpgHueItem = new ToolStripMenuItem
+                {
+                    Name = "exportWithHueJpgToolStripMenuItem",
+                    Text = "As Jpg",
+                    Enabled = false
+                };
+                jpgHueItem.Click += Extract_Image_WithHue_ClickJpg;
+                exportWithHueToolStripMenuItem.DropDownItems.Add(jpgHueItem);
+
+                var pngHueItem = new ToolStripMenuItem
+                {
+                    Name = "exportWithHuePngToolStripMenuItem",
+                    Text = "As Png",
+                    Enabled = false
+                };
+                pngHueItem.Click += Extract_Image_WithHue_ClickPng;
+                exportWithHueToolStripMenuItem.DropDownItems.Add(pngHueItem);
+
+                // Also initialize the context menu export with hue item as a submenu
+                if (extractWithHueToolStripMenuItem != null)
+                {
+                    extractWithHueToolStripMenuItem.DropDownItems.Clear();
+
+                    var bmpContextItem = new ToolStripMenuItem
+                    {
+                        Name = "extractWithHueBmpToolStripMenuItem",
+                        Text = "As Bmp",
+                        Enabled = false
+                    };
+                    bmpContextItem.Click += Extract_Image_WithHue_ClickBmp;
+                    extractWithHueToolStripMenuItem.DropDownItems.Add(bmpContextItem);
+
+                    var tiffContextItem = new ToolStripMenuItem
+                    {
+                        Name = "extractWithHueTiffToolStripMenuItem",
+                        Text = "As Tiff",
+                        Enabled = false
+                    };
+                    tiffContextItem.Click += Extract_Image_WithHue_ClickTiff;
+                    extractWithHueToolStripMenuItem.DropDownItems.Add(tiffContextItem);
+
+                    var jpgContextItem = new ToolStripMenuItem
+                    {
+                        Name = "extractWithHueJpgToolStripMenuItem",
+                        Text = "As Jpg",
+                        Enabled = false
+                    };
+                    jpgContextItem.Click += Extract_Image_WithHue_ClickJpg;
+                    extractWithHueToolStripMenuItem.DropDownItems.Add(jpgContextItem);
+
+                    var pngContextItem = new ToolStripMenuItem
+                    {
+                        Name = "extractWithHuePngToolStripMenuItem",
+                        Text = "As Png",
+                        Enabled = false
+                    };
+                    pngContextItem.Click += Extract_Image_WithHue_ClickPng;
+                    extractWithHueToolStripMenuItem.DropDownItems.Add(pngContextItem);
+                }
+            }
+            catch
+            {
+                // Ignore errors in designer
+            }
+        }
+
+        /// <summary>
+        /// Handles filter "None" click - clears all flag filters
+        /// </summary>
+        private void FilterNone_Click(object sender, EventArgs e)
+        {
+            _selectedItemFlags = TileFlag.None;
+
+            // Uncheck all flag items except "None"
+            foreach (ToolStripItem item in filterToolStripMenuItem.DropDownItems)
+            {
+                if (item is ToolStripMenuItem menuItem && menuItem.Name != "filterNone")
+                {
+                    menuItem.Checked = false;
+                }
+            }
+
+            // Re-apply filter only if dynamic search is enabled
+            if (dynamicItemSearchToolStripMenuItem?.Checked == true)
+            {
+                ApplyNameFilter(searchByNameToolStripTextBox.Text);
+            }
+        }
+
+        /// <summary>
+        /// Handles individual flag checkbox clicks
+        /// </summary>
+        private void FilterFlag_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is TileFlag flag)
+            {
+                if (menuItem.Checked)
+                {
+                    _selectedItemFlags |= flag;
+                }
+                else
+                {
+                    _selectedItemFlags &= ~flag;
+                }
+
+                // Uncheck "None" if any flag is checked
+                var noneItem = filterToolStripMenuItem.DropDownItems.Cast<ToolStripItem>()
+                    .FirstOrDefault(x => x is ToolStripMenuItem m && m.Name == "filterNone") as ToolStripMenuItem;
+                if (noneItem != null)
+                {
+                    noneItem.Checked = _selectedItemFlags == TileFlag.None;
+                }
+
+                // Re-apply filter only if dynamic search is enabled
+                if (dynamicItemSearchToolStripMenuItem?.Checked == true)
+                {
+                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+        }
+
+        private HuePopUpItemForm _huePreviewForm;
+
+        /// <summary>
+        /// Opens hue selector for preview hue
+        /// </summary>
+        private void OnClick_PreviewHue(object sender, EventArgs e)
+        {
+            if (_huePreviewForm?.IsDisposed != false)
+            {
+                _huePreviewForm = new HuePopUpItemForm(UpdatePreviewHue, _previewHue);
+            }
+            else
+            {
+                _huePreviewForm.SetHue(_previewHue);
+            }
+
+            _huePreviewForm.TopMost = true;
+            _huePreviewForm.Show();
+        }
+
+        /// <summary>
+        /// Updates preview hue and refreshes tile view and detail preview
+        /// </summary>
+        private void UpdatePreviewHue(int selectedHue)
+        {
+            _previewHue = selectedHue;
+
+            // Update "Remove Hue Preview" menu item visibility
+            if (removeHuePreviewToolStripMenuItem != null)
+            {
+                removeHuePreviewToolStripMenuItem.Enabled = _previewHue >= 0 && _previewHue != -1;
+            }
+
+            // Update "Export with Hue" menu item visibility
+            if (exportWithHueToolStripMenuItem != null)
+            {
+                exportWithHueToolStripMenuItem.Enabled = _previewHue >= 0;
+                // Enable all submenu items as well
+                foreach (ToolStripItem item in exportWithHueToolStripMenuItem.DropDownItems)
+                {
+                    if (item is ToolStripMenuItem menuItem)
+                    {
+                        menuItem.Enabled = _previewHue >= 0;
+                    }
+                }
+            }
+
+            // Update "Extract with Hue" menu item visibility (context menu)
+            if (extractWithHueToolStripMenuItem != null)
+            {
+                extractWithHueToolStripMenuItem.Enabled = _previewHue >= 0;
+                // Enable all submenu items as well
+                foreach (ToolStripItem item in extractWithHueToolStripMenuItem.DropDownItems)
+                {
+                    if (item is ToolStripMenuItem menuItem)
+                    {
+                        menuItem.Enabled = _previewHue >= 0;
+                    }
+                }
+            }
+
+            // Refresh the tile view to apply the hue
+            ItemsTileView.Invalidate();
+
+            // Refresh detail preview
+            UpdateDetail(_selectedGraphicId);
+        }
+
+        /// <summary>
+        /// Removes the hue preview (sets to -1)
+        /// </summary>
+        private void OnClick_RemoveHuePreview(object sender, EventArgs e)
+        {
+            _previewHue = -1;
+
+            // Update "Remove Hue Preview" menu item visibility
+            if (removeHuePreviewToolStripMenuItem != null)
+            {
+                removeHuePreviewToolStripMenuItem.Enabled = false;
+            }
+
+            // Update "Export with Hue" menu item visibility
+            if (exportWithHueToolStripMenuItem != null)
+            {
+                exportWithHueToolStripMenuItem.Enabled = false;
+                // Disable all submenu items as well
+                foreach (ToolStripItem item in exportWithHueToolStripMenuItem.DropDownItems)
+                {
+                    if (item is ToolStripMenuItem menuItem)
+                    {
+                        menuItem.Enabled = false;
+                    }
+                }
+            }
+
+            // Update "Extract with Hue" menu item visibility
+            if (extractWithHueToolStripMenuItem != null)
+            {
+                extractWithHueToolStripMenuItem.Enabled = false;
+                // Disable all submenu items as well
+                foreach (ToolStripItem item in extractWithHueToolStripMenuItem.DropDownItems)
+                {
+                    if (item is ToolStripMenuItem menuItem)
+                    {
+                        menuItem.Enabled = false;
+                    }
+                }
+            }
+
+            // Refresh the tile view
+            ItemsTileView.Invalidate();
+
+            // Refresh detail preview
+            UpdateDetail(_selectedGraphicId);
+        }
+
+        private void ApplyFilter(string searchValue)
+        {
+            if (_allItemList == null)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(searchValue) && _selectedItemFlags == TileFlag.None)
+            {
+                // empty search and no filters - restore full list
+                _itemList = new List<int>(_allItemList);
+                ItemsTileView.VirtualListSize = _itemList.Count;
+                ItemsTileView.Invalidate();
+                if (_itemList.Count > 0)
+                {
+                    SelectedGraphicId = _itemList[0];
+                }
+                return;
+            }
+
+            var filtered = new List<int>();
+
+            switch (_currentSearchType)
+            {
+                case SearchType.Name:
+                    {
+                        var searchMethod = SearchHelper.GetSearchMethod();
+                        foreach (var id in _allItemList)
+                        {
+                            // Check if item matches flag filters
+                            if (_selectedItemFlags != TileFlag.None && 
+                                (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
+                            {
+                                continue; // Item doesn't have all of the selected flags
+                            }
+
+                            // If search value is empty, include if flag matches
+                            if (string.IsNullOrWhiteSpace(searchValue))
+                            {
+                                filtered.Add(id);
+                                continue;
+                            }
+
+                            var result = searchMethod(searchValue, TileData.ItemTable[id].Name);
+                            if (result.HasErrors)
+                            {
+                                break;
+                            }
+
+                            if (result.EntryFound)
+                            {
+                                filtered.Add(id);
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Animation:
+                    {
+                        if (int.TryParse(searchValue, out int animation))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
+                                {
+                                    continue;
+                                }
+
+                                if (TileData.ItemTable[id].Animation == animation)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Weight:
+                    {
+                        if (int.TryParse(searchValue, out int weight))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
+                                {
+                                    continue;
+                                }
+
+                                if (TileData.ItemTable[id].Weight == weight)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Layer:
+                    {
+                        if (int.TryParse(searchValue, out int layer))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
+                                {
+                                    continue;
+                                }
+
+                                var item = TileData.ItemTable[id];
+                                var relevantFlags = TileFlag.Wearable | TileFlag.Weapon | TileFlag.Armor;
+                                if (item.Quality == layer && (item.Flags & relevantFlags) != 0)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.StackOffset:
+                    {
+                        if (int.TryParse(searchValue, out int stackingOffset))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
+                                {
+                                    continue;
+                                }
+
+                                if (TileData.ItemTable[id].StackingOffset == stackingOffset)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+                case SearchType.Height:
+                    {
+                        if (int.TryParse(searchValue, out int height))
+                        {
+                            foreach (var id in _allItemList)
+                            {
+                                // Check if item matches flag filters
+                                if (_selectedItemFlags != TileFlag.None && 
+                                    (TileData.ItemTable[id].Flags & _selectedItemFlags) != _selectedItemFlags)
+                                {
+                                    continue;
+                                }
+
+                                if (TileData.ItemTable[id].Height == height)
+                                {
+                                    filtered.Add(id);
+                                }
+                            }
+                        }
+                        break;
+                    }
+            }
+
+            _itemList = filtered;
+            ItemsTileView.VirtualListSize = _itemList.Count;
+            ItemsTileView.Invalidate();
+
+            if (_itemList.Count > 0)
+            {
+                SelectedGraphicId = _itemList[0];
+            }
+        }
+
+        private void ApplyNameFilter(string name)
+        {
+            ApplyFilter(name);
+        }
+
+        private void DynamicItemSearchToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem mi)
+            {
+                bool dynamic = mi.Checked;
+                // hide the Find Next/Prev buttons when dynamic searching is enabled
+                searchByNameToolStripButton.Visible = !dynamic;
+                searchByNamePrevToolStripButton.Visible = !dynamic;
+
+                if (!dynamic)
+                {
+                    // restore full list
+                    _itemList = new List<int>(_allItemList);
+                    ItemsTileView.VirtualListSize = _itemList.Count;
+                    ItemsTileView.Invalidate();
+                }
+                else
+                {
+                    // apply filter if any text is present
+                    ApplyNameFilter(searchByNameToolStripTextBox.Text);
+                }
+            }
+        }
+
+        private void SearchTypeMenuItem_Click(object sender, EventArgs e)
+        {
+            if (!(sender is ToolStripMenuItem mi))
+            {
+                return;
+            }
+
+            // Uncheck all search type menu items
+            searchTypeNameToolStripMenuItem.Checked = false;
+            searchTypeAnimationToolStripMenuItem.Checked = false;
+            searchTypeWeightToolStripMenuItem.Checked = false;
+            searchTypeLayerToolStripMenuItem.Checked = false;
+            searchTypeStackOffsetToolStripMenuItem.Checked = false;
+            searchTypeHeightToolStripMenuItem.Checked = false;
+
+            // Check the selected item and update current search type
+            mi.Checked = true;
+
+            if (mi == searchTypeNameToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Name;
+                toolStripLabel2.Text = "Name:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by item name";
+            }
+            else if (mi == searchTypeAnimationToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Animation;
+                toolStripLabel2.Text = "Animation:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by animation ID";
+            }
+            else if (mi == searchTypeWeightToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Weight;
+                toolStripLabel2.Text = "Weight:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by weight value";
+            }
+            else if (mi == searchTypeLayerToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Layer;
+                toolStripLabel2.Text = "Layer:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by layer (wearables only)";
+            }
+            else if (mi == searchTypeStackOffsetToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.StackOffset;
+                toolStripLabel2.Text = "Stack Offset:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by stack offset value";
+            }
+            else if (mi == searchTypeHeightToolStripMenuItem)
+            {
+                _currentSearchType = SearchType.Height;
+                toolStripLabel2.Text = "Height:";
+                searchByNameToolStripTextBox.ToolTipText = "Search by height value";
+            }
+
+            // Clear the search box when changing search type
+            searchByNameToolStripTextBox.Text = "";
+
+            // If dynamic searching is enabled, reapply the filter with the new search type
+            if (dynamicItemSearchToolStripMenuItem?.Checked == true)
+            {
+                ApplyFilter("");
             }
         }
 
@@ -168,7 +798,11 @@ namespace UoFiddler.Controls.UserControls
             // First pass: search from current index to end
             for (int i = index; i < RefMarker._itemList.Count; ++i)
             {
-                var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
+                int itemId = RefMarker._itemList[i];
+                var item = TileData.ItemTable[itemId];
+                string searchValue = GetSearchableValue(item);
+
+                var searchResult = searchMethod(name, searchValue);
                 if (searchResult.HasErrors)
                 {
                     break;
@@ -181,7 +815,7 @@ namespace UoFiddler.Controls.UserControls
 
                 // we have to invalidate focus so it will scroll to item
                 RefMarker.ItemsTileView.FocusIndex = -1;
-                RefMarker.SelectedGraphicId = RefMarker._itemList[i];
+                RefMarker.SelectedGraphicId = itemId;
 
                 return true;
             }
@@ -191,7 +825,11 @@ namespace UoFiddler.Controls.UserControls
             {
                 for (int i = 0; i < index; ++i)
                 {
-                    var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
+                    int itemId = RefMarker._itemList[i];
+                    var item = TileData.ItemTable[itemId];
+                    string searchValue = GetSearchableValue(item);
+
+                    var searchResult = searchMethod(name, searchValue);
                     if (searchResult.HasErrors)
                     {
                         break;
@@ -204,7 +842,7 @@ namespace UoFiddler.Controls.UserControls
 
                     // we have to invalidate focus so it will scroll to item
                     RefMarker.ItemsTileView.FocusIndex = -1;
-                    RefMarker.SelectedGraphicId = RefMarker._itemList[i];
+                    RefMarker.SelectedGraphicId = itemId;
 
                     return true;
                 }
@@ -212,6 +850,24 @@ namespace UoFiddler.Controls.UserControls
 
             return false;
         }
+
+        /// <summary>
+        /// Gets the searchable value from an item based on the current search type
+        /// </summary>
+        private static string GetSearchableValue(ItemData item)
+        {
+            return RefMarker._currentSearchType switch
+            {
+                SearchType.Name => item.Name,
+                SearchType.Animation => item.Animation.ToString(),
+                SearchType.Weight => item.Weight.ToString(),
+                SearchType.Layer => item.Quality.ToString(),
+                SearchType.StackOffset => item.StackingOffset.ToString(),
+                SearchType.Height => item.Height.ToString(),
+                _ => item.Name
+            };
+        }
+
 
         public void OnLoad(object sender, EventArgs e)
         {
@@ -257,6 +913,9 @@ namespace UoFiddler.Controls.UserControls
                     }
                 }
 
+                // Initialize the full unfiltered list for dynamic filtering
+                _allItemList = new List<int>(_itemList);
+
                 ItemsTileView.VirtualListSize = _itemList.Count;
 
                 if (prevSelected >= 0)
@@ -273,6 +932,7 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 IsLoaded = true;
+                UpdateFileLoadedLabel();
             }
         }
 
@@ -410,6 +1070,12 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
+            // Validate graphic ID is within bounds
+            if (graphic < 0 || graphic >= TileData.ItemTable.Length)
+            {
+                return;
+            }
+
             ItemData item = TileData.ItemTable[graphic];
             Bitmap bit = Art.GetStatic(graphic);
 
@@ -440,7 +1106,23 @@ namespace UoFiddler.Controls.UserControls
                 using (Graphics newGraph = Graphics.FromImage(newBit))
                 {
                     newGraph.Clear(Options.PreviewBackgroundColor);
-                    newGraph.DrawImage(bit, (DetailPictureBox.Size.Width - bit.Width) / 2, 5);
+
+                    // Apply hue if preview is set
+                    if (_previewHue >= 0)
+                    {
+                        // Clone the bitmap to apply hue
+                        Bitmap hueBit = new Bitmap(bit);
+                        bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                        Hue hue = Hues.List[_previewHue];
+                        hue.ApplyTo(hueBit, usePartialHue);
+                        _detailPartialHue = usePartialHue;
+                        newGraph.DrawImage(hueBit, (DetailPictureBox.Size.Width - hueBit.Width) / 2, 5);
+                        hueBit.Dispose();
+                    }
+                    else
+                    {
+                        newGraph.DrawImage(bit, (DetailPictureBox.Size.Width - bit.Width) / 2, 5);
+                    }
                 }
 
                 DetailPictureBox.Image?.Dispose();
@@ -807,6 +1489,14 @@ namespace UoFiddler.Controls.UserControls
 
             NameLabel.Text = !Art.IsValidStatic(graphic) ? "Name: FREE" : $"Name: {TileData.ItemTable[graphic].Name}";
             GraphicLabel.Text = $"Graphic: 0x{graphic:X4} ({graphic})";
+
+            // FileLoadedLabel always shows regardless of selection
+            UpdateFileLoadedLabel();
+        }
+
+        private void UpdateFileLoadedLabel()
+        {
+            FileLoadedLabel.Text = Art.IsUsingUopLegacy() ? "Loaded: UOP" : "Loaded: MUL";
         }
 
         private void OnClickSave(object sender, EventArgs e)
@@ -891,7 +1581,32 @@ namespace UoFiddler.Controls.UserControls
             ExportSelected(ImageFormat.Png);
         }
 
+        private void Extract_Image_WithHue_ClickBmp(object sender, EventArgs e)
+        {
+            ExportSelected(ImageFormat.Bmp, applyHue: true);
+        }
+
+        private void Extract_Image_WithHue_ClickTiff(object sender, EventArgs e)
+        {
+            ExportSelected(ImageFormat.Tiff, applyHue: true);
+        }
+
+        private void Extract_Image_WithHue_ClickJpg(object sender, EventArgs e)
+        {
+            ExportSelected(ImageFormat.Jpeg, applyHue: true);
+        }
+
+        private void Extract_Image_WithHue_ClickPng(object sender, EventArgs e)
+        {
+            ExportSelected(ImageFormat.Png, applyHue: true);
+        }
+
         private void ExportSelected(ImageFormat imageFormat)
+        {
+            ExportSelected(imageFormat, applyHue: false);
+        }
+
+        private void ExportSelected(ImageFormat imageFormat, bool applyHue)
         {
             var ids = GetSelectedGraphicIds().Where(Art.IsValidStatic).ToList();
             if (ids.Count == 0)
@@ -901,14 +1616,19 @@ namespace UoFiddler.Controls.UserControls
 
             if (ids.Count == 1)
             {
-                ExportItemImage(ids[0], imageFormat);
+                ExportItemImage(ids[0], imageFormat, applyHue);
                 return;
             }
 
-            ExportMultipleItemImages(ids, imageFormat);
+            ExportMultipleItemImages(ids, imageFormat, applyHue);
         }
 
         private void ExportMultipleItemImages(List<int> ids, ImageFormat imageFormat)
+        {
+            ExportMultipleItemImages(ids, imageFormat, applyHue: false);
+        }
+
+        private void ExportMultipleItemImages(List<int> ids, ImageFormat imageFormat, bool applyHue = false)
         {
             string fileExtension = Utils.GetFileExtensionFor(imageFormat);
 
@@ -920,9 +1640,17 @@ namespace UoFiddler.Controls.UserControls
                     continue;
                 }
 
-                string fileName = Path.Combine(Options.OutputPath, $"Item {Utils.FormatExportId(index)}.{fileExtension}");
+                string hueSuffix = (applyHue && _previewHue >= 0) ? $" - Hue {_previewHue}" : "";
+                string fileName = Path.Combine(Options.OutputPath, $"Item {Utils.FormatExportId(index)}{hueSuffix}.{fileExtension}");
                 using (Bitmap bit = new Bitmap(artBitmap))
                 {
+                    if (applyHue && _previewHue >= 0)
+                    {
+                        ItemData item = TileData.ItemTable[index];
+                        bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                        Hue hue = Hues.List[_previewHue];
+                        hue.ApplyTo(bit, usePartialHue);
+                    }
                     bit.Save(fileName, imageFormat);
                 }
             }
@@ -930,7 +1658,7 @@ namespace UoFiddler.Controls.UserControls
             FileSavedDialog.Show(FindForm(), Options.OutputPath, $"{ids.Count} items saved successfully.");
         }
 
-        private static void ExportItemImage(int index, ImageFormat imageFormat)
+        private static void ExportItemImage_Static(int index, ImageFormat imageFormat)
         {
             if (!Art.IsValidStatic(index))
             {
@@ -942,6 +1670,33 @@ namespace UoFiddler.Controls.UserControls
 
             using (Bitmap bit = new Bitmap(Art.GetStatic(index)))
             {
+                bit.Save(fileName, imageFormat);
+            }
+
+            MessageBox.Show($"Item saved to {fileName}", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button1);
+        }
+
+        private void ExportItemImage(int index, ImageFormat imageFormat, bool applyHue = false)
+        {
+            if (!Art.IsValidStatic(index))
+            {
+                return;
+            }
+
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+            string hueSuffix = (applyHue && _previewHue >= 0) ? $" - Hue {_previewHue}" : "";
+            string fileName = Path.Combine(Options.OutputPath, $"Item {Utils.FormatExportId(index)}{hueSuffix}.{fileExtension}");
+
+            using (Bitmap bit = new Bitmap(Art.GetStatic(index)))
+            {
+                if (applyHue && _previewHue >= 0)
+                {
+                    ItemData item = TileData.ItemTable[index];
+                    bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                    Hue hue = Hues.List[_previewHue];
+                    hue.ApplyTo(bit, usePartialHue);
+                }
                 bit.Save(fileName, imageFormat);
             }
 
@@ -1173,29 +1928,43 @@ namespace UoFiddler.Controls.UserControls
                     e.Graphics.FillRectangle(Brushes.LightCoral, rect);
                 }
 
+                // Apply hue if preview is set
+                Bitmap displayBitmap = bitmap;
+                Bitmap hueBit = null;
+                if (_previewHue >= 0 && _itemList[e.Index] < TileData.ItemTable.Length)
+                {
+                    ItemData item = TileData.ItemTable[_itemList[e.Index]];
+                    bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                    hueBit = new Bitmap(bitmap);
+                    Hue hue = Hues.List[_previewHue];
+                    hue.ApplyTo(hueBit, usePartialHue);
+                    displayBitmap = hueBit;
+                }
+
                 if (Options.ArtItemClip)
                 {
-                    e.Graphics.DrawImage(bitmap, itemPoint);
+                    e.Graphics.DrawImage(displayBitmap, itemPoint);
                 }
                 else
                 {
-                    int width = bitmap.Width;
-                    int height = bitmap.Height;
+                    int width = displayBitmap.Width;
+                    int height = displayBitmap.Height;
                     if (width > ItemsTileView.TileSize.Width)
                     {
                         width = ItemsTileView.TileSize.Width;
-                        height = ItemsTileView.TileSize.Height * bitmap.Height / bitmap.Width;
+                        height = ItemsTileView.TileSize.Height * displayBitmap.Height / displayBitmap.Width;
                     }
 
                     if (height > ItemsTileView.TileSize.Height)
                     {
                         height = ItemsTileView.TileSize.Height;
-                        width = ItemsTileView.TileSize.Width * bitmap.Width / bitmap.Height;
+                        width = ItemsTileView.TileSize.Width * displayBitmap.Width / displayBitmap.Height;
                     }
 
-                    e.Graphics.DrawImage(bitmap, new Rectangle(itemPoint, new Size(width, height)));
+                    e.Graphics.DrawImage(displayBitmap, new Rectangle(itemPoint, new Size(width, height)));
                 }
 
+                hueBit?.Dispose();
                 e.Graphics.Clip = previousClip;
             }
         }
@@ -1623,7 +2392,11 @@ namespace UoFiddler.Controls.UserControls
             // First pass: search from current index down to 0
             for (int i = index; i >= 0; --i)
             {
-                var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
+                int itemId = RefMarker._itemList[i];
+                var item = TileData.ItemTable[itemId];
+                string searchValue = GetSearchableValue(item);
+
+                var searchResult = searchMethod(name, searchValue);
                 if (searchResult.HasErrors)
                 {
                     break;
@@ -1635,7 +2408,7 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 RefMarker.ItemsTileView.FocusIndex = -1;
-                RefMarker.SelectedGraphicId = RefMarker._itemList[i];
+                RefMarker.SelectedGraphicId = itemId;
                 return true;
             }
 
@@ -1644,7 +2417,11 @@ namespace UoFiddler.Controls.UserControls
             {
                 for (int i = RefMarker._itemList.Count - 1; i > index; --i)
                 {
-                    var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
+                    int itemId = RefMarker._itemList[i];
+                    var item = TileData.ItemTable[itemId];
+                    string searchValue = GetSearchableValue(item);
+
+                    var searchResult = searchMethod(name, searchValue);
                     if (searchResult.HasErrors)
                     {
                         break;
@@ -1656,7 +2433,7 @@ namespace UoFiddler.Controls.UserControls
                     }
 
                     RefMarker.ItemsTileView.FocusIndex = -1;
-                    RefMarker.SelectedGraphicId = RefMarker._itemList[i];
+                    RefMarker.SelectedGraphicId = itemId;
                     return true;
                 }
             }
@@ -1679,7 +2456,15 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
-            SearchName(searchByNameToolStripTextBox.Text, false);
+            // If dynamic search is enabled, apply filter as the user types
+            if (dynamicItemSearchToolStripMenuItem?.Checked == true)
+            {
+                ApplyFilter(searchByNameToolStripTextBox.Text);
+            }
+            else
+            {
+                SearchName(searchByNameToolStripTextBox.Text, false);
+            }
         }
 
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
