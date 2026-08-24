@@ -165,6 +165,7 @@ namespace UoFiddler.Controls.UserControls
 
             var searchMethod = SearchHelper.GetSearchMethod();
 
+            // First pass: search from current index to end
             for (int i = index; i < RefMarker._itemList.Count; ++i)
             {
                 var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
@@ -183,6 +184,30 @@ namespace UoFiddler.Controls.UserControls
                 RefMarker.SelectedGraphicId = RefMarker._itemList[i];
 
                 return true;
+            }
+
+            // Second pass: if we didn't find anything, wrap and search from the beginning
+            if (index > 0)
+            {
+                for (int i = 0; i < index; ++i)
+                {
+                    var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
+                    if (searchResult.HasErrors)
+                    {
+                        break;
+                    }
+
+                    if (!searchResult.EntryFound)
+                    {
+                        continue;
+                    }
+
+                    // we have to invalidate focus so it will scroll to item
+                    RefMarker.ItemsTileView.FocusIndex = -1;
+                    RefMarker.SelectedGraphicId = RefMarker._itemList[i];
+
+                    return true;
+                }
             }
 
             return false;
@@ -928,7 +953,7 @@ namespace UoFiddler.Controls.UserControls
         {
             if (_selectedGraphicId >= 0)
             {
-                // Cache navigation targets for all three tabs
+                // Cache navigation targets for all tabs
                 TileDataControl.SetPendingNavigation(_selectedGraphicId, land: false);
                 RadarColorControl.SetPendingNavigation(_selectedGraphicId, land: false);
 
@@ -937,6 +962,27 @@ namespace UoFiddler.Controls.UserControls
                     ? 1020000 + _selectedGraphicId
                     : 1078872 + _selectedGraphicId;
                 ClilocControl.SetPendingNavigation(clilocNumber);
+
+                // For Gumps, try to find and set pending navigation using the same logic as the menu options
+                var itemData = TileData.ItemTable[_selectedGraphicId];
+                if (itemData.Animation > 0)
+                {
+                    // Try male gump first
+                    int maleGumpId = itemData.Animation + _maleGumpOffset;
+                    if (GumpControl.HasGumpId(maleGumpId))
+                    {
+                        GumpControl.SetPendingNavigation(maleGumpId);
+                    }
+                    // Fall back to female gump
+                    else
+                    {
+                        int femaleGumpId = itemData.Animation + _femaleGumpOffset;
+                        if (GumpControl.HasGumpId(femaleGumpId))
+                        {
+                            GumpControl.SetPendingNavigation(femaleGumpId);
+                        }
+                    }
+                }
             }
         }
 
@@ -1574,6 +1620,7 @@ namespace UoFiddler.Controls.UserControls
                 }
             }
 
+            // First pass: search from current index down to 0
             for (int i = index; i >= 0; --i)
             {
                 var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
@@ -1590,6 +1637,28 @@ namespace UoFiddler.Controls.UserControls
                 RefMarker.ItemsTileView.FocusIndex = -1;
                 RefMarker.SelectedGraphicId = RefMarker._itemList[i];
                 return true;
+            }
+
+            // Second pass: if we didn't find anything, wrap and search from the end
+            if (index < RefMarker._itemList.Count - 1)
+            {
+                for (int i = RefMarker._itemList.Count - 1; i > index; --i)
+                {
+                    var searchResult = searchMethod(name, TileData.ItemTable[RefMarker._itemList[i]].Name);
+                    if (searchResult.HasErrors)
+                    {
+                        break;
+                    }
+
+                    if (!searchResult.EntryFound)
+                    {
+                        continue;
+                    }
+
+                    RefMarker.ItemsTileView.FocusIndex = -1;
+                    RefMarker.SelectedGraphicId = RefMarker._itemList[i];
+                    return true;
+                }
             }
 
             return false;
@@ -1616,6 +1685,11 @@ namespace UoFiddler.Controls.UserControls
         private void SearchByNameToolStripButton_Click(object sender, EventArgs e)
         {
             SearchName(searchByNameToolStripTextBox.Text, true);
+        }
+
+        private void SearchByNamePrevToolStripButton_Click(object sender, EventArgs e)
+        {
+            SearchNamePrevious(searchByNameToolStripTextBox.Text);
         }
     }
 }

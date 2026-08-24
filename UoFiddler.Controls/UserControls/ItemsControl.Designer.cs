@@ -90,6 +90,7 @@ namespace UoFiddler.Controls.UserControls
             searchByIdToolStripTextBox = new ToolStripTextBox();
             toolStripLabel2 = new ToolStripLabel();
             searchByNameToolStripTextBox = new ToolStripTextBox();
+            searchByNamePrevToolStripButton = new ToolStripButton();
             searchByNameToolStripButton = new ToolStripButton();
             toolStripSeparator4 = new ToolStripSeparator();
             MiscToolStripDropDownButton = new ToolStripDropDownButton();
@@ -439,7 +440,7 @@ namespace UoFiddler.Controls.UserControls
             // ToolStrip
             // 
             ToolStrip.GripStyle = ToolStripGripStyle.Hidden;
-            ToolStrip.Items.AddRange(new ToolStripItem[] { saveToolStripButton, toolStripSeparator5, ProgressBar, PreloadItemsToolStripButton, toolStripLabel1, searchByIdToolStripTextBox, toolStripLabel2, searchByNameToolStripTextBox, searchByNameToolStripButton, toolStripSeparator4, MiscToolStripDropDownButton });
+            ToolStrip.Items.AddRange(new ToolStripItem[] { saveToolStripButton, toolStripSeparator5, ProgressBar, PreloadItemsToolStripButton, toolStripLabel1, searchByIdToolStripTextBox, toolStripLabel2, searchByNameToolStripTextBox, searchByNamePrevToolStripButton, searchByNameToolStripButton, toolStripSeparator4, MiscToolStripDropDownButton });
             ToolStrip.Location = new System.Drawing.Point(0, 0);
             ToolStrip.Name = "ToolStrip";
             ToolStrip.RenderMode = ToolStripRenderMode.System;
@@ -504,14 +505,24 @@ namespace UoFiddler.Controls.UserControls
             searchByNameToolStripTextBox.Size = new System.Drawing.Size(100, 28);
             searchByNameToolStripTextBox.KeyUp += SearchByNameToolStripTextBox_KeyUp;
             // 
+            // searchByNamePrevToolStripButton
+            // 
+            searchByNamePrevToolStripButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            searchByNamePrevToolStripButton.Image = (System.Drawing.Image)resources.GetObject("searchByNamePrevToolStripButton.Image");
+            searchByNamePrevToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            searchByNamePrevToolStripButton.Name = "searchByNamePrevToolStripButton";
+            searchByNamePrevToolStripButton.Size = new System.Drawing.Size(32, 25);
+            searchByNamePrevToolStripButton.Text = "Prev";
+            searchByNamePrevToolStripButton.Click += SearchByNamePrevToolStripButton_Click;
+            // 
             // searchByNameToolStripButton
             // 
             searchByNameToolStripButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
             searchByNameToolStripButton.Image = (System.Drawing.Image)resources.GetObject("searchByNameToolStripButton.Image");
             searchByNameToolStripButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             searchByNameToolStripButton.Name = "searchByNameToolStripButton";
-            searchByNameToolStripButton.Size = new System.Drawing.Size(60, 25);
-            searchByNameToolStripButton.Text = "Find next";
+            searchByNameToolStripButton.Size = new System.Drawing.Size(32, 25);
+            searchByNameToolStripButton.Text = "Next";
             searchByNameToolStripButton.Click += SearchByNameToolStripButton_Click;
             // 
             // toolStripSeparator4
@@ -666,6 +677,7 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripTextBox searchByIdToolStripTextBox;
         private ToolStripLabel toolStripLabel2;
         private ToolStripTextBox searchByNameToolStripTextBox;
+        private ToolStripButton searchByNamePrevToolStripButton;
         private ToolStripButton searchByNameToolStripButton;
         private ToolStripSeparator toolStripSeparator4;
         private ToolStripButton saveToolStripButton;

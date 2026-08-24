@@ -43,6 +43,14 @@ namespace UoFiddler.Controls.UserControls
             _refMarker = this;
 
             pictureBox.BackColor = Options.PreviewBackgroundColor;
+
+            // Hook into VisibleChanged to execute pending navigation when the tab is activated
+            VisibleChanged += (_, _) => {
+                if (Visible && _loaded)
+                {
+                    ExecutePendingNavigation();
+                }
+            };
         }
 
         private sealed record GumpEntry(string Name, string[] Tags);
@@ -53,6 +61,7 @@ namespace UoFiddler.Controls.UserControls
         private Dictionary<int, GumpEntry> _gumpEntries = new();
         private string _activeNameFilter = string.Empty;
         private readonly HashSet<string> _activeTagFilters = new(StringComparer.OrdinalIgnoreCase);
+        private int _pendingNavigationGumpId = -1;
 
         /// <summary>
         /// Gump ids currently listed, ascending. The list is virtual, so this is the only place a row's
@@ -229,6 +238,9 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _loaded = true;
+
+                // Execute any pending navigation after the control is fully loaded
+                ExecutePendingNavigation();
             }
         }
 
@@ -958,6 +970,40 @@ namespace UoFiddler.Controls.UserControls
             }
 
             return _refMarker._ids.BinarySearch(gumpId) >= 0;
+        }
+
+        public static void SetPendingNavigation(int gumpId)
+        {
+            if (_refMarker != null)
+            {
+                _refMarker._pendingNavigationGumpId = gumpId;
+            }
+        }
+
+        private void ExecutePendingNavigation()
+        {
+            if (_pendingNavigationGumpId >= 0)
+            {
+                int gumpIdToSelect = _pendingNavigationGumpId;
+                _pendingNavigationGumpId = -1; // Clear after execution
+
+                // Defer the actual navigation to ensure the ListView is fully rendered and ready
+                if (IsHandleCreated)
+                {
+                    BeginInvoke(new Action(() => PerformPendingNavigation(gumpIdToSelect)));
+                }
+                else
+                {
+                    PerformPendingNavigation(gumpIdToSelect);
+                }
+            }
+        }
+
+        private void PerformPendingNavigation(int gumpIdToSelect)
+        {
+            // Try to find and select the gump, or insert it if it's not in the current list
+            // (e.g., it's not a "valid" gump but we still want to navigate to it)
+            InsertId(gumpIdToSelect);
         }
 
         private void JumpToMaleFemale_Click(object sender, EventArgs e)

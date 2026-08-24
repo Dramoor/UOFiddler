@@ -104,7 +104,7 @@ namespace UoFiddler.Controls.Forms
             }
 
             Data.AppendText($"Name: {item.Name}\n");
-            Data.AppendText(string.Format("Graphic: 0x{0:X4} ({0})\n", _index));
+            Data.AppendText(string.Format("Graphic: 0x{0:X4}({0})\n", _index));
             Data.AppendText($"Height/Capacity: {item.Height}\n");
             Data.AppendText($"Weight: {item.Weight}\n");
             Data.AppendText($"Animation: {item.Animation}\n");
