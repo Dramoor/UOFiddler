@@ -795,6 +795,65 @@ namespace UoFiddler.Controls.Forms
                 DrawSecondAnimation(e.Graphics);
             }
 
+            // Draw mounted frame overlay for animals
+            if (edit != null && currentBits?.Length > 0 && FramesTrackBar.Value < currentBits.Length)
+            {
+                // Get the animation type length (animLength = 13 for animals, 22 for monsters, 9 for sea, 35 for human)
+                int animLength = Ultima.Animations.GetAnimLength(_currentBody, _fileType);
+                if (animLength == 13) // Animal
+                {
+                    int overlayAction = -1;
+                    if (_currentAction == 0) overlayAction = 23; // Walk -> mount walk
+                    else if (_currentAction == 1) overlayAction = 24; // Run -> mount run
+                    else if (_currentAction == 2) overlayAction = 25; // Idle -> mount idle
+
+                    if (overlayAction != -1 && DrawMountedCheckBox.Checked)
+                    {
+                        int overlayBody = 400;
+                        int overlayFileType = 1; // Always use anim.mul
+                        int overlayDir = _currentDir;
+                        var overlayEdit = Ultima.AnimationEdit.GetAnimation(overlayFileType, overlayBody, overlayAction, overlayDir);
+                        if (overlayEdit != null)
+                        {
+                            var overlayFrames = overlayEdit.GetFrames();
+                            if (overlayFrames != null && overlayFrames.Length > 0)
+                            {
+                                int overlayIndex = Math.Min(FramesTrackBar.Value, overlayFrames.Length - 1);
+                                if (overlayFrames[overlayIndex] != null && overlayEdit.Frames.Count > overlayIndex)
+                                {
+                                    var overlayFrame = overlayEdit.Frames[overlayIndex];
+                                    int overlayW = overlayFrames[overlayIndex].Width;
+                                    int overlayH = overlayFrames[overlayIndex].Height;
+                                    int ox = _framePoint.X - overlayFrame.Center.X;
+                                    int oy = _framePoint.Y - overlayFrame.Center.Y - overlayH;
+                                    e.Graphics.DrawImage(overlayFrames[overlayIndex], ox, oy);
+                                }
+                                else
+                                {
+                                    // Draw a magenta rectangle if the overlay frame is missing
+                                    e.Graphics.DrawRectangle(Pens.Magenta, 10, 10, 40, 40);
+                                }
+                            }
+                            else
+                            {
+                                // Draw a yellow rectangle if overlayFrames is null or empty
+                                e.Graphics.DrawRectangle(Pens.Yellow, 10, 10, 40, 40);
+                            }
+                        }
+                        else
+                        {
+                            // Draw a red rectangle if overlayEdit is null
+                            e.Graphics.DrawRectangle(Pens.Red, 10, 10, 40, 40);
+                        }
+                    }
+                }
+                // --- End mounted overlay logic ---
+                if (DrawOppositeHumanCheckBox.Checked)
+                {
+                    DrawOppositeHumanOverlay(e.Graphics, edit);
+                }
+            }
+
             // Draw Reference Point Arrow
             Point[] arrayPoints = {
                 new Point(418 - (int)RefXNumericUpDown.Value, 335 - (int)RefYNumericUpDown.Value),
@@ -4740,6 +4799,127 @@ namespace UoFiddler.Controls.Forms
                     animIdx.Palette[i] = 0x8000;
                 }
             }
+        }
+
+        private void CbDrawMounted_CheckedChanged(object sender, EventArgs e)
+        {
+            AnimationPictureBox.Invalidate();
+        }
+
+        private void CbDrawOppositeHuman_CheckedChanged(object sender, EventArgs e)
+        {
+            AnimationPictureBox.Invalidate();
+        }
+
+        private static Point GetTilePixelOffsetForDir(int dir, int dx, int dy)
+        {
+            // Return pixel offset (x,y) for one isometric tile in given direction.
+            // Using common UO offsets: moving up subtracts dy vertically, moving left/right adjust by dx.
+            switch (dir)
+            {
+                case 0: // down
+                    return new Point(-4, dy);
+                case 1: // down-left
+                    return new Point(-dx, dy / 2);
+                case 2: // left
+                    return new Point(-dx * 2, 0);
+                case 3: // up-left
+                    return new Point(-dx, -dy / 2);
+                case 4: // up
+                    return new Point(0, -dy);
+                default:
+                    return Point.Empty;
+            }
+        }
+
+        private bool DrawOppositeHumanOverlay(Graphics g, AnimIdx edit)
+        {
+            if (!DrawOppositeHumanCheckBox.Checked)
+            {
+                return false;
+            }
+
+            // idle action for humans is usually 4 (Idle_01)
+            int humanIdleAction = 4;
+            int humanFile = 1; // anim.mul
+
+            int dx = 22;
+            int dy = 44;
+
+            // compute facing and offset
+            int humanFacingDir = (_currentDir + 4) % 8;
+            Point tileOffset = GetTilePixelOffsetForDir(_currentDir, dx, dy);
+
+            int[] humanBodies = { 744, 401, 605, 606, 666, 667 };
+
+            // Guard against missing or empty base animation frames (can happen for some directions/actions)
+            if (edit == null || edit.Frames == null || edit.Frames.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (int humanBody in humanBodies)
+            {
+                var overlayEdit = Ultima.AnimationEdit.GetAnimation(humanFile, humanBody, humanIdleAction, humanFacingDir);
+                if (overlayEdit == null)
+                {
+                    continue;
+                }
+
+                var overlayFrames = overlayEdit.GetFrames();
+                if (overlayFrames == null || overlayFrames.Length == 0)
+                {
+                    continue;
+                }
+
+                int baseCount = edit.Frames.Count;
+                int trackIndex = FramesTrackBar.Value;
+                int overlayIndex;
+                if (baseCount <= 1)
+                {
+                    overlayIndex = 0;
+                }
+                else
+                {
+                    overlayIndex = (int)Math.Round(trackIndex / (double)(baseCount - 1) * (overlayFrames.Length - 1));
+                }
+
+                overlayIndex = Math.Max(0, Math.Min(overlayIndex, overlayFrames.Length - 1));
+
+                if (overlayFrames[overlayIndex] == null || overlayEdit.Frames.Count <= overlayIndex)
+                {
+                    continue;
+                }
+
+                var overlayFrame = overlayEdit.Frames[overlayIndex];
+                int overlayW = overlayFrames[overlayIndex].Width;
+                int overlayH = overlayFrames[overlayIndex].Height;
+
+                bool shouldFlipFacingOnly = (_currentDir == 1 || _currentDir == 2 || _currentDir == 3);
+                if (shouldFlipFacingOnly)
+                {
+                    using (Bitmap flipped = (Bitmap)overlayFrames[overlayIndex].Clone())
+                    {
+                        flipped.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                        int flippedCenterX = overlayW - overlayFrame.Center.X;
+                        int fox = _framePoint.X - flippedCenterX + tileOffset.X;
+                        int foy = _framePoint.Y - overlayFrame.Center.Y - overlayH + tileOffset.Y;
+                        g.DrawImage(flipped, fox, foy);
+                    }
+                }
+                else
+                {
+                    int ox = _framePoint.X - overlayFrame.Center.X + tileOffset.X;
+                    int oy = _framePoint.Y - overlayFrame.Center.Y - overlayH + tileOffset.Y;
+                    g.DrawImage(overlayFrames[overlayIndex], ox, oy);
+                }
+
+                return true;
+            }
+
+            // nothing found
+            g.DrawRectangle(Pens.Magenta, 10, 10, 40, 40);
+            return true;
         }
     }
 }

@@ -122,6 +122,9 @@
             SecondAnimInFrontCheckBox = new System.Windows.Forms.CheckBox();
             SecondAnimBoxCheckBox = new System.Windows.Forms.CheckBox();
             SecondAnimWarningLabel = new System.Windows.Forms.Label();
+            AddedMobileGroupBox = new System.Windows.Forms.GroupBox();
+            DrawMountedCheckBox = new System.Windows.Forms.CheckBox();
+            DrawOppositeHumanCheckBox = new System.Windows.Forms.CheckBox();
             FramesGroupBox = new System.Windows.Forms.GroupBox();
             FramesTrackBar = new System.Windows.Forms.TrackBar();
             SpeedGroupBox = new System.Windows.Forms.GroupBox();
@@ -1014,6 +1017,7 @@
             EditSidePanel.AutoScroll = true;
             EditSidePanel.BackColor = System.Drawing.SystemColors.Control;
             EditSidePanel.Controls.Add(SecondAnimGroupBox);
+            EditSidePanel.Controls.Add(AddedMobileGroupBox);
             EditSidePanel.Controls.Add(FramesGroupBox);
             EditSidePanel.Controls.Add(SpeedGroupBox);
             EditSidePanel.Controls.Add(LocationCenterGroupBox);
@@ -1025,6 +1029,46 @@
             EditSidePanel.Name = "EditSidePanel";
             EditSidePanel.Size = new System.Drawing.Size(190, 694);
             EditSidePanel.TabIndex = 0;
+            // 
+            // AddedMobileGroupBox
+            // 
+            AddedMobileGroupBox.Controls.Add(DrawOppositeHumanCheckBox);
+            AddedMobileGroupBox.Controls.Add(DrawMountedCheckBox);
+            AddedMobileGroupBox.Dock = System.Windows.Forms.DockStyle.Top;
+            AddedMobileGroupBox.Location = new System.Drawing.Point(0, 437);
+            AddedMobileGroupBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            AddedMobileGroupBox.Name = "AddedMobileGroupBox";
+            AddedMobileGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            AddedMobileGroupBox.Size = new System.Drawing.Size(190, 67);
+            AddedMobileGroupBox.TabIndex = 23;
+            AddedMobileGroupBox.TabStop = false;
+            AddedMobileGroupBox.Text = "Add Mobiles";
+            // 
+            // DrawOppositeHumanCheckBox
+            // 
+            DrawOppositeHumanCheckBox.AutoSize = true;
+            DrawOppositeHumanCheckBox.BackColor = System.Drawing.SystemColors.ButtonFace;
+            DrawOppositeHumanCheckBox.Location = new System.Drawing.Point(10, 42);
+            DrawOppositeHumanCheckBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            DrawOppositeHumanCheckBox.Name = "DrawOppositeHumanCheckBox";
+            DrawOppositeHumanCheckBox.Size = new System.Drawing.Size(147, 19);
+            DrawOppositeHumanCheckBox.TabIndex = 17;
+            DrawOppositeHumanCheckBox.Text = "Draw Opposite Human";
+            DrawOppositeHumanCheckBox.UseVisualStyleBackColor = false;
+            DrawOppositeHumanCheckBox.CheckedChanged += CbDrawOppositeHuman_CheckedChanged;
+            // 
+            // DrawMountedCheckBox
+            // 
+            DrawMountedCheckBox.AutoSize = true;
+            DrawMountedCheckBox.BackColor = System.Drawing.SystemColors.ButtonFace;
+            DrawMountedCheckBox.Location = new System.Drawing.Point(10, 20);
+            DrawMountedCheckBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            DrawMountedCheckBox.Name = "DrawMountedCheckBox";
+            DrawMountedCheckBox.Size = new System.Drawing.Size(133, 19);
+            DrawMountedCheckBox.TabIndex = 16;
+            DrawMountedCheckBox.Text = "Draw Mount Frames";
+            DrawMountedCheckBox.UseVisualStyleBackColor = false;
+            DrawMountedCheckBox.CheckedChanged += CbDrawMounted_CheckedChanged;
             // 
             // SecondAnimGroupBox
             // 
@@ -1786,5 +1830,8 @@
         private System.Windows.Forms.CheckBox SecondAnimInFrontCheckBox;
         private System.Windows.Forms.CheckBox SecondAnimBoxCheckBox;
         private System.Windows.Forms.Label SecondAnimWarningLabel;
+        private System.Windows.Forms.GroupBox AddedMobileGroupBox;
+        private System.Windows.Forms.CheckBox DrawMountedCheckBox;
+        private System.Windows.Forms.CheckBox DrawOppositeHumanCheckBox;
     }
 }
