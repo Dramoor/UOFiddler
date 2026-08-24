@@ -70,6 +70,11 @@ namespace UoFiddler.Controls.UserControls
         private bool _selectedIsItem;
         private ushort _currentColor;
         private static RadarColorControl _refMarker;
+
+        // Pending navigation state - set by ItemsControl or LandTilesControl when user selects "Select in RadarColor"
+        private static int _pendingNavigationIndex = -1;
+        private static bool _pendingNavigationIsLand;
+
         private bool _updating;
         private readonly Dictionary<int, ushort> _originalItemColors = [];
         private readonly Dictionary<int, ushort> _originalLandColors = [];
@@ -416,12 +421,44 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
+        /// <summary>
+        /// Sets the pending navigation index for fast navigation when RadarColor tab loads.
+        /// Call this before Select() to cache the target so RadarColorControl can navigate directly.
+        /// </summary>
+        public static void SetPendingNavigation(int graphic, bool land)
+        {
+            _pendingNavigationIndex = graphic;
+            _pendingNavigationIsLand = land;
+        }
+
+        /// <summary>
+        /// Executes any pending navigation after RadarColorControl is fully loaded.
+        /// </summary>
+        private static void ExecutePendingNavigation()
+        {
+            if (_pendingNavigationIndex < 0 || _refMarker == null)
+            {
+                return;
+            }
+
+            int targetIndex = _pendingNavigationIndex;
+            bool isLand = _pendingNavigationIsLand;
+
+            // Clear the pending navigation immediately to avoid re-execution
+            _pendingNavigationIndex = -1;
+
+            ApplySelect(targetIndex, isLand);
+        }
+
         public static void Select(int graphic, bool land)
         {
             if (_refMarker == null)
             {
                 return;
             }
+
+            // Set pending navigation for fast navigation upon load
+            SetPendingNavigation(graphic, land);
 
             if (!_refMarker.IsLoaded)
             {
@@ -527,6 +564,9 @@ namespace UoFiddler.Controls.UserControls
             }
 
             IsLoaded = true;
+
+            // Execute any pending navigation from cross-tab selection
+            ExecutePendingNavigation();
         }
 
         private void PopulateMeanStrategyCombo()

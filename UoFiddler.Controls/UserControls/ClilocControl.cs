@@ -31,6 +31,9 @@ namespace UoFiddler.Controls.UserControls
 
             _source = new BindingSource();
             FindEntry.TextBox.PreviewKeyDown += FindEntry_PreviewKeyDown;
+
+            // Set RefMarker immediately so cross-tab selection works before tab is first clicked
+            RefMarker = this;
         }
 
         private const string _searchNumberPlaceholder = "Enter Number";
@@ -38,10 +41,14 @@ namespace UoFiddler.Controls.UserControls
 
         private static StringList _cliloc;
         private static BindingSource _source;
+        private static ClilocControl _refMarker;
         private int _lang;
         private SortOrder _sortOrder;
         private int _sortColumn;
         private bool _loaded;
+
+        // Pending navigation state - set by ItemsControl or LandTilesControl when user selects "Select in Cliloc"
+        private static int _pendingNavigationNumber = -1;
 
         /// <summary>
         /// Sets Language and loads cliloc
@@ -91,6 +98,139 @@ namespace UoFiddler.Controls.UserControls
             OnLoad(this, EventArgs.Empty);
         }
 
+        public static ClilocControl RefMarker
+        {
+            get => _refMarker;
+            set => _refMarker = value;
+        }
+
+        /// <summary>
+        /// Sets the pending navigation number for fast navigation when Cliloc tab loads.
+        /// Call this before Select() to cache the target so ClilocControl can navigate directly.
+        /// </summary>
+        public static void SetPendingNavigation(int clilocNumber)
+        {
+            _pendingNavigationNumber = clilocNumber;
+        }
+
+        /// <summary>
+        /// Executes any pending navigation after ClilocControl is fully loaded.
+        /// </summary>
+        public void ExecutePendingNavigation()
+        {
+            if (_pendingNavigationNumber < 0)
+            {
+                return;
+            }
+
+            int targetNumber = _pendingNavigationNumber;
+
+            // Clear the pending navigation immediately to avoid re-execution
+            _pendingNavigationNumber = -1;
+
+            // Ensure the DataGridView has rows before attempting navigation
+            if (dataGridView1.Rows.Count == 0)
+            {
+                return;
+            }
+
+            // Navigate to the cliloc entry matching the target number
+            for (int i = 0; i < dataGridView1.Rows.Count; ++i)
+            {
+                try
+                {
+                    if ((int)dataGridView1.Rows[i].Cells[0].Value != targetNumber)
+                    {
+                        continue;
+                    }
+
+                    dataGridView1.Rows[i].Selected = true;
+                    dataGridView1.FirstDisplayedScrollingRowIndex = i;
+                    return;
+                }
+                catch
+                {
+                    // Silently continue if there's an issue with a specific row
+                    continue;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Selects and displays the cliloc entry with the given number
+        /// </summary>
+        public static void Select(int clilocNumber)
+        {
+            if (_refMarker == null)
+            {
+                return;
+            }
+
+            // Set pending navigation for fast navigation upon load
+            SetPendingNavigation(clilocNumber);
+
+            // Activate the tab FIRST so the control is visible and properly sized
+            TabPageNavigator.ActivateOwningTabPage(_refMarker);
+
+            // If not loaded yet, queue the load via BeginInvoke to ensure proper UI initialization
+            // and that the control is visible on the tab
+            if (!_refMarker._loaded)
+            {
+                if (_refMarker.IsHandleCreated)
+                {
+                    _refMarker.BeginInvoke(new Action(() =>
+                    {
+                        if (!_refMarker._loaded)
+                        {
+                            _refMarker.OnLoad(_refMarker, EventArgs.Empty);
+                        }
+                        // Navigation will happen from ExecutePendingNavigation in OnLoad
+                    }));
+                }
+                else
+                {
+                    _refMarker.OnLoad(_refMarker, EventArgs.Empty);
+                }
+            }
+            else
+            {
+                // Already loaded, navigate immediately via BeginInvoke
+                if (_refMarker.IsHandleCreated)
+                {
+                    _refMarker.BeginInvoke(new Action(() => _refMarker.ExecutePendingNavigation()));
+                }
+                else
+                {
+                    _refMarker.ExecutePendingNavigation();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets the cliloc text for a given cliloc number, or returns empty string if not found.
+        /// </summary>
+        public static string GetClilocText(int clilocNumber)
+        {
+            if (_cliloc == null)
+            {
+                return string.Empty;
+            }
+
+            var entry = _cliloc.GetEntry(clilocNumber);
+            return entry?.Text ?? string.Empty;
+        }
+
+        /// <summary>
+        /// Ensures cliloc data is loaded (for preloading from other tabs).
+        /// </summary>
+        public static void EnsureLoaded()
+        {
+            if (_cliloc == null)
+            {
+                _cliloc = new StringList("enu", false);
+            }
+        }
+
         private void OnLoad(object sender, EventArgs e)
         {
             if (IsAncestorSiteInDesignMode || FormsDesignerHelper.IsInDesignMode())
@@ -131,6 +271,13 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _loaded = true;
+
+                // Queue navigation on the UI thread after all current operations complete
+                // This ensures the DataGridView is fully populated and bound
+                if (_pendingNavigationNumber >= 0 && IsHandleCreated)
+                {
+                    BeginInvoke(new Action(() => ExecutePendingNavigation()));
+                }
             }
         }
 

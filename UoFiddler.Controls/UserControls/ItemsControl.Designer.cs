@@ -61,8 +61,10 @@ namespace UoFiddler.Controls.UserControls
             asJpgToolStripMenuItem1 = new ToolStripMenuItem();
             asPngToolStripMenuItem1 = new ToolStripMenuItem();
             toolStripSeparator7 = new ToolStripSeparator();
+            selectInAllTabsToolStripMenuItem = new ToolStripMenuItem();
             selectInTileDataTabToolStripMenuItem = new ToolStripMenuItem();
             selectInRadarColorTabToolStripMenuItem = new ToolStripMenuItem();
+            selectInClilocTabToolStripMenuItem = new ToolStripMenuItem();
             selectInGumpsTabMaleToolStripMenuItem = new ToolStripMenuItem();
             selectInGumpsTabFemaleToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator2 = new ToolStripSeparator();
@@ -218,7 +220,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // TileViewContextMenuStrip
             // 
-            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, toolStripSeparator7, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, replaceFromFolderToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, toolStripSeparator7, selectInAllTabsToolStripMenuItem, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInClilocTabToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, replaceFromFolderToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             TileViewContextMenuStrip.Name = "contextMenuStrip1";
             TileViewContextMenuStrip.Size = new System.Drawing.Size(213, 314);
             TileViewContextMenuStrip.Opening += TileViewContextMenuStrip_Opening;
@@ -290,6 +292,13 @@ namespace UoFiddler.Controls.UserControls
             toolStripSeparator7.Name = "toolStripSeparator7";
             toolStripSeparator7.Size = new System.Drawing.Size(209, 6);
             // 
+            // selectInAllTabsToolStripMenuItem
+            // 
+            selectInAllTabsToolStripMenuItem.Name = "selectInAllTabsToolStripMenuItem";
+            selectInAllTabsToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            selectInAllTabsToolStripMenuItem.Text = "Select in All tabs";
+            selectInAllTabsToolStripMenuItem.Click += OnClickSelectAllTabs;
+            // 
             // selectInTileDataTabToolStripMenuItem
             // 
             selectInTileDataTabToolStripMenuItem.Name = "selectInTileDataTabToolStripMenuItem";
@@ -303,6 +312,13 @@ namespace UoFiddler.Controls.UserControls
             selectInRadarColorTabToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
             selectInRadarColorTabToolStripMenuItem.Text = "Select in RadarColor tab";
             selectInRadarColorTabToolStripMenuItem.Click += OnClickSelectRadarCol;
+            // 
+            // selectInClilocTabToolStripMenuItem
+            // 
+            selectInClilocTabToolStripMenuItem.Name = "selectInClilocTabToolStripMenuItem";
+            selectInClilocTabToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            selectInClilocTabToolStripMenuItem.Text = "Select in Cliloc tab";
+            selectInClilocTabToolStripMenuItem.Click += OnClickSelectCliloc;
             // 
             // selectInGumpsTabMaleToolStripMenuItem
             // 
@@ -620,8 +636,10 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripMenuItem removeToolStripMenuItem;
         private ToolStripMenuItem replaceToolStripMenuItem;
         private ToolStripMenuItem saveToolStripMenuItem;
+        private ToolStripMenuItem selectInAllTabsToolStripMenuItem;
         private ToolStripMenuItem selectInRadarColorTabToolStripMenuItem;
         private ToolStripMenuItem selectInTileDataTabToolStripMenuItem;
+        private ToolStripMenuItem selectInClilocTabToolStripMenuItem;
         private ToolStripMenuItem showFreeSlotsToolStripMenuItem;
         private SplitContainer splitContainer1;
         private SplitContainer splitContainer2;

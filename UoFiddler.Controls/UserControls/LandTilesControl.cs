@@ -725,10 +725,25 @@ namespace UoFiddler.Controls.UserControls
                 MessageBoxDefaultButton.Button1);
         }
 
+        private void OnClickSelectAllTabs(object sender, EventArgs e)
+        {
+            if (_selectedGraphicId >= 0)
+            {
+                // Cache navigation targets for all three tabs
+                TileDataControl.SetPendingNavigation(_selectedGraphicId, land: true);
+                RadarColorControl.SetPendingNavigation(_selectedGraphicId, land: true);
+
+                int textureId = TileData.LandTable[_selectedGraphicId].TextureId;
+                TexturesControl.SetPendingNavigation(textureId);
+            }
+        }
+
         private void OnClickSelectTiledata(object sender, EventArgs e)
         {
             if (_selectedGraphicId >= 0)
             {
+                // Cache navigation target for fast load
+                TileDataControl.SetPendingNavigation(_selectedGraphicId, land: true);
                 TileDataControl.Select(_selectedGraphicId, true);
             }
         }
@@ -737,6 +752,8 @@ namespace UoFiddler.Controls.UserControls
         {
             if (_selectedGraphicId >= 0)
             {
+                // Cache navigation target for fast load
+                RadarColorControl.SetPendingNavigation(_selectedGraphicId, land: true);
                 RadarColorControl.Select(_selectedGraphicId, true);
             }
         }

@@ -207,6 +207,9 @@ namespace UoFiddler.Controls.UserControls
                 Options.LoadedUltimaClass["Animdata"] = true;
                 Options.LoadedUltimaClass["Hues"] = true;
 
+                // Preload cliloc data so GetClilocText works when displaying item details
+                ClilocControl.EnsureLoaded();
+
                 if (!IsLoaded) // only once
                 {
                     Plugin.PluginEvents.FireModifyItemShowContextMenuEvent(TileViewContextMenuStrip);
@@ -423,7 +426,15 @@ namespace UoFiddler.Controls.UserControls
 
             var sb = new StringBuilder();
             sb.AppendLine($"Name: {item.Name}");
-            sb.AppendLine($"Graphic: 0x{graphic:X4}");
+            // Calculate the cliloc label number based on item ID
+            int clilocNumber = graphic < 0x4000
+                ? 1020000 + graphic
+                : 1078872 + graphic;
+            string clilocText = ClilocControl.GetClilocText(clilocNumber);
+            sb.AppendLine($"Cliloc: {clilocText}");
+            //sb.AppendLine($"Cliloc: {clilocNumber} - {clilocText}");
+            sb.AppendLine($"Graphic: 0x{graphic:X4}({graphic})");
+            //sb.AppendLine($"Graphic: 0x{graphic:X4}");
             sb.AppendLine($"Height/Capacity: {item.Height}");
             sb.AppendLine($"Weight: {item.Weight}");
             sb.AppendLine($"Animation: {item.Animation}");
@@ -432,8 +443,10 @@ namespace UoFiddler.Controls.UserControls
             sb.AppendLine($"Hue: {item.Hue}");
             sb.AppendLine($"StackingOffset/Unk4: {item.StackingOffset}");
             sb.AppendLine($"Flags: {item.Flags}");
-            sb.AppendLine($"Graphic pixel size width, height: {bit?.Width ?? 0} {bit?.Height ?? 0} ");
-            sb.AppendLine($"Graphic pixel offset xMin, yMin, xMax, yMax: {xMin} {yMin} {xMax} {yMax}");
+            sb.AppendLine($"Graphic Size: {bit?.Width ?? 0} x {bit?.Height ?? 0} ");
+            sb.AppendLine($"Graphic Offset xMin, yMin, xMax, yMax: {xMin} {yMin} {xMax} {yMax}");
+            //sb.AppendLine($"Graphic pixel size width, height: {bit?.Width ?? 0} {bit?.Height ?? 0} ");
+            //sb.AppendLine($"Graphic pixel offset xMin, yMin, xMax, yMax: {xMin} {yMin} {xMax} {yMax}");
 
             if ((item.Flags & TileFlag.Animation) != 0)
             {
@@ -911,10 +924,28 @@ namespace UoFiddler.Controls.UserControls
                 MessageBoxDefaultButton.Button1);
         }
 
+        private void OnClickSelectAllTabs(object sender, EventArgs e)
+        {
+            if (_selectedGraphicId >= 0)
+            {
+                // Cache navigation targets for all three tabs
+                TileDataControl.SetPendingNavigation(_selectedGraphicId, land: false);
+                RadarColorControl.SetPendingNavigation(_selectedGraphicId, land: false);
+
+                // Calculate the cliloc label number based on item ID
+                int clilocNumber = _selectedGraphicId < 0x4000
+                    ? 1020000 + _selectedGraphicId
+                    : 1078872 + _selectedGraphicId;
+                ClilocControl.SetPendingNavigation(clilocNumber);
+            }
+        }
+
         private void OnClickSelectTiledata(object sender, EventArgs e)
         {
             if (_selectedGraphicId >= 0)
             {
+                // Cache navigation target for fast load
+                TileDataControl.SetPendingNavigation(_selectedGraphicId, land: false);
                 TileDataControl.Select(_selectedGraphicId, false);
             }
         }
@@ -923,7 +954,24 @@ namespace UoFiddler.Controls.UserControls
         {
             if (_selectedGraphicId >= 0)
             {
+                // Cache navigation target for fast load
+                RadarColorControl.SetPendingNavigation(_selectedGraphicId, land: false);
                 RadarColorControl.Select(_selectedGraphicId, false);
+            }
+        }
+
+        private void OnClickSelectCliloc(object sender, EventArgs e)
+        {
+            if (_selectedGraphicId >= 0)
+            {
+                // Calculate the cliloc label number based on item ID
+                int clilocNumber = _selectedGraphicId < 0x4000
+                    ? 1020000 + _selectedGraphicId
+                    : 1078872 + _selectedGraphicId;
+
+                // Cache navigation target for fast load
+                ClilocControl.SetPendingNavigation(clilocNumber);
+                ClilocControl.Select(clilocNumber);
             }
         }
 

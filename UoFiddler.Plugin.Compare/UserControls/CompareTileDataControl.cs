@@ -44,7 +44,7 @@ namespace UoFiddler.Plugin.Compare.UserControls
             ("Unknown1",     TileFlag.Unknown1),
             ("Surface",      TileFlag.Surface),
             ("Bridge",       TileFlag.Bridge),
-            ("Generic",      TileFlag.Generic),
+            ("Stackable",    TileFlag.Stackable),
             ("Window",       TileFlag.Window),
             ("NoShoot",      TileFlag.NoShoot),
             ("ArticleA",     TileFlag.ArticleA),

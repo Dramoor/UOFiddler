@@ -55,6 +55,7 @@ namespace UoFiddler.Controls.UserControls
             asJpgToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
             asPngToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
+            selectInAllTabsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             selectInTileDataTabToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             selectInRadarColorTabToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             selectInTexturesTabToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -98,7 +99,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // LandTilesContextMenuStrip
             // 
-            LandTilesContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, changeBackgroundColorToolStripMenuItem, toolStripSeparator6, exportImageToolStripMenuItem, toolStripSeparator3, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInTexturesTabToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, replaceFromFolderToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            LandTilesContextMenuStrip.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, changeBackgroundColorToolStripMenuItem, toolStripSeparator6, exportImageToolStripMenuItem, toolStripSeparator3, selectInAllTabsToolStripMenuItem, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInTexturesTabToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, replaceFromFolderToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             LandTilesContextMenuStrip.Name = "contextMenuStrip1";
             LandTilesContextMenuStrip.Size = new System.Drawing.Size(201, 270);
             LandTilesContextMenuStrip.Opening += LandTilesContextMenuStrip_Opening;
@@ -169,6 +170,13 @@ namespace UoFiddler.Controls.UserControls
             // 
             toolStripSeparator3.Name = "toolStripSeparator3";
             toolStripSeparator3.Size = new System.Drawing.Size(197, 6);
+            // 
+            // selectInAllTabsToolStripMenuItem
+            // 
+            selectInAllTabsToolStripMenuItem.Name = "selectInAllTabsToolStripMenuItem";
+            selectInAllTabsToolStripMenuItem.Size = new System.Drawing.Size(200, 22);
+            selectInAllTabsToolStripMenuItem.Text = "Select in All tabs";
+            selectInAllTabsToolStripMenuItem.Click += OnClickSelectAllTabs;
             // 
             // selectInTileDataTabToolStripMenuItem
             // 
@@ -475,6 +483,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.ToolStripMenuItem replaceToolStripMenuItem;
         private System.Windows.Forms.ToolStripButton SaveButton;
         private System.Windows.Forms.ToolStripMenuItem selectInRadarColorTabToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectInAllTabsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectInTexturesTabToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectInTileDataTabToolStripMenuItem;
         private System.Windows.Forms.ToolStrip LandTilesToolStrip;

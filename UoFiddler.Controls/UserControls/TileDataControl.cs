@@ -92,6 +92,11 @@ namespace UoFiddler.Controls.UserControls
         }
 
         private static TileDataControl _refMarker;
+
+        // Pending navigation state - set by ItemsControl or LandTilesControl when user selects "Select in TileData"
+        private static int _pendingNavigationIndex = -1;
+        private static bool _pendingNavigationIsLand;
+
         private bool _changingIndex;
 
         // Virtual ListView backing state. _itemIndices/_landIndices map each
@@ -230,12 +235,44 @@ namespace UoFiddler.Controls.UserControls
 
         public bool IsLoaded { get; private set; }
 
+        /// <summary>
+        /// Sets the pending navigation index for fast navigation when TileData tab loads.
+        /// Call this before Select() to cache the target so TileDataControl can navigate directly.
+        /// </summary>
+        public static void SetPendingNavigation(int graphic, bool land)
+        {
+            _pendingNavigationIndex = graphic;
+            _pendingNavigationIsLand = land;
+        }
+
+        /// <summary>
+        /// Executes any pending navigation after TileDataControl is fully loaded.
+        /// </summary>
+        private static void ExecutePendingNavigation()
+        {
+            if (_pendingNavigationIndex < 0 || _refMarker == null)
+            {
+                return;
+            }
+
+            int targetIndex = _pendingNavigationIndex;
+            bool isLand = _pendingNavigationIsLand;
+
+            // Clear the pending navigation immediately to avoid re-execution
+            _pendingNavigationIndex = -1;
+
+            SearchGraphic(targetIndex, isLand);
+        }
+
         public static void Select(int graphic, bool land)
         {
             if (_refMarker == null)
             {
                 return;
             }
+
+            // Set pending navigation for fast navigation upon load
+            SetPendingNavigation(graphic, land);
 
             // Activate the outer TileData TabPage so the virtual ListView is on
             // a visible tab before we set selection — assigning SelectedIndices
@@ -564,6 +601,9 @@ namespace UoFiddler.Controls.UserControls
             ResetLandView();
 
             IsLoaded = true;
+
+            // Execute any pending navigation from cross-tab selection
+            ExecutePendingNavigation();
         }
 
         private void OnFilePathChangeEvent()

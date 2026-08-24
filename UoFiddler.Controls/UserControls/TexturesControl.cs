@@ -40,6 +40,7 @@ namespace UoFiddler.Controls.UserControls
         private bool _showFreeSlots;
         private bool _loaded;
         private int _selectedTextureId = -1;
+        private static int _pendingNavigationTextureId = -1;
 
         [DesignerSerializationVisibility(DesignerSerializationVisibility.Hidden)]
         public int SelectedTextureId
@@ -53,6 +54,40 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
+        /// <summary>
+        /// Sets the pending navigation texture ID for fast navigation when Textures tab loads.
+        /// Call this before Select() to cache the target so TexturesControl can navigate directly.
+        /// </summary>
+        public static void SetPendingNavigation(int textureId)
+        {
+            _pendingNavigationTextureId = textureId;
+        }
+
+        /// <summary>
+        /// Executes any pending navigation after TexturesControl is fully loaded.
+        /// </summary>
+        private void ExecutePendingNavigation()
+        {
+            if (_pendingNavigationTextureId < 0)
+            {
+                return;
+            }
+
+            int targetTextureId = _pendingNavigationTextureId;
+
+            // Clear the pending navigation immediately to avoid re-execution
+            _pendingNavigationTextureId = -1;
+
+            if (!_textureList.Contains(targetTextureId))
+            {
+                return;
+            }
+
+            // Reset focus index to ensure the view scrolls to the selected texture
+            TextureTileView.FocusIndex = -1;
+            SelectedTextureId = targetTextureId;
+        }
+
         public static bool Select(int textureId)
         {
             if (_refMarker == null)
@@ -60,31 +95,42 @@ namespace UoFiddler.Controls.UserControls
                 return false;
             }
 
-            if (!_refMarker._loaded)
-            {
-                _refMarker.OnLoad(_refMarker, EventArgs.Empty);
-            }
+            // Set pending navigation for fast navigation upon load
+            SetPendingNavigation(textureId);
 
-            if (!_refMarker._textureList.Contains(textureId))
-            {
-                return false;
-            }
-
+            // Activate the tab FIRST so the control is visible and properly sized
             TabPageNavigator.ActivateOwningTabPage(_refMarker);
 
-            if (_refMarker.IsHandleCreated)
+            // If not loaded yet, queue the load via BeginInvoke to ensure proper UI initialization
+            if (!_refMarker._loaded)
             {
-                _refMarker.BeginInvoke(new Action(() =>
+                if (_refMarker.IsHandleCreated)
                 {
-                    // Reset focus index to ensure the view scrolls to the selected texture
-                    _refMarker.TextureTileView.FocusIndex = -1;
-                    _refMarker.SelectedTextureId = textureId;
-                }));
+                    _refMarker.BeginInvoke(new Action(() =>
+                    {
+                        if (!_refMarker._loaded)
+                        {
+                            _refMarker.OnLoad(_refMarker, EventArgs.Empty);
+                        }
+                        // Navigation will happen from ExecutePendingNavigation in OnLoad
+                    }));
+                }
+                else
+                {
+                    _refMarker.OnLoad(_refMarker, EventArgs.Empty);
+                }
             }
             else
             {
-                _refMarker.TextureTileView.FocusIndex = -1;
-                _refMarker.SelectedTextureId = textureId;
+                // Already loaded, navigate immediately via BeginInvoke
+                if (_refMarker.IsHandleCreated)
+                {
+                    _refMarker.BeginInvoke(new Action(() => _refMarker.ExecutePendingNavigation()));
+                }
+                else
+                {
+                    _refMarker.ExecutePendingNavigation();
+                }
             }
 
             return true;
@@ -137,6 +183,13 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _loaded = true;
+
+                // Queue navigation on the UI thread after all current operations complete
+                // This ensures the TextureTileView is fully populated
+                if (_pendingNavigationTextureId >= 0 && IsHandleCreated)
+                {
+                    BeginInvoke(new Action(() => ExecutePendingNavigation()));
+                }
             }
         }
 
