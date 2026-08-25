@@ -118,7 +118,102 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 4.23.0
+    <value>Version 5.2.9
+- Update to current uo fiddler with my custom updates.
+
+Version 5.2.8
+- Fixed issues with vd remapping when convertiong from H L P formats to vd.	This should properly set them accurately now.
+	
+Version 5.2.7
+- Added in the ability to search for animations on the animation tab based on the names provided in your animationlist.xml file.
+- Bottom of Animations Tab will now show the Anim.mul file used for the selected animation along with the file slot inside that mul file.
+
+Version 5.2.6
+- Fixed issue with filters not working right on the items search.	
+	
+Version 5.2.5
+- Added in Dynamic searching in the land tiles tab. Can also filter with no filter, impassible, or aplphablend flags.
+
+Version 5.2.4
+- Can now right click in gumps menu on an object and select in the items tab if that item has a corresponding item set in the tiledata.
+
+Version 5.2.3
+- Added ability to set preview hue on items tab, this will set the hue for all items to view. 	
+
+Version 5.2.2
+- Added in ability to export images in the preview hue or hue 0;
+	
+Version 5.2.1
+
+- Added in ability with shift and ctrl for multiple selections in the Land tile tab. Can remove multiple tiles with remove selected or export the images.
+- Added in ability with shift and ctrl for multiple selections in the Textures tab. Can remove multiple textures with remove selected or export the images.
+- Added in ability with shift and ctrl for multiple selections in the Gumps tab. Can remove multiple gump images with remove selected or export the images.
+- Added check boxes in the tree view of the multis tab to allow for selecting multiple multis to export or remove. Can also select all or none with the check boxes at the top of the tree view.
+
+Version 5.2.0
+- Can now use the search in items tab to search by name, or by animation, layer, height, weight and stack offset. You can use this as a normal search, or with the dynamic search.
+- Added in ability to remove all selected tiles when having multiple selected in the items tab.
+	
+Version 5.1.9
+- Added in the start to be able to export a vd at a scaled size, right now this only scales from 10 percent to 100 percent. You can also remap the vd with an option as well.
+
+Version 5.1.8
+- Can now create a gif from the animation edit tab. You can create in one direction or all directions of a specific action. Also you can export individual frames now from the frames tab.
+		
+Version 5.1.7
+- MultiCollection.UOP can be read and written in the .uop compressed format that can read on the CUO client and on the OSI client. Some programs cannot read the file though, Still needs some tweaking.
+	
+Version 5.1.6
+- This dynaimcally loads all anim.mul/anim.idx files and allows for using in animedit. This will load info from a AnimMap.xml file that is in the appdata directory. You can edit them for profile by adding AnimMap_profilename.xml as the name to load with a specific profile. 
+		
+Version 5.1.5
+- Added in a check box in the misc tab to allow for dynamic searching for items in the items tab. This will load all items containing the searched name and not show the rest.
+		
+Version 5.1.4
+- Can select in the misc tab on items search by layer and can then search every item in the items tab with the layer selected. 
+
+- Exporting item,gump,texture,landtile/animation vds images will use decimal instead of hexidecimal for the file name.
+	
+- Can now select multiple items in the items tab with ctrl or ranges with shift. 
+	
+Version 5.1.3
+- Can now also search for layer items on items tab. This is more of a personal help. 
+	
+Version 5.1.2
+- Can now also search previous on items tab for backward searching. 	
+	
+Version 5.1.1
+- Cliloc will copy in the tiledata too now. 
+		
+Version 5.1.0
+- Only need to set rootpath now. It will auto load all the files from that folder. Maps (muls and uops) and facet muls will dynamically load in case of customs and bonus maps or facet files. 
+
+Version 5.0.0.6
+- Added ability to right click a tile in items tab and select "select in all tabs" which should select in cliloc, gumps, radarcol, and tiledata tabs. This should make easier to get to all at once. 
+- Added the cliloc name for each item to load in the items tab area to show under Name. 
+
+Version 5.0.5
+- Tiledata misc settings now has a Copy These Setttings check box that can be set to copy whatever you set for a tiledata when you click save, and pastes into next to help speed up editing tiledata.
+		
+Version 5.0.4
+- Added in ability to right click action in animation edit and copy to different empty action. Can also force overwrite one in a separate action.
+
+Version 5.0.3
+- Can now export vds to H L and P formats. Also can remap frames in menu. 
+		
+Version 5.0.2
+- Added ability to load and save MultiCollection.UOP files. This requires the save UOP files checked in the options.
+
+Version 5.0.1
+- Maps can be set dynamically when turned on before loading map tab. You can edit a mapnames.xml file in your appdata to set the index, mapname, and size. This has a default one with the default fiddlers settings in there.
+		
+Version 5.0.0
+- Updated an option to set save to uop which will allow saving as uop for art/gump/sound settings. Check marking will create the mul and uops in the output directory.
+- Items tab will now show the Graphic in hex and decimal on the main tab.
+- You can edit the cliloc text directly in the tiledata tab for each item. This will not save the cliloc, only add the string in for easier naming.
+- The generic flag has been renamed Stackable to match what it does for easier understanding and usage.
+
+Version 4.23.0
 - Multi tile flags survive a UOP &lt;&gt; mul round trip: the visibility word maps onto both `multi.mul` int32s instead of one boolean (8207 of 186695 shipped tiles used to lose a bit)
 - Per-tile component ids are kept in a `multi-components.txt` sidecar, so repacking no longer strips a boat's tiller man, hatch and planks or a house's doors
 - Loading a multi no longer deletes invisible tiles or reorders the tile list (this dropped 122 tiles and reshuffled 119 multis on shipped data)
