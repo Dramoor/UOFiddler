@@ -77,6 +77,11 @@ namespace UoFiddler.Controls.UserControls
             removeToolStripMenuItem = new ToolStripMenuItem();
             toolStripSeparator1 = new ToolStripSeparator();
             saveToolStripMenuItem = new ToolStripMenuItem();
+            createToolStripMenuItem = new ToolStripMenuItem();
+            itemScriptToolStripMenuItem = new ToolStripMenuItem();
+            servUOToolStripMenuItem = new ToolStripMenuItem();
+            runUOToolStripMenuItem = new ToolStripMenuItem();
+            modernUOToolStripMenuItem = new ToolStripMenuItem();
             StatusStrip = new StatusStrip();
             NameLabel = new ToolStripStatusLabel();
             GraphicLabel = new ToolStripStatusLabel();
@@ -236,7 +241,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // TileViewContextMenuStrip
             // 
-            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, exportWithHueToolStripMenuItem, toolStripSeparator7, selectInAllTabsToolStripMenuItem, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInClilocTabToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, replaceFromFolderToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
+            TileViewContextMenuStrip.Items.AddRange(new ToolStripItem[] { showFreeSlotsToolStripMenuItem, findNextFreeSlotToolStripMenuItem, ChangeBackgroundColorToolStripMenuItem, createToolStripMenuItem, toolStripSeparator3, extractToolStripMenuItem, exportWithHueToolStripMenuItem, toolStripSeparator7, selectInAllTabsToolStripMenuItem, selectInTileDataTabToolStripMenuItem, selectInRadarColorTabToolStripMenuItem, selectInClilocTabToolStripMenuItem, selectInGumpsTabMaleToolStripMenuItem, selectInGumpsTabFemaleToolStripMenuItem, toolStripSeparator2, replaceToolStripMenuItem, replaceStartingFromToolStripMenuItem, replaceFromFolderToolStripMenuItem, insertAtToolStripMenuItem, removeToolStripMenuItem, toolStripSeparator1, saveToolStripMenuItem });
             TileViewContextMenuStrip.Name = "contextMenuStrip1";
             TileViewContextMenuStrip.Size = new System.Drawing.Size(213, 314);
             TileViewContextMenuStrip.Opening += TileViewContextMenuStrip_Opening;
@@ -430,6 +435,41 @@ namespace UoFiddler.Controls.UserControls
             saveToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
             saveToolStripMenuItem.Text = "Save";
             saveToolStripMenuItem.Click += OnClickSave;
+            // 
+            // createToolStripMenuItem
+            // 
+            createToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { itemScriptToolStripMenuItem });
+            createToolStripMenuItem.Name = "createToolStripMenuItem";
+            createToolStripMenuItem.Size = new System.Drawing.Size(212, 22);
+            createToolStripMenuItem.Text = "Create";
+            // 
+            // itemScriptToolStripMenuItem
+            // 
+            itemScriptToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] { servUOToolStripMenuItem, runUOToolStripMenuItem, modernUOToolStripMenuItem });
+            itemScriptToolStripMenuItem.Name = "itemScriptToolStripMenuItem";
+            itemScriptToolStripMenuItem.Size = new System.Drawing.Size(152, 22);
+            itemScriptToolStripMenuItem.Text = "Item Script";
+            // 
+            // servUOToolStripMenuItem
+            // 
+            servUOToolStripMenuItem.Name = "servUOToolStripMenuItem";
+            servUOToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
+            servUOToolStripMenuItem.Text = "ServUO";
+            servUOToolStripMenuItem.Click += OnClickCreateServUOScript;
+            // 
+            // runUOToolStripMenuItem
+            // 
+            runUOToolStripMenuItem.Name = "runUOToolStripMenuItem";
+            runUOToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
+            runUOToolStripMenuItem.Text = "RunUO";
+            runUOToolStripMenuItem.Click += OnClickCreateRunUOScript;
+            // 
+            // modernUOToolStripMenuItem
+            // 
+            modernUOToolStripMenuItem.Name = "modernUOToolStripMenuItem";
+            modernUOToolStripMenuItem.Size = new System.Drawing.Size(116, 22);
+            modernUOToolStripMenuItem.Text = "ModernUO";
+            modernUOToolStripMenuItem.Click += OnClickCreateModernUOScript;
             // 
             // StatusStrip
             // 
@@ -830,5 +870,10 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripMenuItem huesToolStripMenuItem;
         private ToolStripMenuItem previewHueToolStripMenuItem;
         private ToolStripMenuItem removeHuePreviewToolStripMenuItem;
+        private ToolStripMenuItem createToolStripMenuItem;
+        private ToolStripMenuItem itemScriptToolStripMenuItem;
+        private ToolStripMenuItem servUOToolStripMenuItem;
+        private ToolStripMenuItem runUOToolStripMenuItem;
+        private ToolStripMenuItem modernUOToolStripMenuItem;
     }
 }

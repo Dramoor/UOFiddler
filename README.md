@@ -23,6 +23,7 @@ This is a fork of the UO fiddler. This source can be found [here](https://github
 - Can save frames individually if wanting.
 - Can export a png in all directions for a specific action.
 - Can export vd to a scaled size (10 percent to 100 percent and is still in testing phase).
+- Can now create an item script from the items tab for ServUO, RunUO and ModernUO. This has a few options for the script that can be set.
 
 ## Requirements
 

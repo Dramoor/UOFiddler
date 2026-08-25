@@ -1555,6 +1555,172 @@ namespace UoFiddler.Controls.UserControls
             FileSavedDialog.Show(FindForm(), Options.OutputPath, "Files saved successfully.");
         }
 
+        private void OnClickCreateServUOScript(object sender, EventArgs e)
+        {
+            if (SelectedGraphicId <= 0)
+            {
+                MessageBox.Show("Please select an item first.", "No Item Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Check if the item is stackable from TileData
+            bool isItemStackable = false;
+            if (SelectedGraphicId < TileData.ItemTable.Length)
+            {
+                var tileData = TileData.ItemTable[SelectedGraphicId];
+                isItemStackable = (tileData.Flags & TileFlag.Stackable) != 0;
+            }
+
+            // Ask user for item name
+            using (var form = new ItemNameInputForm(isItemStackable, isRunUO: false, previewHue: _previewHue))
+            {
+                if (form.ShowDialog(FindForm()) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                string itemName = form.ItemName;
+                if (string.IsNullOrWhiteSpace(itemName))
+                {
+                    MessageBox.Show("Item name cannot be empty.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Generate the script with weight, hue, stackable, artifact, and prefix settings
+                string outputDir = Options.OutputPath;
+                int hueValue = _previewHue >= 0 ? _previewHue : 0;
+                string scriptPath = ServUOScriptGenerator.GenerateItemScript(
+                    SelectedGraphicId, 
+                    itemName, 
+                    outputDir, 
+                    form.ItemWeight, 
+                    form.UseHue, 
+                    hueValue,
+                    form.IsStackable,
+                    form.IsArtifact,
+                    form.SelectedPrefix);
+
+                if (scriptPath != null)
+                {
+                    MessageBox.Show($"Script saved successfully:\n{scriptPath}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Failed to generate ServUO item script.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void OnClickCreateRunUOScript(object sender, EventArgs e)
+        {
+            if (SelectedGraphicId <= 0)
+            {
+                MessageBox.Show("Please select an item first.", "No Item Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Check if the item is stackable from TileData
+            bool isItemStackable = false;
+            if (SelectedGraphicId < TileData.ItemTable.Length)
+            {
+                var tileData = TileData.ItemTable[SelectedGraphicId];
+                isItemStackable = (tileData.Flags & TileFlag.Stackable) != 0;
+            }
+
+            // Ask user for item name (without artifact option)
+            using (var form = new ItemNameInputForm(isItemStackable, isRunUO: true, previewHue: _previewHue))
+            {
+                if (form.ShowDialog(FindForm()) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                string itemName = form.ItemName;
+                if (string.IsNullOrWhiteSpace(itemName))
+                {
+                    MessageBox.Show("Item name cannot be empty.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Generate the script with weight, hue, stackable, and prefix settings (no artifact for RunUO)
+                string outputDir = Options.OutputPath;
+                int hueValue = _previewHue >= 0 ? _previewHue : 0;
+                string scriptPath = RunUOScriptGenerator.GenerateItemScript(
+                    SelectedGraphicId, 
+                    itemName, 
+                    outputDir, 
+                    form.ItemWeight, 
+                    form.UseHue, 
+                    hueValue,
+                    form.IsStackable,
+                    form.SelectedPrefix);
+
+                if (scriptPath != null)
+                {
+                    MessageBox.Show($"Script saved successfully:\n{scriptPath}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Failed to generate RunUO item script.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
+        private void OnClickCreateModernUOScript(object sender, EventArgs e)
+        {
+            if (SelectedGraphicId <= 0)
+            {
+                MessageBox.Show("Please select an item first.", "No Item Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // Check if the item is stackable from TileData
+            bool isItemStackable = false;
+            if (SelectedGraphicId < TileData.ItemTable.Length)
+            {
+                var tileData = TileData.ItemTable[SelectedGraphicId];
+                isItemStackable = (tileData.Flags & TileFlag.Stackable) != 0;
+            }
+
+            // Ask user for item name (without artifact option, like RunUO)
+            using (var form = new ItemNameInputForm(isItemStackable, isRunUO: true, previewHue: _previewHue))
+            {
+                if (form.ShowDialog(FindForm()) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                string itemName = form.ItemName;
+                if (string.IsNullOrWhiteSpace(itemName))
+                {
+                    MessageBox.Show("Item name cannot be empty.", "Invalid Input", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Generate the script with weight, hue, stackable, and prefix settings (no artifact for ModernUO)
+                string outputDir = Options.OutputPath;
+                int hueValue = _previewHue >= 0 ? _previewHue : 0;
+                string scriptPath = ModernUOScriptGenerator.GenerateItemScript(
+                    SelectedGraphicId, 
+                    itemName, 
+                    outputDir, 
+                    form.ItemWeight, 
+                    form.UseHue, 
+                    hueValue,
+                    form.IsStackable,
+                    form.SelectedPrefix);
+
+                if (scriptPath != null)
+                {
+                    MessageBox.Show($"Script saved successfully:\n{scriptPath}", "Success", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else
+                {
+                    MessageBox.Show("Failed to generate ModernUO item script.", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         private void OnClickShowFreeSlots(object sender, EventArgs e)
         {
             _showFreeSlots = !_showFreeSlots;

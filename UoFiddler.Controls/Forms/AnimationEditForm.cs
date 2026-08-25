@@ -2230,11 +2230,28 @@ namespace UoFiddler.Controls.Forms
                 return;
             }
 
-            string path = Options.OutputPath;
-            string fileName = Path.Combine(path, $"anim{_fileType}_{Utils.FormatExportId(_currentBody)}.vd");
-            AnimationEdit.ExportToVD(_fileType, _currentBody, fileName);
+            using (SaveFileDialog dialog = new SaveFileDialog())
+            {
+                dialog.Title = "Export to .vd";
+                dialog.InitialDirectory = Options.OutputPath;
+                dialog.Filter = "vd files (*.vd)|*.vd";
+                dialog.FileName = $"anim{_fileType}_{Utils.FormatExportId(_currentBody)}.vd";
 
-            FileSavedDialog.Show(FindForm(), Options.OutputPath, "Animation saved successfully.");
+                if (dialog.ShowDialog(FindForm()) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                try
+                {
+                    AnimationEdit.ExportToVD(_fileType, _currentBody, dialog.FileName);
+                    FileSavedDialog.Show(FindForm(), Path.GetDirectoryName(dialog.FileName), "Animation saved successfully.");
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(FindForm(), $"Error exporting animation: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
         }
         private void OnClickExportToVDRemap(object sender, EventArgs e)
         {
