@@ -237,15 +237,7 @@ namespace UoFiddler.Classes
             elem = dom.CreateElement("RootPath");
             elem.SetAttribute("path", Files.RootDir);
             sr.AppendChild(elem);
-            List<string> sorter = new List<string>(Files.MulPath.Keys);
-            sorter.Sort();
-            foreach (string key in sorter)
-            {
-                XmlElement path = dom.CreateElement("Paths");
-                path.SetAttribute("key", key);
-                path.SetAttribute("value", Files.MulPath[key]);
-                sr.AppendChild(path);
-            }
+            // Individual file paths are no longer saved - all files are resolved from RootDir
             dom.AppendChild(sr);
 
             comment = dom.CreateComment("Disabled Tab Views");
@@ -426,11 +418,8 @@ namespace UoFiddler.Classes
                 Files.RootDir = elem.GetAttribute("path");
             }
 
-            foreach (XmlElement xPath in xOptions.SelectNodes("Paths"))
-            {
-                string key = xPath.GetAttribute("key");
-                Files.MulPath[key] = xPath.GetAttribute("value");
-            }
+            // Initialize all file paths from RootDir (no individual path overrides)
+            Files.SetMulPath(Files.RootDir);
 
             foreach (XmlElement xTab in xOptions.SelectNodes("TabView"))
             {
