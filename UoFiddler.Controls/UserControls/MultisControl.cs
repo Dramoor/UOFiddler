@@ -25,7 +25,7 @@ namespace UoFiddler.Controls.UserControls
 {
     public partial class MultisControl : UserControl
     {
-        private readonly string _multiXmlFileName = Path.Combine(Options.AppDataPath, "Multilist.xml");
+        private readonly string _multiXmlFileName;
         private readonly XmlDocument _xmlDocument;
         private readonly XmlElement _xmlElementMultis;
 
@@ -35,6 +35,26 @@ namespace UoFiddler.Controls.UserControls
             SetStyle(ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.UserPaint, true);
             _refMarker = this;
 
+            // Prefer profile-specific Multilist if present: Multilist_{profile}.xml
+            string profile = null;
+            if (!string.IsNullOrEmpty(Options.ProfileName))
+                profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
+
+            string profileFile = null;
+            if (!string.IsNullOrEmpty(profile))
+                profileFile = Path.Combine(Options.AppDataPath, $"Multilist_{profile}.xml");
+
+            string defaultFile = Path.Combine(Options.AppDataPath, "Multilist.xml");
+
+            if (!string.IsNullOrEmpty(profileFile) && File.Exists(profileFile))
+            {
+                _multiXmlFileName = profileFile;
+            }
+            else
+            {
+                _multiXmlFileName = defaultFile;
+            }
+
             if (!File.Exists(_multiXmlFileName))
             {
                 return;
@@ -43,6 +63,7 @@ namespace UoFiddler.Controls.UserControls
             _xmlDocument = new XmlDocument();
             _xmlDocument.Load(_multiXmlFileName);
             _xmlElementMultis = _xmlDocument["Multis"];
+
         }
 
         private bool _loaded;
@@ -54,6 +75,10 @@ namespace UoFiddler.Controls.UserControls
         // resolved at draw time via Multis.GetComponents.
         private int[] _mulIds = Array.Empty<int>();
         private int[] _uopIds = Array.Empty<int>();
+
+        // Hidden IDs from XML HiddenRange and hidden="1" attributes
+        private HashSet<int> _hiddenMulIds = new HashSet<int>();
+        private HashSet<int> _hiddenUopIds = new HashSet<int>();
 
         private int GetSelectedMulId()
         {
@@ -205,6 +230,48 @@ namespace UoFiddler.Controls.UserControls
             return $"{i,5} (0x{i:X}) {name}";
         }
 
+        /// <summary>
+        /// Builds a HashSet of hidden IDs from the XML document.
+        /// Processes both HiddenRange elements (min/max inclusive) and Multi nodes with hidden="1" attribute.
+        /// </summary>
+        private HashSet<int> BuildHiddenIdSet()
+        {
+            var hiddenIds = new HashSet<int>();
+
+            if (_xmlDocument == null || _xmlElementMultis == null)
+            {
+                return hiddenIds;
+            }
+
+            // Process HiddenRange elements
+            XmlNodeList hiddenRanges = _xmlElementMultis.SelectNodes("/Multis/HiddenRange");
+            foreach (XmlNode rangeNode in hiddenRanges)
+            {
+                if (int.TryParse(rangeNode.Attributes?["min"]?.Value, out int minId) &&
+                    int.TryParse(rangeNode.Attributes?["max"]?.Value, out int maxId))
+                {
+                    // Add all IDs in the range (inclusive)
+                    for (int id = minId; id <= maxId; id++)
+                    {
+                        hiddenIds.Add(id);
+                    }
+                }
+            }
+
+            // Process Multi nodes with hidden="1" attribute
+            XmlNodeList multiNodes = _xmlElementMultis.SelectNodes("/Multis/Multi");
+            foreach (XmlNode multiNode in multiNodes)
+            {
+                string hiddenAttr = multiNode.Attributes?["hidden"]?.Value;
+                if (hiddenAttr == "1" && int.TryParse(multiNode.Attributes?["id"]?.Value, out int multiId))
+                {
+                    hiddenIds.Add(multiId);
+                }
+            }
+
+            return hiddenIds;
+        }
+
         private void ApplyDarkModeIfNeeded()
         {
             if (Options.DarkMode)
@@ -243,6 +310,10 @@ namespace UoFiddler.Controls.UserControls
                 Options.LoadedUltimaClass["Art"] = true;
                 Options.LoadedUltimaClass["Multis"] = true;
                 Options.LoadedUltimaClass["Hues"] = true;
+
+                // Load hidden IDs from XML configuration
+                _hiddenMulIds = BuildHiddenIdSet();
+                _hiddenUopIds = _hiddenMulIds; // UOP and Mul use same XML, so same hidden set
 
                 RebuildMulIds(includeEmpty: false);
 
@@ -394,6 +465,12 @@ namespace UoFiddler.Controls.UserControls
             var ids = new List<int>(Multis.MaximumMultiIndex);
             for (int i = 0; i < Multis.MaximumMultiIndex; ++i)
             {
+                // Skip hidden IDs
+                if (_hiddenMulIds.Contains(i))
+                {
+                    continue;
+                }
+
                 if (includeEmpty || Multis.GetComponents(i) != MultiComponentList.Empty)
                 {
                     ids.Add(i);
@@ -978,6 +1055,12 @@ namespace UoFiddler.Controls.UserControls
             var ids = new List<int>(Multis.MaximumMultiIndex);
             for (int i = 0; i < Multis.MaximumMultiIndex; ++i)
             {
+                // Skip hidden IDs
+                if (_hiddenUopIds.Contains(i))
+                {
+                    continue;
+                }
+
                 if (Multis.GetUopComponents(i) != MultiComponentList.Empty)
                 {
                     ids.Add(i);

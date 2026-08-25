@@ -445,11 +445,25 @@ namespace UoFiddler.Controls.UserControls
 
         private bool LoadXml()
         {
-            string fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+            //string fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+            //if (!File.Exists(fileName))
+           // {
+             //   return false;
+           // }
+
+            string fileName = null;
+            string profile = null;
+            if (!string.IsNullOrEmpty(Options.ProfileName))
+                profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
+
+            if (!string.IsNullOrEmpty(profile))
+                fileName = Path.Combine(Options.AppDataPath, $"Animationlist_{profile}.xml");
+
             if (!File.Exists(fileName))
-            {
+                fileName = Path.Combine(Options.AppDataPath, "Animationlist.xml");
+
+            if (!File.Exists(fileName))
                 return false;
-            }
 
             var skipped = new List<string>();
 

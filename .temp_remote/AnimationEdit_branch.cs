@@ -13,281 +13,74 @@ namespace Ultima
         private static FileIndex _fileIndex3 = new FileIndex("Anim3.idx", "Anim3.mul", -1);
         private static FileIndex _fileIndex4 = new FileIndex("Anim4.idx", "Anim4.mul", -1);
         private static FileIndex _fileIndex5 = new FileIndex("Anim5.idx", "Anim5.mul", -1);
-        private static FileIndex _fileIndex6 = new FileIndex("Anim6.idx", "Anim6.mul", -1);
 
         private static AnimIdx[] _animCache;
         private static AnimIdx[] _animCache2;
         private static AnimIdx[] _animCache3;
         private static AnimIdx[] _animCache4;
         private static AnimIdx[] _animCache5;
-        private static AnimIdx[] _animCache6;
+        // Additional caches for dynamically discovered anim files (anim6..)
+        private static readonly Dictionary<int, AnimIdx[]> _dynamicCaches = new Dictionary<int, AnimIdx[]>();
 
         static AnimationEdit()
         {
             InitializeCache();
         }
 
-        private static void InitializeCache()
+        // Overload to allow forcing the VD anim type header (0/1/2). Pass animType >= 0 to force, otherwise use default logic.
+        public static void ExportToVD(int fileType, int body, string file, int animType)
         {
-            if (_fileIndex.IdxLength > 0)
-            {
-                _animCache = new AnimIdx[_fileIndex.IdxLength / 12];
-            }
-
-            if (_fileIndex2.IdxLength > 0)
-            {
-                _animCache2 = new AnimIdx[_fileIndex2.IdxLength / 12];
-            }
-
-            if (_fileIndex3.IdxLength > 0)
-            {
-                _animCache3 = new AnimIdx[_fileIndex3.IdxLength / 12];
-            }
-
-            if (_fileIndex4.IdxLength > 0)
-            {
-                _animCache4 = new AnimIdx[_fileIndex4.IdxLength / 12];
-            }
-
-            if (_fileIndex5.IdxLength > 0)
-            {
-                _animCache5 = new AnimIdx[_fileIndex5.IdxLength / 12];
-            }
-
-            if (_fileIndex6.IdxLength > 0)
-            {
-                _animCache6 = new AnimIdx[_fileIndex6.IdxLength / 12];
-            }
+            ExportToVD(fileType, body, file, animType, null);
         }
 
-        /// <summary>
-        /// Rereads AnimX files
-        /// </summary>
-        public static void Reload()
-        {
-            _fileIndex = new FileIndex("Anim.idx", "Anim.mul", 6);
-            _fileIndex2 = new FileIndex("Anim2.idx", "Anim2.mul", -1);
-            _fileIndex3 = new FileIndex("Anim3.idx", "Anim3.mul", -1);
-            _fileIndex4 = new FileIndex("Anim4.idx", "Anim4.mul", -1);
-            _fileIndex5 = new FileIndex("Anim5.idx", "Anim5.mul", -1);
-            _fileIndex6 = new FileIndex("Anim6.idx", "Anim6.mul", -1);
-
-            InitializeCache();
-        }
-
-        private static void GetFileIndex(
-                int body, int fileType, int action, int direction, out FileIndex fileIndex, out int index)
-        {
-            switch (fileType)
-            {
-                case 1:
-                default:
-                    fileIndex = _fileIndex;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-                case 2:
-                    fileIndex = _fileIndex2;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-
-                    break;
-                case 3:
-                    fileIndex = _fileIndex3;
-                    if (body < 300)
-                    {
-                        index = body * 65;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 33000 + ((body - 300) * 110);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-                case 4:
-                    fileIndex = _fileIndex4;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-                case 5:
-                    fileIndex = _fileIndex5;
-                    if ((body < 200) && (body != 34)) // looks strange, though it works.
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-                case 6:
-                    fileIndex = _fileIndex6;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-            }
-
-            index += action * 5;
-
-            if (direction <= 4)
-            {
-                index += direction;
-            }
-            else
-            {
-                index += direction - ((direction - 4) * 2);
-            }
-        }
-
-        private static AnimIdx[] GetCache(int fileType)
-        {
-            switch (fileType)
-            {
-                case 1:
-                    return _animCache;
-                case 2:
-                    return _animCache2;
-                case 3:
-                    return _animCache3;
-                case 4:
-                    return _animCache4;
-                case 5:
-                    return _animCache5;
-                case 6:
-                    return _animCache6;
-                default:
-                    return _animCache;
-            }
-        }
-
-        public static AnimIdx GetAnimation(int fileType, int body, int action, int dir)
+        // Overload to allow forcing the VD anim type header and selecting specific actions to include.
+        // actionsToInclude: null or empty = include all actions. Otherwise include only these action indices.
+        public static void ExportToVD(int fileType, int body, string file, int animType, int[] actionsToInclude)
         {
             AnimIdx[] cache = GetCache(fileType);
-
-            GetFileIndex(body, fileType, action, dir, out FileIndex fileIndex, out int index);
-
-            if (cache?[index] != null)
-            {
-                return cache[index];
-            }
-
-            return cache[index] = new AnimIdx(index, fileIndex);
-        }
-
-        public static bool IsActionDefined(int fileType, int body, int action)
-        {
-            // Reject actions beyond the body's physical idx block before computing
-            // the index; otherwise index = base + action*5 crosses into the next
-            // body's records. Replaces a prior off-by-one GetAnimLength check
-            // (animCount < action) that both missed the boundary and used the
-            // now-clamped category count.
-            if (action < 0 || action >= Animations.GetActionCapacity(body, fileType))
-            {
-                return false;
-            }
-
-            AnimIdx[] cache = GetCache(fileType);
-
-            GetFileIndex(body, fileType, action, 0, out FileIndex fileIndex, out int index);
-
-            if (cache?[index] != null)
-            {
-                return cache[index].Frames?.Count > 0;
-            }
-
-            bool valid = fileIndex.Valid(index, out int length, out int _, out bool _);
-
-            return valid && length >= 1;
-        }
-
-        public static void LoadFromVD(int fileType, int body, BinaryReader bin)
-        {
-            AnimIdx[] cache = GetCache(fileType);
-            GetFileIndex(body, fileType, 0, 0, out FileIndex _, out int index);
-            int animLength = Animations.GetAnimLength(body, fileType) * 5;
-            var entries = new Entry3D[animLength];
-
-            for (int i = 0; i < animLength; ++i)
-            {
-                entries[i].Lookup = bin.ReadInt32();
-                entries[i].Length = bin.ReadInt32();
-                entries[i].Extra = bin.ReadInt32();
-            }
-
-            foreach (Entry3D entry in entries)
-            {
-                if ((entry.Lookup > 0) && (entry.Lookup < bin.BaseStream.Length) && (entry.Length > 0))
-                {
-                    bin.BaseStream.Seek(entry.Lookup, SeekOrigin.Begin);
-                    cache[index] = new AnimIdx(bin, entry.Extra);
-                }
-                ++index;
-            }
-        }
-
-        public static void ExportToVD(int fileType, int body, string file)
-        {
-            AnimIdx[] cache = GetCache(fileType);
-            GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
+            // Use Animations helper so we get the correct FileIndex for dynamic anim files (anim6+)
+            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
             using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
             using (var bin = new BinaryWriter(fs))
             {
                 bin.Write((short)6);
                 int animLength = Animations.GetAnimLength(body, fileType);
-                int currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                int currType;
+                if (animType >= 0)
+                {
+                    currType = animType;
+                }
+                else
+                {
+                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                }
+
                 bin.Write((short)currType);
                 long indexPos = bin.BaseStream.Position;
                 long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+
+                // Normalize actionsToInclude into a HashSet for quick checks
+                System.Collections.Generic.HashSet<int> includeSet = null;
+                if (actionsToInclude != null && actionsToInclude.Length > 0)
+                {
+                    includeSet = new System.Collections.Generic.HashSet<int>(actionsToInclude);
+                }
+
                 for (int i = index; i < index + (animLength * 5); i++)
                 {
+                    int action = (i - index) / 5; // which action this entry belongs to
+
+                    // If includeSet is specified and this action is not included, write empty entry (-1s)
+                    if (includeSet != null && !includeSet.Contains(action))
+                    {
+                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        indexPos = bin.BaseStream.Position;
+                        continue;
+                    }
+
                     AnimIdx anim;
                     if (cache != null)
                     {
@@ -314,11 +107,12 @@ namespace Ultima
             }
         }
 
+        // Export with remapping: targetToSourceMap[targetAction] = sourceAction (or -1 for none)
         public static void ExportToVDRemap(int fileType, int body, string file, int animType, int[] targetToSourceMap)
         {
             AnimIdx[] cache = GetCache(fileType);
-            // Use GetFileIndex to get the correct FileIndex for dynamic anim files
-            GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
+            // Use Animations helper so we get the correct FileIndex for dynamic anim files (anim6+)
+            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
             using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
             using (var bin = new BinaryWriter(fs))
             {
@@ -415,7 +209,484 @@ namespace Ultima
             }
         }
 
-        public static void ExportToVDScaled(int fileType, int body, string file, int animType, float scale)
+        private static void InitializeCache()
+        {
+            if (_fileIndex.IdxLength > 0)
+            {
+                _animCache = new AnimIdx[_fileIndex.IdxLength / 12];
+            }
+
+            if (_fileIndex2.IdxLength > 0)
+            {
+                _animCache2 = new AnimIdx[_fileIndex2.IdxLength / 12];
+            }
+
+            if (_fileIndex3.IdxLength > 0)
+            {
+                _animCache3 = new AnimIdx[_fileIndex3.IdxLength / 12];
+            }
+
+            if (_fileIndex4.IdxLength > 0)
+            {
+                _animCache4 = new AnimIdx[_fileIndex4.IdxLength / 12];
+            }
+
+            if (_fileIndex5.IdxLength > 0)
+            {
+                _animCache5 = new AnimIdx[_fileIndex5.IdxLength / 12];
+            }
+
+            // Create caches for any dynamically discovered anim files beyond anim5
+            try
+            {
+                foreach (var ft in Ultima.Animations.GetAvailableFileTypes())
+                {
+                    if (ft <= 5) continue;
+                    var fi = Ultima.Animations.GetFileIndexByType(ft);
+                    if (fi != null && fi.IndexLength > 0)
+                    {
+                        if (!_dynamicCaches.ContainsKey(ft))
+                            _dynamicCaches[ft] = new AnimIdx[fi.IndexLength / 12];
+                    }
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+        }
+
+        /// <summary>
+        /// Rereads AnimX files
+        /// </summary>
+        public static void Reload()
+        {
+            // Recreate legacy indexes for compatibility
+            _fileIndex = new FileIndex("Anim.idx", "Anim.mul", 6);
+            _fileIndex2 = new FileIndex("Anim2.idx", "Anim2.mul", -1);
+            _fileIndex3 = new FileIndex("Anim3.idx", "Anim3.mul", -1);
+            _fileIndex4 = new FileIndex("Anim4.idx", "Anim4.mul", -1);
+            _fileIndex5 = new FileIndex("Anim5.idx", "Anim5.mul", -1);
+
+            // Reuse Animations' discovery of anim*.idx files so editor picks up any additional anim files (anim6, etc.)
+            try
+            {
+                // Populate local FileIndex references from Animations if available
+                var fi1 = Ultima.Animations.GetFileIndexByType(1);
+                if (fi1 != null) _fileIndex = fi1;
+                var fi2 = Ultima.Animations.GetFileIndexByType(2);
+                if (fi2 != null) _fileIndex2 = fi2;
+                var fi3 = Ultima.Animations.GetFileIndexByType(3);
+                if (fi3 != null) _fileIndex3 = fi3;
+                var fi4 = Ultima.Animations.GetFileIndexByType(4);
+                if (fi4 != null) _fileIndex4 = fi4;
+                var fi5 = Ultima.Animations.GetFileIndexByType(5);
+                if (fi5 != null) _fileIndex5 = fi5;
+            }
+            catch
+            {
+                // ignore any issues and fall back to local defaults
+            }
+
+            InitializeCache();
+        }
+
+        private static void GetFileIndex(
+                int body, int fileType, int action, int direction, out FileIndex fileIndex, out int index)
+        {
+            switch (fileType)
+            {
+                case 1:
+                default:
+                    fileIndex = _fileIndex;
+                    if (body < 200)
+                    {
+                        index = body * 110;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
+                case 2:
+                    fileIndex = _fileIndex2;
+                    if (body < 200)
+                    {
+                        index = body * 110;
+                    }
+                    else
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+
+                    break;
+                case 3:
+                    fileIndex = _fileIndex3;
+                    if (body < 300)
+                    {
+                        index = body * 65;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 33000 + ((body - 300) * 110);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
+                case 4:
+                    fileIndex = _fileIndex4;
+                    if (body < 200)
+                    {
+                        index = body * 110;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
+                case 5:
+                    fileIndex = _fileIndex5;
+                    if ((body < 200) && (body != 34)) // looks strange, though it works.
+                    {
+                        index = body * 110;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
+            }
+
+            index += action * 5;
+
+            if (direction <= 4)
+            {
+                index += direction;
+            }
+            else
+            {
+                index += direction - ((direction - 4) * 2);
+            }
+        }
+
+        private static AnimIdx[] GetCache(int fileType)
+        {
+            switch (fileType)
+            {
+                case 1:
+                    return _animCache;
+                case 2:
+                    return _animCache2;
+                case 3:
+                    return _animCache3;
+                case 4:
+                    return _animCache4;
+                case 5:
+                    return _animCache5;
+                default:
+                    if (_dynamicCaches.TryGetValue(fileType, out AnimIdx[] cache))
+                        return cache;
+
+                    // attempt to create a cache on the fly if Animations knows about this fileType
+                    try
+                    {
+                        var fi = Ultima.Animations.GetFileIndexByType(fileType);
+                        if (fi != null && fi.IndexLength > 0)
+                        {
+                            cache = new AnimIdx[fi.IndexLength / 12];
+                            _dynamicCaches[fileType] = cache;
+                            return cache;
+                        }
+                    }
+                    catch
+                    {
+                                    // ignore
+                                    }
+
+                                    return _animCache;
+                            }
+                        }
+
+                        public static void ExportToVDScaled(int fileType, int body, string file, int animType, float scale)
+                        {
+                            AnimIdx[] cache = GetCache(fileType);
+                            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
+                            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
+                            using (var bin = new BinaryWriter(fs))
+                            {
+                                bin.Write((short)6);
+                                int animLength = Animations.GetAnimLength(body, fileType);
+                                int currType;
+                                if (animType >= 0)
+                                {
+                                    currType = animType;
+                                }
+                                else
+                                {
+                                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                                }
+
+                                bin.Write((short)currType);
+                                long indexPos = bin.BaseStream.Position;
+                                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+
+                                for (int i = index; i < index + (animLength * 5); i++)
+                                {
+                                    AnimIdx anim;
+                                    if (cache != null)
+                                    {
+                                        anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                                    }
+                                    else
+                                    {
+                                        anim = cache[i] = new AnimIdx(i, fileIndex);
+                                    }
+
+                                    if (anim == null)
+                                    {
+                                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                        bin.Write(-1);
+                                        bin.Write(-1);
+                                        bin.Write(-1);
+                                        indexPos = bin.BaseStream.Position;
+                                    }
+                                    else
+                                    {
+                                        anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
+                                    }
+                                }
+                            }
+                        }
+
+                        public static void ExportToVDRemapScaled(int fileType, int body, string file, int animType, int[] targetToSourceMap, float scale)
+                        {
+                            AnimIdx[] cache = GetCache(fileType);
+                            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
+                            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
+                            using (var bin = new BinaryWriter(fs))
+                            {
+                                bin.Write((short)6);
+                                int animLength = Animations.GetAnimLength(body, fileType);
+                                int currType;
+                                if (animType >= 0)
+                                {
+                                    currType = animType;
+                                }
+                                else
+                                {
+                                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+                                }
+
+                                bin.Write((short)currType);
+                                long indexPos = bin.BaseStream.Position;
+                                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+
+                                for (int i = index; i < index + (animLength * 5); i++)
+                                {
+                                    int action = (i - index) / 5;
+                                    int directionOffset = (i - index) % 5;
+
+                                    if (targetToSourceMap == null || targetToSourceMap.Length != animLength)
+                                    {
+                                        // Fallback to default scaled behavior
+                                        AnimIdx anim;
+                                        if (cache != null)
+                                        {
+                                            anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                                        }
+                                        else
+                                        {
+                                            anim = cache[i] = new AnimIdx(i, fileIndex);
+                                        }
+
+                                        if (anim == null)
+                                        {
+                                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            indexPos = bin.BaseStream.Position;
+                                        }
+                                        else
+                                        {
+                                            anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        int sourceAction = targetToSourceMap[action];
+                                        if (sourceAction < 0)
+                                        {
+                                            // Empty entry
+                                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            bin.Write(-1);
+                                            indexPos = bin.BaseStream.Position;
+                                        }
+                                        else
+                                        {
+                                            int sourceIdx = index + (sourceAction * 5) + directionOffset;
+                                            AnimIdx anim;
+                                            if (cache != null)
+                                            {
+                                                anim = cache[sourceIdx] != null ? cache[sourceIdx] : cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
+                                            }
+                                            else
+                                            {
+                                                anim = cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
+                                            }
+
+                                            if (anim == null)
+                                            {
+                                                bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                                                bin.Write(-1);
+                                                bin.Write(-1);
+                                                bin.Write(-1);
+                                                indexPos = bin.BaseStream.Position;
+                                            }
+                                            else
+                                            {
+                                                anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        public static AnimIdx GetAnimation(int fileType, int body, int action, int dir)
+        {
+            AnimIdx[] cache = GetCache(fileType);
+
+            // Use Animations helper to support dynamically discovered anim files and mappings
+            Ultima.Animations.GetFileIndexForEditor(body, action, dir, fileType, out FileIndex fileIndex, out int index);
+
+            // Guard against cache being null or index out of range.
+            if (cache != null && index >= 0 && index < cache.Length)
+            {
+                if (cache[index] != null)
+                    return cache[index];
+
+                // create and store
+                return cache[index] = new AnimIdx(index, fileIndex);
+            }
+
+            // No suitable cache available or index out of range: create transient AnimIdx and return it (don't store)
+            return new AnimIdx(index, fileIndex);
+        }
+
+        public static bool IsActionDefined(int fileType, int body, int action)
+        {
+            AnimIdx[] cache = GetCache(fileType);
+
+            // Use Animations helper to compute file index (supports dynamic animN files)
+            Ultima.Animations.GetFileIndexForEditor(body, action, 0, fileType, out FileIndex fileIndex, out int index);
+
+            // guard against out-of-range indexes
+            if (cache == null || index < 0 || index >= cache.Length)
+            {
+                // fall back to checking directly via fileIndex
+                bool fileValid = fileIndex.Valid(index, out int fileLength, out int _, out bool _);
+                return fileValid && fileLength >= 1;
+            }
+
+            if (cache[index] != null)
+            {
+                return cache[index].Frames?.Count > 0;
+            }
+
+            int animCount = Animations.GetAnimLength(body, fileType);
+            if (animCount < action)
+            {
+                return false;
+            }
+
+            bool fileValid2 = fileIndex.Valid(index, out int fileLength2, out int _, out bool _2);
+
+            return fileValid2 && fileLength2 >= 1;
+        }
+
+        public static void LoadFromVD(int fileType, int body, BinaryReader bin)
+        {
+            AnimIdx[] cache = GetCache(fileType);
+            Ultima.Animations.GetFileIndexForEditor(body, 0, 0, fileType, out FileIndex fileIndex, out int index);
+            // Ensure we have a suitably sized cache for this fileType so imports write into it
+            if (fileIndex != null && fileIndex.IdxLength > 0)
+            {
+                int requiredSize = (int)(fileIndex.IdxLength / 12);
+                if (requiredSize > 0 && (cache == null || cache.Length < requiredSize))
+                {
+                    var newCache = new AnimIdx[requiredSize];
+                    if (cache != null)
+                    {
+                        System.Array.Copy(cache, newCache, System.Math.Min(cache.Length, newCache.Length));
+                    }
+
+                    // store new cache into the appropriate backing field
+                    switch (fileType)
+                    {
+                        case 1: _animCache = newCache; cache = _animCache; break;
+                        case 2: _animCache2 = newCache; cache = _animCache2; break;
+                        case 3: _animCache3 = newCache; cache = _animCache3; break;
+                        case 4: _animCache4 = newCache; cache = _animCache4; break;
+                        case 5: _animCache5 = newCache; cache = _animCache5; break;
+                        default:
+                            _dynamicCaches[fileType] = newCache;
+                            cache = newCache;
+                            break;
+                    }
+                }
+            }
+            int animLength = Animations.GetAnimLength(body, fileType) * 5;
+            var entries = new Entry3D[animLength];
+
+            for (int i = 0; i < animLength; ++i)
+            {
+                entries[i].Lookup = bin.ReadInt32();
+                entries[i].Length = bin.ReadInt32();
+                entries[i].Extra = bin.ReadInt32();
+            }
+
+            foreach (Entry3D entry in entries)
+            {
+                if ((entry.Lookup > 0) && (entry.Lookup < bin.BaseStream.Length) && (entry.Length > 0))
+                {
+                    bin.BaseStream.Seek(entry.Lookup, SeekOrigin.Begin);
+                    if (cache != null && index >= 0 && index < cache.Length)
+                    {
+                        cache[index] = new AnimIdx(bin, entry.Extra);
+                    }
+                    else
+                    {
+                        // if cache is not available or index out of range, create a transient AnimIdx (won't be cached)
+                        var transient = new AnimIdx(bin, entry.Extra);
+                        // nothing to store
+                    }
+                }
+                ++index;
+            }
+        }
+
+        public static void ExportToVD(int fileType, int body, string file)
         {
             AnimIdx[] cache = GetCache(fileType);
             GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
@@ -424,30 +695,21 @@ namespace Ultima
             {
                 bin.Write((short)6);
                 int animLength = Animations.GetAnimLength(body, fileType);
-                int currType;
-                if (animType >= 0)
-                {
-                    currType = animType;
-                }
-                else
-                {
-                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
-                }
-
+                int currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
                 bin.Write((short)currType);
                 long indexPos = bin.BaseStream.Position;
                 long animPos = bin.BaseStream.Position + (12 * animLength * 5);
-
                 for (int i = index; i < index + (animLength * 5); i++)
                 {
                     AnimIdx anim;
-                    if (cache != null)
+                    if (cache != null && i >= 0 && i < cache.Length)
                     {
                         anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
                     }
                     else
                     {
-                        anim = cache[i] = new AnimIdx(i, fileIndex);
+                        // out of cache bounds: create transient AnimIdx
+                        anim = new AnimIdx(i, fileIndex);
                     }
 
                     if (anim == null)
@@ -460,104 +722,7 @@ namespace Ultima
                     }
                     else
                     {
-                        anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
-                    }
-                }
-            }
-        }
-
-        public static void ExportToVDRemapScaled(int fileType, int body, string file, int animType, int[] targetToSourceMap, float scale)
-        {
-            AnimIdx[] cache = GetCache(fileType);
-            GetFileIndex(body, fileType, 0, 0, out FileIndex fileIndex, out int index);
-            using (var fs = new FileStream(file, FileMode.Create, FileAccess.Write, FileShare.Write))
-            using (var bin = new BinaryWriter(fs))
-            {
-                bin.Write((short)6);
-                int animLength = Animations.GetAnimLength(body, fileType);
-                int currType;
-                if (animType >= 0)
-                {
-                    currType = animType;
-                }
-                else
-                {
-                    currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
-                }
-
-                bin.Write((short)currType);
-                long indexPos = bin.BaseStream.Position;
-                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
-
-                for (int i = index; i < index + (animLength * 5); i++)
-                {
-                    int action = (i - index) / 5;
-                    int directionOffset = (i - index) % 5;
-
-                    if (targetToSourceMap == null || targetToSourceMap.Length != animLength)
-                    {
-                        // Fallback to default scaled behavior
-                        AnimIdx anim;
-                        if (cache != null)
-                        {
-                            anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
-                        }
-                        else
-                        {
-                            anim = cache[i] = new AnimIdx(i, fileIndex);
-                        }
-
-                        if (anim == null)
-                        {
-                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
-                            bin.Write(-1);
-                            bin.Write(-1);
-                            bin.Write(-1);
-                            indexPos = bin.BaseStream.Position;
-                        }
-                        else
-                        {
-                            anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
-                        }
-                    }
-                    else
-                    {
-                        int sourceAction = targetToSourceMap[action];
-                        if (sourceAction < 0)
-                        {
-                            // Empty entry
-                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
-                            bin.Write(-1);
-                            bin.Write(-1);
-                            bin.Write(-1);
-                            indexPos = bin.BaseStream.Position;
-                        }
-                        else
-                        {
-                            int sourceIdx = index + (sourceAction * 5) + directionOffset;
-                            AnimIdx anim;
-                            if (cache != null)
-                            {
-                                anim = cache[sourceIdx] != null ? cache[sourceIdx] : cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
-                            }
-                            else
-                            {
-                                anim = cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
-                            }
-
-                            if (anim == null)
-                            {
-                                bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
-                                bin.Write(-1);
-                                bin.Write(-1);
-                                bin.Write(-1);
-                                indexPos = bin.BaseStream.Position;
-                            }
-                            else
-                            {
-                                anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
-                            }
-                        }
+                        anim.ExportToVD(bin, ref indexPos, ref animPos);
                     }
                 }
             }
@@ -568,39 +733,38 @@ namespace Ultima
             string filename;
             AnimIdx[] cache;
             FileIndex fileIndex;
-            switch (fileType)
+
+            // Try to obtain FileIndex and cache for dynamic types first
+            fileIndex = Ultima.Animations.GetFileIndexByType(fileType) ?? _fileIndex;
+            cache = GetCache(fileType);
+
+            // If fileIndex points to a specific mul file, prefer that base name (e.g., anim7)
+            try
             {
-                default:
-                case 1:
-                    filename = "anim";
-                    cache = _animCache;
-                    fileIndex = _fileIndex;
-                    break;
-                case 2:
-                    filename = "anim2";
-                    cache = _animCache2;
-                    fileIndex = _fileIndex2;
-                    break;
-                case 3:
-                    filename = "anim3";
-                    cache = _animCache3;
-                    fileIndex = _fileIndex3;
-                    break;
-                case 4:
-                    filename = "anim4";
-                    cache = _animCache4;
-                    fileIndex = _fileIndex4;
-                    break;
-                case 5:
-                    filename = "anim5";
-                    cache = _animCache5;
-                    fileIndex = _fileIndex5;
-                    break;
-                case 6:
-                    filename = "anim6";
-                    cache = _animCache6;
-                    fileIndex = _fileIndex6;
-                    break;
+                var fs = fileIndex?.FileAccessor?.Stream as FileStream;
+                if (fs != null && !string.IsNullOrEmpty(fs.Name))
+                {
+                    filename = Path.GetFileNameWithoutExtension(fs.Name);
+                }
+                else
+                {
+                    filename = fileType == 1 ? "anim" : $"anim{fileType}";
+                }
+            }
+            catch
+            {
+                filename = fileType == 1 ? "anim" : $"anim{fileType}";
+            }
+
+            // Diagnostic trace for troubleshooting
+            try
+            {
+                var mulPath = (fileIndex?.FileAccessor?.Stream as FileStream)?.Name ?? "(none)";
+                System.Diagnostics.Trace.WriteLine($"AnimationEdit.Save: fileType={fileType}, filename={filename}, outputPath={path}, fileIndexMul={mulPath}, cacheLength={(cache == null ? 0 : cache.Length)}");
+            }
+            catch
+            {
+                // ignore tracing errors
             }
 
             string idx = Path.Combine(path, filename + ".idx");
@@ -659,10 +823,7 @@ namespace Ultima
 
             _idxExtra = extra;
 
-            // leaveOpen: stream is owned by the shared FileIndex; disposing the
-            // BinaryReader must not close it, or the next FileIndex.Seek pays a
-            // full re-open.
-            using (var bin = new BinaryReader(stream, System.Text.Encoding.UTF8, leaveOpen: true))
+            using (var bin = new BinaryReader(stream))
             {
                 for (int i = 0; i < PaletteCapacity; ++i)
                 {
@@ -687,6 +848,8 @@ namespace Ultima
                     Frames.Add(new FrameEdit(bin));
                 }
             }
+
+            stream.Close();
         }
 
         public AnimIdx(BinaryReader bin, int extra)
@@ -906,112 +1069,6 @@ namespace Ultima
             idx.Write(_idxExtra);
         }
 
-        /// <summary>
-        /// Corrects pure black (0,0,0) to near-black (0,0,8) and pure white (255,255,255) to near-white (255,255,247).
-        /// This prevents the UO client from being unable to read these pixels.
-        /// Converts 16-bit ARGB1555 color by fixing palette colors if needed.
-        /// </summary>
-        private static ushort CorrectPureColor(ushort color16bit)
-        {
-            // In ARGB1555: bit 15 = alpha, bits 14-10 = red, bits 9-5 = green, bits 4-0 = blue
-            // Extract individual components (5 bits each, so values 0-31)
-            int red = (color16bit >> 10) & 0x1F;
-            int green = (color16bit >> 5) & 0x1F;
-            int blue = color16bit & 0x1F;
-            int alpha = (color16bit >> 15) & 0x01;
-
-            // Check for pure black (0,0,0) and convert to near-black (0,0,1)
-            // In 5-bit: pure black = (0,0,0), near-black = (0,0,1)
-            if (red == 0 && green == 0 && blue == 0)
-            {
-                // Change to (0,0,1) in 5-bit = (0,0,8) in 8-bit
-                blue = 1;
-            }
-            // Check for pure white (31,31,31) and convert to near-white (31,31,30)
-            // In 5-bit: pure white = (31,31,31), near-white = (31,31,30)
-            else if (red == 31 && green == 31 && blue == 31)
-            {
-                // Change to (31,31,30) in 5-bit = (255,255,247) in 8-bit
-                blue = 30;
-            }
-
-            // Reconstruct the 16-bit color
-            ushort corrected = (ushort)((alpha << 15) | (red << 10) | (green << 5) | blue);
-            return corrected;
-        }
-
-        /// <summary>
-        /// Debug method: Export a single frame to PNG for visual inspection.
-        /// </summary>
-        private static void ExportFrameToPng(FrameEdit frame, ushort[] palette, string filePath)
-        {
-            if (frame == null || palette == null || frame.RawData == null)
-                return;
-
-            try
-            {
-                int width = frame.Width;
-                int height = frame.Height;
-
-                if (width <= 0 || height <= 0)
-                    return;
-
-                // Create bitmap
-                Bitmap bmp = new Bitmap(width, height, PixelFormat.Format32bppArgb);
-
-                // Fill with transparent background
-                for (int y = 0; y < height; y++)
-                {
-                    for (int x = 0; x < width; x++)
-                    {
-                        bmp.SetPixel(x, y, Color.Transparent);
-                    }
-                }
-
-                // Decode frame runs into pixels
-                // The run data is stored with offset from center, convert to local coordinates
-                foreach (var raw in frame.RawData)
-                {
-                    int yPos = raw.offsetY;
-
-                    if (yPos < 0 || yPos >= height || raw.data == null)
-                        continue;
-
-                    int xStart = raw.offsetX;
-
-                    for (int i = 0; i < raw.run && i < raw.data.Length; i++)
-                    {
-                        int xPos = xStart + i;
-                        if (xPos >= 0 && xPos < width)
-                        {
-                            byte palIdx = raw.data[i];
-                            // Palette index 0 is transparent, skip it
-                            if (palIdx > 0 && palIdx < palette.Length)
-                            {
-                                ushort palColor = palette[palIdx];
-                                // Convert ARGB1555 to RGB (ignore alpha bit for now)
-                                int r = ((palColor >> 10) & 0x1F) * 8;
-                                int g = ((palColor >> 5) & 0x1F) * 8;
-                                int b = (palColor & 0x1F) * 8;
-                                // Clamp values to 0-255
-                                r = Math.Min(255, r);
-                                g = Math.Min(255, g);
-                                b = Math.Min(255, b);
-                                bmp.SetPixel(xPos, yPos, Color.FromArgb(255, r, g, b));
-                            }
-                        }
-                    }
-                }
-
-                bmp.Save(filePath, ImageFormat.Png);
-                bmp.Dispose();
-            }
-            catch
-            {
-                // Silent fail on error
-            }
-        }
-
         public void ExportToVD(BinaryWriter bin, ref long indexpos, ref long animpos)
         {
             bin.BaseStream.Seek(indexpos, SeekOrigin.Begin);
@@ -1028,11 +1085,9 @@ namespace Ultima
             indexpos = bin.BaseStream.Position;
             bin.BaseStream.Seek(animpos, SeekOrigin.Begin);
 
-            // Write corrected palette to prevent pure black/white rendering issues
             for (int i = 0; i < PaletteCapacity; ++i)
             {
-                ushort correctedColor = CorrectPureColor(Palette[i]);
-                bin.Write((ushort)(correctedColor ^ 0x8000));
+                bin.Write((ushort)(Palette[i] ^ 0x8000));
             }
 
             long startPosition = (int)bin.BaseStream.Position;
@@ -1073,26 +1128,21 @@ namespace Ultima
             indexpos = bin.BaseStream.Position;
             bin.BaseStream.Seek(animpos, SeekOrigin.Begin);
 
-            // Write corrected palette to prevent pure black/white rendering issues
             for (int i = 0; i < PaletteCapacity; i++)
             {
-                ushort correctedColor = CorrectPureColor(Palette[i]);
-                bin.Write((ushort)(correctedColor ^ 0x8000));
+                bin.Write((ushort)(Palette[i] ^ 0x8000));
             }
 
             long startPosition = (int)bin.BaseStream.Position;
             bin.Write(Frames.Count);
             long seek = (int)bin.BaseStream.Position;
             long curr = bin.BaseStream.Position + (4 * Frames.Count);
-
-            for (int frameIdx = 0; frameIdx < Frames.Count; frameIdx++)
+            foreach (FrameEdit frame in Frames)
             {
-                FrameEdit frame = Frames[frameIdx];
                 bin.BaseStream.Seek(seek, SeekOrigin.Begin);
                 bin.Write((int)(curr - startPosition));
                 seek = bin.BaseStream.Position;
                 bin.BaseStream.Seek(curr, SeekOrigin.Begin);
-
                 FrameEdit.ScaleAndSaveFrame(frame, scale, Palette, bin);
                 curr = bin.BaseStream.Position;
             }
@@ -1284,190 +1334,6 @@ namespace Ultima
             bin.Write(0x7FFF7FFF);
         }
 
-        /// <summary>
-        /// Corrects pure black (0,0,0) to near-black (0,0,8) and pure white (255,255,255) to near-white (255,255,247).
-        /// This prevents the UO client from being unable to read these pixels.
-        /// Converts 16-bit ARGB1555 color indices by fixing palette colors if needed.
-        /// </summary>
-        private static ushort CorrectPureColor(ushort color16bit)
-        {
-            // In ARGB1555: bit 15 = alpha, bits 14-10 = red, bits 9-5 = green, bits 4-0 = blue
-            // Extract individual components (5 bits each, so values 0-31)
-            int red = (color16bit >> 10) & 0x1F;
-            int green = (color16bit >> 5) & 0x1F;
-            int blue = color16bit & 0x1F;
-            int alpha = (color16bit >> 15) & 0x01;
-
-            // Convert 5-bit values to 8-bit for easier comparison
-            // 5-bit max (31) = 255, so multiply by 255/31 ≈ 8.23, or shift left 3 for approximation
-            int r8 = red << 3;
-            int g8 = green << 3;
-            int b8 = blue << 3;
-
-            // Check for pure black (0,0,0) and convert to near-black (0,0,8)
-            // In 5-bit: pure black = (0,0,0), near-black = (0,0,1)
-            if (red == 0 && green == 0 && blue == 0)
-            {
-                // Change to (0,0,1) in 5-bit = (0,0,8) in 8-bit
-                blue = 1;
-            }
-            // Check for pure white (31,31,31) and convert to near-white (31,31,247)
-            // In 5-bit: pure white = (31,31,31), near-white = (31,31,30)
-            else if (red == 31 && green == 31 && blue == 31)
-            {
-                // Change to (31,31,30) in 5-bit = (255,255,247) in 8-bit
-                blue = 30;
-            }
-
-            // Reconstruct the 16-bit color
-            ushort corrected = (ushort)((alpha << 15) | (red << 10) | (green << 5) | blue);
-            return corrected;
-        }
-
-        /// <summary>
-        /// Builds a remap table for palette indices that point to unsafe black/white ranges.
-        /// Unsafe ranges: RGB(0-7, 0-7, 0-7) and RGB(248-255, 248-255, 248-255) become transparent.
-        /// Safe replacements: any color where at least one channel is outside the unsafe range.
-        /// Used to fix artifacts created during frame scaling.
-        /// </summary>
-        private static byte[] BuildPaletteIndexRemap(ushort[] palette)
-        {
-            byte[] remap = new byte[256];
-
-            // Initialize identity mapping (no change by default)
-            for (int i = 0; i < 256; i++)
-            {
-                remap[i] = (byte)i;
-            }
-
-            if (palette == null || palette.Length == 0)
-                return remap;
-
-            // Find the best safe indices for near-black and near-white
-            byte nearBlackIdx = 1;  // Default to 1, not 0 (0 is transparent)
-            byte nearWhiteIdx = 1;  // Default to 1, not 0
-            int bestBlackDist = int.MaxValue;
-            int bestWhiteDist = int.MaxValue;
-
-            // Unsafe black: RGB(0-7, 0-7, 0-7) = 5-bit (0,0,0) only
-            // Unsafe white: RGB(248-255, 248-255, 248-255) = 5-bit (31,31,31) only
-
-            // First pass: search for safe colors (preferred)
-            // Second pass: will search for least-unsafe colors if needed
-
-            // Search palette for closest matches to safe target colors
-            for (int i = 1; i < palette.Length; i++)  // Start from 1, skip transparency
-            {
-                ushort palColor = palette[i];
-                int palRed = (palColor >> 10) & 0x1F;
-                int palGreen = (palColor >> 5) & 0x1F;
-                int palBlue = palColor & 0x1F;
-
-                // Check if this is a safe color (at least one channel outside unsafe range)
-                bool isSafeForBlack = (palRed > 0) || (palGreen > 0) || (palBlue > 0);
-                bool isSafeForWhite = (palRed < 31) || (palGreen < 31) || (palBlue < 31);
-
-                // For black replacement, look for color closest to near-black (1,0,0)
-                if (isSafeForBlack)
-                {
-                    int drb = palRed - 1;
-                    int dgb = palGreen - 0;
-                    int dbb = palBlue - 0;
-                    int distBlack = drb * drb + dgb * dgb + dbb * dbb;
-
-                    if (distBlack < bestBlackDist)
-                    {
-                        bestBlackDist = distBlack;
-                        nearBlackIdx = (byte)i;
-                    }
-                }
-
-                // For white replacement, look for color closest to near-white (30,31,31)
-                if (isSafeForWhite)
-                {
-                    int drw = palRed - 30;
-                    int dgw = palGreen - 31;
-                    int dbw = palBlue - 31;
-                    int distWhite = drw * drw + dgw * dgw + dbw * dbw;
-
-                    if (distWhite < bestWhiteDist)
-                    {
-                        bestWhiteDist = distWhite;
-                        nearWhiteIdx = (byte)i;
-                    }
-                }
-            }
-
-            // Second pass: if we still haven't found good replacements, find ANY non-transparent color
-            if (nearBlackIdx == 1 && bestBlackDist == int.MaxValue)
-            {
-                // All colors were unsafe for black, find the one closest to (1,0,0)
-                for (int i = 1; i < palette.Length; i++)
-                {
-                    ushort palColor = palette[i];
-                    int palRed = (palColor >> 10) & 0x1F;
-                    int palGreen = (palColor >> 5) & 0x1F;
-                    int palBlue = palColor & 0x1F;
-
-                    int drb = palRed - 1;
-                    int dgb = palGreen - 0;
-                    int dbb = palBlue - 0;
-                    int distBlack = drb * drb + dgb * dgb + dbb * dbb;
-
-                    if (distBlack < bestBlackDist)
-                    {
-                        bestBlackDist = distBlack;
-                        nearBlackIdx = (byte)i;
-                    }
-                }
-            }
-
-            if (nearWhiteIdx == 1 && bestWhiteDist == int.MaxValue)
-            {
-                // All colors were unsafe for white, find the one closest to (30,31,31)
-                for (int i = 1; i < palette.Length; i++)
-                {
-                    ushort palColor = palette[i];
-                    int palRed = (palColor >> 10) & 0x1F;
-                    int palGreen = (palColor >> 5) & 0x1F;
-                    int palBlue = palColor & 0x1F;
-
-                    int drw = palRed - 30;
-                    int dgw = palGreen - 31;
-                    int dbw = palBlue - 31;
-                    int distWhite = drw * drw + dgw * dgw + dbw * dbw;
-
-                    if (distWhite < bestWhiteDist)
-                    {
-                        bestWhiteDist = distWhite;
-                        nearWhiteIdx = (byte)i;
-                    }
-                }
-            }
-
-            // Now remap any palette entries that are in the unsafe ranges
-            for (int i = 0; i < palette.Length; i++)
-            {
-                ushort palColor = palette[i];
-                int palRed = (palColor >> 10) & 0x1F;
-                int palGreen = (palColor >> 5) & 0x1F;
-                int palBlue = palColor & 0x1F;
-
-                // If ALL three channels are in the unsafe black range (0 in 5-bit = 0-7 in 8-bit)
-                if (palRed == 0 && palGreen == 0 && palBlue == 0)
-                {
-                    remap[i] = nearBlackIdx;
-                }
-                // If ALL three channels are in the unsafe white range (31 in 5-bit = 248-255 in 8-bit)
-                else if (palRed == 31 && palGreen == 31 && palBlue == 31)
-                {
-                    remap[i] = nearWhiteIdx;
-                }
-            }
-
-            return remap;
-        }
-
         internal static void ScaleAndSaveFrame(FrameEdit frame, float scale, ushort[] palette, BinaryWriter output)
         {
             // Null check
@@ -1542,20 +1408,6 @@ namespace Ultima
                 }
             }
 
-            // Step 2.5: Correct unsafe color indices in the scaled grid
-            // After scaling, replace any palette indices that point to pure black/white
-            // with safe alternatives (near-black/near-white)
-            byte[] indexRemap = BuildPaletteIndexRemap(palette);
-            for (int y = 0; y < newHeight; y++)
-            {
-                for (int x = 0; x < newWidth; x++)
-                {
-                    byte oldIdx = scaledGrid[y][x];
-                    byte newIdx = indexRemap[oldIdx];
-                    scaledGrid[y][x] = newIdx;
-                }
-            }
-
             // Step 3: Scale the frame center and dimensions
             int newCenterX = (int)Math.Round(frame.Center.X * scale);
             int newCenterY = (int)Math.Round(frame.Center.Y * scale);
@@ -1567,6 +1419,7 @@ namespace Ultima
             output.Write((ushort)newHeight);
 
             // Step 5: Re-encode the scaled grid to run format using the same coordinate system
+            const int _doubleXor = (0x200 << 22) | (0x200 << 12);
             int newXBase = newCenterX - 0x200;
             int newYBase = newCenterY + newHeight - 0x200;
 
@@ -1585,8 +1438,7 @@ namespace Ultima
                     int runStart = x;
                     var runData = new List<byte>();
 
-                    // Collect opaque run - keep original palette indices as-is
-                    // Color correction is applied to the palette, not individual pixels
+                    // Collect opaque run
                     while (x < newWidth && scaledGrid[y][x] != 0)
                     {
                         runData.Add(scaledGrid[y][x]);
@@ -1615,6 +1467,98 @@ namespace Ultima
             }
 
             output.Write(0x7FFF7FFF);
+        }
+
+        private static Bitmap RenderFrameToBitmap(FrameEdit frame, ushort[] palette)
+        {
+            if (frame == null || frame.Width < 1 || frame.Height < 1)
+                return null;
+
+            int bmpWidth = frame.Width + 20;
+            int bmpHeight = frame.Height + 20;
+            Bitmap bmp = new Bitmap(bmpWidth, bmpHeight, PixelFormat.Format16bppArgb1555);
+
+            BitmapData bd = bmp.LockBits(
+                new Rectangle(0, 0, bmpWidth, bmpHeight),
+                ImageLockMode.WriteOnly,
+                PixelFormat.Format16bppArgb1555);
+
+            try
+            {
+                unsafe
+                {
+                    ushort* line = (ushort*)bd.Scan0;
+                    int delta = bd.Stride >> 1;
+
+                    for (int y = 0; y < bmpHeight; y++)
+                    {
+                        ushort* cur = line + (y * delta);
+                        for (int x = 0; x < bmpWidth; x++)
+                            *cur++ = 0;
+                    }
+
+                    int xBase = frame.Center.X - 0x200;
+                    int yBase = frame.Center.Y + frame.Height - 0x200;
+
+                    foreach (var raw in frame.RawData)
+                    {
+                        int xPos = xBase + raw.offsetX;
+                        int yPos = yBase + raw.offsetY;
+
+                        if (yPos >= 0 && yPos < bmpHeight)
+                        {
+                            ushort* scanLine = line + (yPos * delta);
+                            for (int i = 0; i < raw.run && (xPos + i) < bmpWidth; i++)
+                            {
+                                int x = xPos + i;
+                                if (x >= 0 && raw.data != null && i < raw.data.Length)
+                                {
+                                    byte paletteIdx = raw.data[i];
+                                    if (paletteIdx < palette.Length)
+                                        scanLine[x] = palette[paletteIdx];
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                bmp.UnlockBits(bd);
+            }
+
+            return bmp;
+        }
+
+        private static byte GetClosestPaletteIndex(ushort[] palette, ushort color)
+        {
+            int r = ((color >> 10) & 0x1F) << 3;
+            int g = ((color >> 5) & 0x1F) << 3;
+            int b = (color & 0x1F) << 3;
+
+            int bestIdx = 0;
+            int bestDist = int.MaxValue;
+
+            for (int i = 0; i < palette.Length; i++)
+            {
+                ushort palColor = palette[i];
+                int pr = ((palColor >> 10) & 0x1F) << 3;
+                int pg = ((palColor >> 5) & 0x1F) << 3;
+                int pb = (palColor & 0x1F) << 3;
+
+                int dr = r - pr;
+                int dg = g - pg;
+                int db = b - pb;
+                int dist = dr * dr + dg * dg + db * db;
+
+                if (dist < bestDist)
+                {
+                    bestDist = dist;
+                    bestIdx = i;
+                }
+            }
+
+            return (byte)bestIdx;
         }
     }
 }

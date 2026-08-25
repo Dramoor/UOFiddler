@@ -16,6 +16,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.Linq;
 using System.Windows.Forms;
+using System.ComponentModel;
 using System.Windows.Media.Imaging;
 using Ultima;
 using UoFiddler.Controls.Classes;
@@ -31,10 +32,10 @@ namespace UoFiddler.Controls.Forms
             public MapItem(int index, string text) { Index = index; Text = text; }
             public override string ToString() => Text;
         }
-
         private static readonly int[] _animCx = new int[5];
         private static readonly int[] _animCy = new int[5];
         private bool _loaded;
+        private bool _suspendFileComboEvents;
         private int _fileType;
         private int _currentAction;
         private int _currentBody;
@@ -43,29 +44,6 @@ namespace UoFiddler.Controls.Forms
         private bool _showOnlyValid;
         private static bool _drawEmpty;
         private static bool _drawFull;
-        private static int _lastAddFilterIndex = 1;
-
-        private float _zoomFactor = 1.0f;
-
-        // Second-animation overlay state
-        private bool _secondAnimActivated;
-        private int _secondAnimId;
-        private int _secondAnimFileIndex = 1;        // 1..5 = anim..anim5 MUL (default = anim)
-        private int _secondAnimOpacity = 50;         // 0..100
-        private SecondAnimColorMode _secondAnimColorMode = SecondAnimColorMode.Original;
-        private Color _secondAnimCustomColor = Color.Magenta;
-        private bool _isSecondAnimInFront;
-        private bool _drawSecondAnimBox;
-
-        private enum SecondAnimColorMode
-        {
-            Original,
-            Green,
-            Magenta,
-            Cyan,
-            Red,
-            Custom
-        }
         private static readonly Color _whiteConvert = Color.FromArgb(255, 255, 255, 255);
 
         private static readonly Pen _blackUnDrawTransparent = new Pen(Color.FromArgb(0, 0, 0, 0), 1);
@@ -82,39 +60,7 @@ namespace UoFiddler.Controls.Forms
             Icon = Options.GetFiddlerIcon();
 
             SelectFileToolStripComboBox.SelectedIndex = 0;
-
-            // ComboBox.SelectedIndex is not serialized by the WinForms designer (it gets stripped
-            // from InitializeComponent whenever the form is opened in the designer), so the default
-            // selections are applied here in the constructor instead.
-            ZoomComboBox.SelectedIndex = 0;
-            SecondAnimFileComboBox.SelectedIndex = 0;
-            SecondAnimColorComboBox.SelectedIndex = 0;
-
-            AnimationListTreeView.ShowNodeToolTips = true;
             FramesListView.MultiSelect = true;
-
-            if (Options.DarkMode)
-            {
-                // .NET 10 SystemColorMode.Dark overlays a dark theme on
-                // visual-style buttons that can swallow clicks on Buttons with
-                // BackgroundImage. Forcing FlatStyle.Flat bypasses theming.
-                PlayButton.FlatStyle = FlatStyle.Flat;
-                PlayButton.FlatAppearance.BorderSize = 1;
-                PlayButton.UseVisualStyleBackColor = false;
-                PlayButton.BackColor = Color.FromArgb(60, 60, 60);
-
-                // Brighter R/G/B label colors for dark backgrounds — the
-                // designer-time Red/Green(dark)/Navy are unreadable.
-                Color red = Color.Tomato;
-                Color green = Color.LimeGreen;
-                Color blue = Color.DodgerBlue;
-                ColorRedLabel.ForeColor = red;
-                ColorGreenLabel.ForeColor = green;
-                ColorBlueLabel.ForeColor = blue;
-                BackgroundRedLabel.ForeColor = red;
-                BackgroundGreenLabel.ForeColor = green;
-                BackgroundBlueLabel.ForeColor = blue;
-            }
 
             _fileType = 0;
             _currentDir = 0;
@@ -123,11 +69,72 @@ namespace UoFiddler.Controls.Forms
             _loaded = false;
         }
 
-        // Indexed by MobType enum: Monster=0, Sea=1, Animal=2, Human=3, Equipment=4.
-        // Equipment composites onto a humanoid and shares the human action set.
+        private static int GetOppositeDirection(int dir)
+        {
+            // DirectionTrackBar uses 0..4 mapping for directions: 0 = down, 1 = down-left, 2 = left, 3 = up-left, 4 = up
+            // Opposite is simply rotated 180 degrees; map to the same 0..4 space by reversing order
+            // 0 <-> 4, 1 <-> 3, 2 stays 2
+            switch (dir)
+            {
+                case 0: return 4;
+                case 1: return 3;
+                case 2: return 2;
+                case 3: return 1;
+                case 4: return 0;
+                default: return dir;
+            }
+        }
+
+        private static Point GetTilePixelOffsetForDir(int dir, int dx, int dy)
+        {
+            // Return pixel offset (x,y) for one isometric tile in given direction.
+            // Using common UO offsets: moving up subtracts dy vertically, moving left/right adjust by dx.
+            switch (dir)
+            {
+                case 0: // down
+                    return new Point(-4, dy);
+                case 1: // down-left
+                    return new Point(-dx, dy/2);
+                case 2: // left
+                    return new Point(-dx*2, 0);
+                case 3: // up-left
+                    return new Point(-dx, -dy/2);
+                case 4: // up
+                    return new Point(0, -dy);
+                default:
+                    return Point.Empty;
+            }
+        }
+
+        private void CbDrawMounted_CheckedChanged(object sender, EventArgs e)
+        {
+            AnimationPictureBox.Invalidate();
+        }
+
+        private void CbDrawOppositeHuman_CheckedChanged(object sender, EventArgs e)
+        {
+            AnimationPictureBox.Invalidate();
+        }
+
         private readonly string[][] _animNames =
         {
-            new[] // Monster (22)
+            new string[]
+            {
+                "Walk",
+                "Run",
+                "Idle",
+                "Eat",
+                "Alert",
+                "Attack1",
+                "Attack2",
+                "GetHit",
+                "Die1",
+                "Idle",
+                "Fidget",
+                "LieDown",
+                "Die2"
+            }, //animal
+            new string[]
             {
                 "Walk",
                 "Idle",
@@ -151,36 +158,8 @@ namespace UoFiddler.Controls.Forms
                 "Fly",
                 "TakeOff",
                 "GetHitInAir"
-            },
-            new[] // Sea (9)
-            {
-                "Walk",
-                "Run",
-                "Idle",
-                "Idle",
-                "Fidget",
-                "Attack1",
-                "Attack2",
-                "GetHit",
-                "Die1"
-            },
-            new[] // Animal (13)
-            {
-                "Walk",
-                "Run",
-                "Idle",
-                "Eat",
-                "Alert",
-                "Attack1",
-                "Attack2",
-                "GetHit",
-                "Die1",
-                "Idle",
-                "Fidget",
-                "LieDown",
-                "Die2"
-            },
-            new[] // Human (35)
+            }, //Monster
+            new string[]
             {
                 "Walk_01",
                 "WalkStaff_01",
@@ -217,124 +196,76 @@ namespace UoFiddler.Controls.Forms
                 "Bow_Lesser_01",
                 "Salute_Armed1h_01",
                 "Ingest_Eat_01"
-            },
-            null // Equipment — uses the Human action list (resolved below)
+            } //human
         };
-
-        private static readonly char[] _typeTag = { 'M', 'S', 'L', 'H', 'E' };
-
-        // Color used for "invalid" (no frames) tree nodes and helpers. Bright
-        // red is hard to read on a dark background; switch to OrangeRed in
-        // dark mode (matches the convention used elsewhere in the app).
-        private static readonly Color _invalidColor = Options.DarkMode ? Color.OrangeRed : Color.Red;
-
-        // In-file body ids shown in the gallery tab, populated alongside the tree.
-        private readonly System.Collections.Generic.List<int> _galleryBodies = new();
-
-        private string[] ResolveActionNames(MobType mobType)
-        {
-            // Equipment composites onto a humanoid; reuse the human action list.
-            int idx = mobType == MobType.Equipment ? (int)MobType.Human : (int)mobType;
-            return _animNames[idx];
-        }
-
-        // mobtypes.txt flag bits — see docs/file-formats/mobtypes.txt.md.
-        // flags == 0 means "use the default action set for this category" —
-        // the body has a normal complete animation set, so no dimming.
-        // flags != 0 means the body explicitly opts into specific optional
-        // actions; absent bits in that case indicate the action falls back
-        // to a category default. We dim those for informational purposes.
-        private static bool MobTypeHasAction(MobType type, uint flags, int action)
-        {
-            return GetMissingActionFlag(type, flags, action) == null;
-        }
-
-        /// <summary>
-        /// Returns the missing flag's name (e.g. "walk") if the given action
-        /// is dimmed for this body, or null if the action is not gated /
-        /// the body has it dedicated.
-        /// </summary>
-        private static string GetMissingActionFlag(MobType type, uint flags, int action)
-        {
-            if (flags == 0u)
-            {
-                return null;
-            }
-
-            (uint bit, string name) = GetActionBit(type, action);
-            if (bit == 0u || (flags & bit) != 0u)
-            {
-                return null;
-            }
-
-            return name;
-        }
-
-        private static (uint bit, string name) GetActionBit(MobType type, int action)
-        {
-            switch (type)
-            {
-                case MobType.Monster:
-                    return action switch
-                    {
-                        0 => (0x0001u, "dedicated walk"),
-                        2 => (0x0100u, "die A"),
-                        3 => (0x0200u, "die B"),
-                        4 => (0x0020u, "attack 1"),
-                        5 => (0x0040u, "attack 2"),
-                        7 => (0x1000u, "bow attack"),
-                        8 => (0x1000u, "bow attack"),
-                        9 => (0x2000u, "throw attack"),
-                        10 => (0x0400u, "block / get-hit"),
-                        13 => (0x0080u, "cast spell"),
-                        14 => (0x0080u, "cast spell"),
-                        15 => (0x0400u, "block / get-hit"),
-                        16 => (0x0400u, "block / get-hit"),
-                        _ => (0u, null)
-                    };
-                case MobType.Animal:
-                    return action switch
-                    {
-                        0 => (0x0001u, "dedicated walk"),
-                        1 => (0x0002u, "dedicated run"),
-                        3 => (0x8000u, "eat"),
-                        5 => (0x0020u, "attack 1"),
-                        6 => (0x0040u, "attack 2"),
-                        7 => (0x0400u, "block / get-hit"),
-                        8 => (0x0100u, "die A"),
-                        12 => (0x0200u, "die B"),
-                        _ => (0u, null)
-                    };
-                case MobType.Sea:
-                    return action switch
-                    {
-                        0 => (0x0001u, "dedicated walk"),
-                        1 => (0x0002u, "dedicated run"),
-                        5 => (0x0020u, "attack 1"),
-                        6 => (0x0040u, "attack 2"),
-                        7 => (0x0400u, "block / get-hit"),
-                        8 => (0x0100u, "die A"),
-                        _ => (0u, null)
-                    };
-                case MobType.Human:
-                case MobType.Equipment:
-                default:
-                    return (0u, null);
-            }
-        }
-
-        private static string BuildDimmedTooltip(string missingFlag, uint flags)
-        {
-            return $"Greyed out: mobtypes.txt flag for '{missingFlag}' is not set on this body "
-                   + $"(flags=0x{flags:X}). The client would substitute a default action; frames "
-                   + "are still editable here.";
-        }
 
         private void OnLoad(object sender, EventArgs e)
         {
             Options.LoadedUltimaClass["AnimationEdit"] = true;
 
-            _galleryBodies.Clear();
+            // Ensure Animations and AnimationEdit have reloaded and discovered any animN files
+            try
+            {
+                Ultima.Animations.Reload();
+            }
+            catch
+            {
+                // ignore reload errors
+            }
+
+            try
+            {
+                AnimationEdit.Reload();
+            }
+            catch
+            {
+                // ignore
+            }
+            // Populate file selection combo dynamically based on available anim files
+            try
+            {
+                // Temporarily detach event handler to avoid recursive SelectedIndexChanged calls
+                SelectFileToolStripComboBox.SelectedIndexChanged -= OnAnimChanged;
+
+                SelectFileToolStripComboBox.Items.Clear();
+                SelectFileToolStripComboBox.Items.Add("Choose anim file");
+
+                int maxType = 5;
+                var types = Ultima.Animations.GetAvailableFileTypes();
+                int found = 0;
+                if (types != null)
+                {
+                    foreach (var t in types)
+                    {
+                        if (t > found) found = t;
+                    }
+                }
+
+                if (found > 0) maxType = found;
+
+                for (int i = 1; i <= maxType; ++i)
+                {
+                    if (i == 1)
+                        SelectFileToolStripComboBox.Items.Add("anim");
+                    else
+                        SelectFileToolStripComboBox.Items.Add($"anim{i}");
+                }
+
+                // Ensure selection is valid (defaults to 0)
+                if (_fileType >= 0 && _fileType <= maxType)
+                    SelectFileToolStripComboBox.SelectedIndex = _fileType;
+                else
+                    SelectFileToolStripComboBox.SelectedIndex = 0;
+
+                // Re-attach handler
+                SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged;
+            }
+            catch
+            {
+                // ignore and leave designer defaults
+                try { SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged; } catch { }
+            }
+
             AnimationListTreeView.BeginUpdate();
             try
             {
@@ -345,27 +276,21 @@ namespace UoFiddler.Controls.Forms
                     TreeNode[] nodes = new TreeNode[count];
                     for (int i = 0; i < count; ++i)
                     {
-                        MobType mobType = Animations.GetBodyMobType(i, _fileType);
                         int animLength = Animations.GetAnimLength(i, _fileType);
-                        string[] names = ResolveActionNames(mobType);
-                        // mobtypes.txt is keyed by server body id; reverse-map for anim2..6.
-                        int serverBody = _fileType == 1 ? i : BodyConverter.GetTrueBody(_fileType, i);
-                        uint mobFlags = MobTypes.IsLoaded && serverBody >= 0 ? MobTypes.GetFlags(serverBody) : 0u;
-                        char typeTag = _typeTag[(int)mobType];
+                        string type = animLength == 22 ? "H" : animLength == 13 ? "L" : "P";
                         TreeNode node = new TreeNode
                         {
                             Tag = i,
-                            Text = $"{typeTag}: {i} ({BodyConverter.GetTrueBody(_fileType, i)})"
+                            Text = $"{type}: {i} ({BodyConverter.GetTrueBody(_fileType, i)})"
                         };
 
                         bool valid = false;
                         for (int j = 0; j < animLength; ++j)
                         {
-                            string name = j < names.Length ? names[j] : $"Action{j}";
                             TreeNode treeNode = new TreeNode
                             {
                                 Tag = j,
-                                Text = string.Format("{0:D2} {1}", j, name)
+                                Text = string.Format("{0:D2} {1}", j, _animNames[animLength == 22 ? 1 : animLength == 13 ? 0 : 2][j])
                             };
 
                             if (AnimationEdit.IsActionDefined(_fileType, i, j))
@@ -374,17 +299,7 @@ namespace UoFiddler.Controls.Forms
                             }
                             else
                             {
-                                treeNode.ForeColor = _invalidColor;
-                            }
-
-                            if (MobTypes.IsLoaded && treeNode.ForeColor != _invalidColor)
-                            {
-                                string missing = GetMissingActionFlag(mobType, mobFlags, j);
-                                if (missing != null)
-                                {
-                                    treeNode.ForeColor = Color.Gray;
-                                    treeNode.ToolTipText = BuildDimmedTooltip(missing, mobFlags);
-                                }
+                                treeNode.ForeColor = Color.Red;
                             }
 
                             node.Nodes.Add(treeNode);
@@ -397,12 +312,7 @@ namespace UoFiddler.Controls.Forms
                                 continue;
                             }
 
-                            node.ForeColor = _invalidColor;
-                        }
-
-                        if (valid)
-                        {
-                            _galleryBodies.Add(i);
+                            node.ForeColor = Color.Red;
                         }
 
                         nodes[i] = node;
@@ -415,9 +325,6 @@ namespace UoFiddler.Controls.Forms
             {
                 AnimationListTreeView.EndUpdate();
             }
-
-            GalleryTileView.VirtualListSize = _galleryBodies.Count;
-            GalleryTileView.Invalidate();
 
             if (AnimationListTreeView.Nodes.Count > 0)
             {
@@ -490,102 +397,6 @@ namespace UoFiddler.Controls.Forms
 
             PalettePictureBox.Image?.Dispose();
             PalettePictureBox.Image = bmp;
-        }
-
-        private void GalleryTileViewDrawItem(object sender, UoFiddler.Controls.UserControls.TileView.TileViewControl.DrawTileListItemEventArgs e)
-        {
-            if (e.Index < 0 || e.Index >= _galleryBodies.Count)
-            {
-                return;
-            }
-
-            int body = _galleryBodies[e.Index];
-            Point itemPoint = new Point(e.Bounds.X + GalleryTileView.TilePadding.Left, e.Bounds.Y + GalleryTileView.TilePadding.Top);
-            Rectangle tileRect = new Rectangle(itemPoint, GalleryTileView.TileSize);
-            using var previousClip = e.Graphics.Clip;
-            using var clipRegion = new Region(tileRect);
-            e.Graphics.Clip = clipRegion;
-
-            if (!GalleryTileView.SelectedIndices.Contains(e.Index))
-            {
-                using var bgBrush = new SolidBrush(GalleryTileView.BackColor);
-                e.Graphics.FillRectangle(bgBrush, tileRect);
-            }
-
-            Bitmap bmp = TryGetFirstFrame(body);
-            if (bmp != null)
-            {
-                int maxW = tileRect.Width;
-                int maxH = tileRect.Height - 18;
-                int drawWidth = bmp.Width;
-                int drawHeight = bmp.Height;
-                if (drawWidth > maxW || drawHeight > maxH)
-                {
-                    float scale = Math.Min((float)maxW / drawWidth, (float)maxH / drawHeight);
-                    drawWidth = (int)(drawWidth * scale);
-                    drawHeight = (int)(drawHeight * scale);
-                }
-                int drawX = tileRect.X + (tileRect.Width - drawWidth) / 2;
-                int drawY = tileRect.Y + Math.Max(0, (tileRect.Height - 18 - drawHeight) / 2);
-                e.Graphics.DrawImage(bmp, drawX, drawY, drawWidth, drawHeight);
-            }
-
-            int serverBody = _fileType == 1 ? body : BodyConverter.GetTrueBody(_fileType, body);
-            string label = serverBody >= 0 && serverBody != body ? $"{body} ({serverBody})" : body.ToString();
-            using var stringFormat = new StringFormat();
-            stringFormat.Alignment = StringAlignment.Center;
-            stringFormat.LineAlignment = StringAlignment.Far;
-            e.Graphics.DrawString(label, GalleryTileView.Font, SystemBrushes.ControlText,
-                new RectangleF(tileRect.X, tileRect.Y, tileRect.Width, tileRect.Height), stringFormat);
-
-            e.Graphics.Clip = previousClip;
-        }
-
-        private Bitmap TryGetFirstFrame(int body)
-        {
-            // Walk a few action slots — body 0 may not have action 0 defined,
-            // but a later action may exist; pick the first that returns frames.
-            int animLength = Animations.GetAnimLength(body, _fileType);
-            for (int action = 0; action < animLength; ++action)
-            {
-                if (!AnimationEdit.IsActionDefined(_fileType, body, action))
-                {
-                    continue;
-                }
-
-                AnimIdx anim = AnimationEdit.GetAnimation(_fileType, body, action, 1);
-                if (anim?.Frames == null || anim.Frames.Count == 0)
-                {
-                    continue;
-                }
-
-                Bitmap[] frames = anim.GetFrames();
-                if (frames != null && frames.Length > 0 && frames[0] != null)
-                {
-                    return frames[0];
-                }
-            }
-            return null;
-        }
-
-        private void GalleryTileViewMouseDoubleClick(object sender, MouseEventArgs e)
-        {
-            int idx = GalleryTileView.FocusIndex;
-            if (idx < 0 || idx >= _galleryBodies.Count)
-            {
-                return;
-            }
-
-            int body = _galleryBodies[idx];
-            TreeNode target = GetNode(body);
-            if (target == null)
-            {
-                return;
-            }
-
-            AnimationTabControl.SelectedTab = AnimationEditPage;
-            AnimationListTreeView.SelectedNode = target;
-            AnimationListTreeView.Focus();
         }
 
         private void AfterSelectTreeView(object sender, TreeViewEventArgs e)
@@ -673,16 +484,271 @@ namespace UoFiddler.Controls.Forms
                 FramesListView.EndUpdate();
             }
 
-            UpdateSecondAnimWarning();
             AnimationPictureBox.Invalidate();
             SetPaletteBox();
+        }
 
-            // Show/hide "with mount" menu options based on file type and action
-            bool canShowMountOptions = _fileType == 2 && (_currentAction == 0 || _currentAction == 1 || _currentAction == 2);
-            exportActionAsGifWithMountThisDirectionToolStripMenuItem.Visible = canShowMountOptions;
-            exportActionAsGifWithMountAllDirectionsToolStripMenuItem.Visible = canShowMountOptions;
-            exportActionAsGifLoopingWithMountThisDirectionToolStripMenuItem.Visible = canShowMountOptions;
-            exportActionAsGifLoopingWithMountAllDirectionsToolStripMenuItem.Visible = canShowMountOptions;
+        private void ContextMenuStripTreeView_Opening(object sender, CancelEventArgs e)
+        {
+            // select tree node under mouse so actions apply to the clicked node
+            try
+            {
+                var pt = AnimationListTreeView.PointToClient(Control.MousePosition);
+                var node = AnimationListTreeView.GetNodeAt(pt);
+                if (node != null)
+                {
+                    AnimationListTreeView.SelectedNode = node;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+            // populate dynamic submenu entries for copying whole action (all directions)
+            try
+            {
+                copyToFrameToolStripMenuItem.DropDownItems.Clear();
+                forceCopyToFrameToolStripMenuItem.DropDownItems.Clear();
+
+                if (_fileType == 0)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                int animLength = Animations.GetAnimLength(_currentBody, _fileType);
+                if (animLength <= 0)
+                {
+                    e.Cancel = true;
+                    return;
+                }
+
+                for (int action = 0; action < animLength; ++action)
+                {
+                    string text = action.ToString("D2") + " ";
+                    // append name if available — choose correct anim-name set: 13->animal (0), 22->monster (1), otherwise people (2)
+                    if (_animNames != null && _animNames.Length > 0)
+                    {
+                        int nameSet = animLength == 13 ? 0 : animLength == 22 ? 1 : 2;
+                        if (nameSet >= 0 && nameSet < _animNames.Length && action < _animNames[nameSet].Length)
+                        {
+                            text += _animNames[nameSet][action];
+                        }
+                    }
+
+                    // determine if target action is empty across all directions
+                    bool targetEmpty = true;
+                    for (int d = 0; d < 5; ++d)
+                    {
+                        AnimIdx targetAnim = AnimationEdit.GetAnimation(_fileType, _currentBody, action, d);
+                        if (targetAnim != null && targetAnim.Frames != null && targetAnim.Frames.Count > 0)
+                        {
+                            targetEmpty = false;
+                            break;
+                        }
+                    }
+
+                    var item = new ToolStripMenuItem(text) { Tag = action };
+                    item.Enabled = targetEmpty; // only enable if empty
+                    item.Click += CopyAction_Click;
+                    copyToFrameToolStripMenuItem.DropDownItems.Add(item);
+
+                    var force = new ToolStripMenuItem(text) { Tag = action };
+                    force.Click += ForceCopyAction_Click;
+                    forceCopyToFrameToolStripMenuItem.DropDownItems.Add(force);
+                }
+            }
+            catch
+            {
+                // swallow errors to avoid breaking context menu
+            }
+        }
+
+        // Previous per-frame copy handlers replaced with action-level copy
+        private void CopyAction_Click(object sender, EventArgs e)
+        {
+            if (!(sender is ToolStripMenuItem itm))
+                return;
+
+            int targetAction = (int)itm.Tag;
+            int sourceAction = _currentAction;
+
+            if (sourceAction == targetAction)
+                return;
+
+            // Ensure source has data
+            bool hasSource = false;
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                if (src != null && src.Frames != null && src.Frames.Count > 0)
+                {
+                    hasSource = true;
+                    break;
+                }
+            }
+
+            if (!hasSource)
+            {
+                MessageBox.Show("Source action has no frames.", "Copy action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // For normal copy, ensure target is empty across directions
+            bool targetEmpty = true;
+            for (int d = 0; d < 5; ++d)
+            {
+                var tgt = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
+                if (tgt != null && tgt.Frames != null && tgt.Frames.Count > 0)
+                {
+                    targetEmpty = false;
+                    break;
+                }
+            }
+
+            if (!targetEmpty)
+            {
+                MessageBox.Show("Target action is not empty. Use 'Force copy action' to overwrite.", "Copy action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // perform copy across directions
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                var tgt = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
+                if (tgt == null)
+                    continue;
+
+                if (src == null || src.Frames == null || src.Frames.Count == 0)
+                {
+                    // ensure target is empty as well
+                    tgt.ClearFrames();
+                    continue;
+                }
+
+                // Replace target palette with a copy of source palette so indices match
+                if (src.Palette != null)
+                {
+                    var palCopy = new ushort[src.Palette.Length];
+                    System.Array.Copy(src.Palette, palCopy, src.Palette.Length);
+                    tgt.ReplacePalette(palCopy);
+                }
+
+                // clear target then add frames recreated from source bitmaps
+                tgt.ClearFrames();
+                Bitmap[] srcBits = src.GetFrames();
+                for (int f = 0; f < src.Frames.Count; ++f)
+                {
+                    if (srcBits == null || f >= srcBits.Length || srcBits[f] == null)
+                        continue;
+
+                    var sf = src.Frames[f];
+                    // AddFrame will create FrameEdit using tgt.Palette (we replaced it above)
+                    tgt.AddFrame(new Bitmap(srcBits[f]), sf.Center.X, sf.Center.Y);
+                }
+            }
+
+            Options.ChangedUltimaClass["Animations"] = true;
+            // update tree node color for target action to indicate it now has frames
+            try
+            {
+                TreeNode parent = GetNode(_currentBody);
+                if (parent != null && parent.Nodes.Count > targetAction)
+                {
+                    parent.Nodes[targetAction].ForeColor = Color.Black;
+                    parent.ForeColor = Color.Black;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            AfterSelectTreeView(null, null);
+            AnimationPictureBox.Invalidate();
+        }
+
+        private void ForceCopyAction_Click(object sender, EventArgs e)
+        {
+            if (!(sender is ToolStripMenuItem itm))
+                return;
+
+            int targetAction = (int)itm.Tag;
+            int sourceAction = _currentAction;
+
+            if (sourceAction == targetAction)
+                return;
+
+            // Ensure source has data
+            bool hasSource = false;
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                if (src != null && src.Frames != null && src.Frames.Count > 0)
+                {
+                    hasSource = true;
+                    break;
+                }
+            }
+
+            if (!hasSource)
+            {
+                MessageBox.Show("Source action has no frames.", "Force copy action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            // perform copy (overwrite) across directions
+            for (int d = 0; d < 5; ++d)
+            {
+                var src = AnimationEdit.GetAnimation(_fileType, _currentBody, sourceAction, d);
+                var tgt = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
+                if (tgt == null)
+                    continue;
+
+                if (src == null || src.Frames == null || src.Frames.Count == 0)
+                {
+                    tgt.ClearFrames();
+                    continue;
+                }
+
+                if (src.Palette != null)
+                {
+                    var palCopy = new ushort[src.Palette.Length];
+                    System.Array.Copy(src.Palette, palCopy, src.Palette.Length);
+                    tgt.ReplacePalette(palCopy);
+                }
+
+                tgt.ClearFrames();
+                Bitmap[] srcBits = src.GetFrames();
+                for (int f = 0; f < src.Frames.Count; ++f)
+                {
+                    if (srcBits == null || f >= srcBits.Length || srcBits[f] == null)
+                        continue;
+
+                    var sf = src.Frames[f];
+                    tgt.AddFrame(new Bitmap(srcBits[f]), sf.Center.X, sf.Center.Y);
+                }
+            }
+
+            Options.ChangedUltimaClass["Animations"] = true;
+            // update tree node color for target action to indicate it now has frames
+            try
+            {
+                TreeNode parent = GetNode(_currentBody);
+                if (parent != null && parent.Nodes.Count > targetAction)
+                {
+                    parent.Nodes[targetAction].ForeColor = Color.Black;
+                    parent.ForeColor = Color.Black;
+                }
+            }
+            catch
+            {
+                // ignore
+            }
+
+            AfterSelectTreeView(null, null);
+            AnimationPictureBox.Invalidate();
         }
 
         private void DrawFrameItem(object sender, DrawListViewItemEventArgs e)
@@ -691,38 +757,20 @@ namespace UoFiddler.Controls.Forms
             Bitmap[] currentBits = edit.GetFrames();
             Bitmap bmp = currentBits[(int)e.Item.Tag];
             var penColor = FramesListView.SelectedItems.Contains(e.Item) ? Color.Red : Color.Gray;
-            using (var borderPen = new Pen(penColor))
-            {
-                e.Graphics.DrawRectangle(borderPen, e.Bounds.X, e.Bounds.Y, e.Bounds.Width, e.Bounds.Height);
-            }
+            e.Graphics.DrawRectangle(new Pen(penColor), e.Bounds.X, e.Bounds.Y, e.Bounds.Width, e.Bounds.Height);
             e.Graphics.DrawImage(bmp, e.Bounds.X, e.Bounds.Y, bmp.Width,  bmp.Height);
             e.DrawText(TextFormatFlags.Bottom | TextFormatFlags.HorizontalCenter);
         }
 
         private void OnAnimChanged(object sender, EventArgs e)
         {
-            int selected = SelectFileToolStripComboBox.SelectedIndex;
-            if (selected == _fileType)
+            if (SelectFileToolStripComboBox.SelectedIndex == _fileType)
             {
                 return;
             }
 
-            if (selected >= 1 && Files.GetFilePath($"anim{(selected == 1 ? "" : selected.ToString())}.mul") == null)
-            {
-                MessageBox.Show(
-                    $"anim{(selected == 1 ? "" : selected.ToString())}.mul is not present in the client directory.",
-                    "File not found",
-                    MessageBoxButtons.OK,
-                    MessageBoxIcon.Information);
-                SelectFileToolStripComboBox.SelectedIndex = _fileType;
-                return;
-            }
-
-            _fileType = selected;
-            using (new WaitCursorScope(this))
-            {
-                OnLoad(this, EventArgs.Empty);
-            }
+            _fileType = SelectFileToolStripComboBox.SelectedIndex;
+            OnLoad(this, EventArgs.Empty);
         }
 
         private void OnDirectionChanged(object sender, EventArgs e)
@@ -740,24 +788,30 @@ namespace UoFiddler.Controls.Forms
 
         private void AnimationPictureBox_OnPaintFrame(object sender, PaintEventArgs e)
         {
-            e.Graphics.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.NearestNeighbor;
-            e.Graphics.PixelOffsetMode = System.Drawing.Drawing2D.PixelOffsetMode.Half;
-
-            // Background and centre crosshair are drawn first, so both the primary
-            // animation and the overlay always paint above the crosshair lines.
-            e.Graphics.Clear(Color.LightGray);
-            e.Graphics.DrawLine(Pens.Black, new Point(_framePoint.X, 0), new Point(_framePoint.X, AnimationPictureBox.Height));
-            e.Graphics.DrawLine(Pens.Black, new Point(0, _framePoint.Y), new Point(AnimationPictureBox.Width, _framePoint.Y));
-
-            if (_secondAnimActivated && !_isSecondAnimInFront)
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
             {
-                DrawSecondAnimation(e.Graphics);
+                return;
             }
 
-            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
-            Bitmap[] currentBits = edit?.GetFrames();
+            Bitmap[] currentBits = edit.GetFrames();
 
-            if (edit != null && currentBits?.Length > 0 && FramesTrackBar.Value < currentBits.Length && currentBits[FramesTrackBar.Value] != null)
+            using (var off = new Bitmap(AnimationPictureBox.Width, AnimationPictureBox.Height))
+            using (var offG = Graphics.FromImage(off))
+            {
+                // draw background and axes into offscreen first
+                offG.Clear(Color.LightGray);
+                offG.DrawLine(Pens.Black, new Point(_framePoint.X, 0), new Point(_framePoint.X, AnimationPictureBox.Height));
+                offG.DrawLine(Pens.Black, new Point(0, _framePoint.Y), new Point(AnimationPictureBox.Width, _framePoint.Y));
+
+                // If opposite-human should be behind main sprite for directions 2,3,4, draw it first
+                bool overlayDrawnBefore = false;
+                if (DrawOppositeHumanCheckBox.Checked && (_currentDir == 2 || _currentDir == 3 || _currentDir == 4))
+                {
+                    overlayDrawnBefore = DrawOppositeHumanOverlay(offG, edit);
+                }
+
+                if (currentBits?.Length > 0 && currentBits[FramesTrackBar.Value] != null)
             {
                 int varW;
                 int varH;
@@ -785,43 +839,31 @@ namespace UoFiddler.Controls.Forms
                     varFh = currentBits[FramesTrackBar.Value].Height;
                 }
 
-                int x = _framePoint.X - (int)(edit.Frames[FramesTrackBar.Value].Center.X * _zoomFactor);
-                int y = _framePoint.Y - (int)(edit.Frames[FramesTrackBar.Value].Center.Y * _zoomFactor) - (int)(currentBits[FramesTrackBar.Value].Height * _zoomFactor);
-
-                int scaledW = (int)(currentBits[FramesTrackBar.Value].Width * _zoomFactor);
-                int scaledH = (int)(currentBits[FramesTrackBar.Value].Height * _zoomFactor);
-                int scaledFw = (int)(varFw * _zoomFactor);
-                int scaledFh = (int)(varFh * _zoomFactor);
-                int scaledEw = (int)(varW * _zoomFactor);
-                int scaledEh = (int)(varH * _zoomFactor);
+                int x = _framePoint.X - edit.Frames[FramesTrackBar.Value].Center.X;
+                int y = _framePoint.Y - edit.Frames[FramesTrackBar.Value].Center.Y - currentBits[FramesTrackBar.Value].Height;
 
                 using (var whiteTransparent = new SolidBrush(Color.FromArgb(160, 255, 255, 255)))
                 {
-                    e.Graphics.FillRectangle(whiteTransparent, new Rectangle(x, y, scaledFw, scaledFh));
+                    offG.FillRectangle(whiteTransparent, new Rectangle(x, y, varFw, varFh));
                 }
 
-                e.Graphics.DrawRectangle(Pens.Red, new Rectangle(x, y, scaledEw, scaledEh));
-                e.Graphics.DrawImage(currentBits[FramesTrackBar.Value], new Rectangle(x, y, scaledW, scaledH));
+                offG.DrawRectangle(Pens.Red, new Rectangle(x, y, varW, varH));
+                offG.DrawImage(currentBits[FramesTrackBar.Value], x, y);
 
-                //e.Graphics.DrawLine(Pens.Red, new Point(0, 335-(int)numericUpDown1.Value), new Point(animationPictureBox.Width, 335-(int)numericUpDown1.Value));
-            }
+                // If overlay was drawn before the main sprite for behind-directions, redraw the main sprite to ensure it appears on top
+                if (overlayDrawnBefore)
+                {
+                    offG.DrawImage(currentBits[FramesTrackBar.Value], x, y);
+                }
 
-            if (_secondAnimActivated && _isSecondAnimInFront)
-            {
-                DrawSecondAnimation(e.Graphics);
-            }
-
-            // Draw mounted frame overlay for animals
-            if (edit != null && currentBits?.Length > 0 && FramesTrackBar.Value < currentBits.Length)
-            {
-                // Get the animation type length (animLength = 13 for animals, 22 for monsters, 9 for sea, 35 for human)
+                // --- Overlay logic for human animation (body 400) ---
                 int animLength = Ultima.Animations.GetAnimLength(_currentBody, _fileType);
                 if (animLength == 13) // Animal
                 {
                     int overlayAction = -1;
-                    if (_currentAction == 0) overlayAction = 23; // Walk -> mount walk
-                    else if (_currentAction == 1) overlayAction = 24; // Run -> mount run
-                    else if (_currentAction == 2) overlayAction = 25; // Idle -> mount idle
+                    if (_currentAction == 0) overlayAction = 23; // Walk
+                    else if (_currentAction == 1) overlayAction = 24; // Run
+                    else if (_currentAction == 2) overlayAction = 25; // Idle
 
                     if (overlayAction != -1 && DrawMountedCheckBox.Checked)
                     {
@@ -842,32 +884,197 @@ namespace UoFiddler.Controls.Forms
                                     int overlayH = overlayFrames[overlayIndex].Height;
                                     int ox = _framePoint.X - overlayFrame.Center.X;
                                     int oy = _framePoint.Y - overlayFrame.Center.Y - overlayH;
-                                    e.Graphics.DrawImage(overlayFrames[overlayIndex], ox, oy);
+                                    offG.DrawImage(overlayFrames[overlayIndex], ox, oy);
                                 }
                                 else
                                 {
                                     // Draw a magenta rectangle if the overlay frame is missing
-                                    e.Graphics.DrawRectangle(Pens.Magenta, 10, 10, 40, 40);
+                                    offG.DrawRectangle(Pens.Magenta, 10, 10, 40, 40);
                                 }
                             }
                             else
                             {
                                 // Draw a yellow rectangle if overlayFrames is null or empty
-                                e.Graphics.DrawRectangle(Pens.Yellow, 10, 10, 40, 40);
+                                offG.DrawRectangle(Pens.Yellow, 10, 10, 40, 40);
+                                MessageBox.Show($"No overlay frames for body 400, action {overlayAction}, dir {overlayDir}");
                             }
                         }
                         else
                         {
                             // Draw a red rectangle if overlayEdit is null
-                            e.Graphics.DrawRectangle(Pens.Red, 10, 10, 40, 40);
+                            offG.DrawRectangle(Pens.Red, 10, 10, 40, 40);
                         }
                     }
                 }
-                // --- End mounted overlay logic ---
-                if (DrawOppositeHumanCheckBox.Checked)
+                // --- End overlay logic ---
+                if (DrawOppositeHumanCheckBox.Checked && !overlayDrawnBefore)
                 {
-                    DrawOppositeHumanOverlay(e.Graphics, edit);
+                    DrawOppositeHumanOverlay(offG, edit);
                 }
+            }
+
+            // Draw Reference Point Arrow
+            Point[] arrayPoints = {
+        new Point(418 - (int)RefXNumericUpDown.Value, 335 - (int)RefYNumericUpDown.Value),
+        new Point(418 - (int)RefXNumericUpDown.Value, 352 - (int)RefYNumericUpDown.Value),
+        new Point(422 - (int)RefXNumericUpDown.Value, 348 - (int)RefYNumericUpDown.Value),
+        new Point(425 - (int)RefXNumericUpDown.Value, 353 - (int)RefYNumericUpDown.Value),
+        new Point(427 - (int)RefXNumericUpDown.Value, 352 - (int)RefYNumericUpDown.Value),
+        new Point(425 - (int)RefXNumericUpDown.Value, 347 - (int)RefYNumericUpDown.Value),
+        new Point(430 - (int)RefXNumericUpDown.Value, 347 - (int)RefYNumericUpDown.Value)
+    };
+
+            offG.FillPolygon(_whiteUnDraw, arrayPoints);
+            offG.DrawPolygon(_blackUndraw, arrayPoints);
+
+            e.Graphics.DrawImage(off, 0, 0);
+        }
+        }
+
+        private bool DrawOppositeHumanOverlay(Graphics g, AnimIdx edit)
+        {
+            if (!DrawOppositeHumanCheckBox.Checked)
+            {
+                return false;
+            }
+
+            // idle action for humans is usually 4 (Idle_01)
+            int humanIdleAction = 4;
+            int humanFile = 1; // anim.mul
+
+            int dx = 22;
+            int dy = 44;
+
+            // compute facing and offset
+            int humanFacingDir = (_currentDir + 4) % 8;
+            Point tileOffset = GetTilePixelOffsetForDir(_currentDir, dx, dy);
+
+            int[] humanBodies = { 744, 401, 605, 606, 666, 667 };
+
+            // Protect against missing base animation frames (can happen for some directions/actions)
+            if (edit == null || edit.Frames == null || edit.Frames.Count == 0)
+            {
+                return false;
+            }
+
+            foreach (int humanBody in humanBodies)
+            {
+                var overlayEdit = Ultima.AnimationEdit.GetAnimation(humanFile, humanBody, humanIdleAction, humanFacingDir);
+                if (overlayEdit == null)
+                {
+                    continue;
+                }
+
+                var overlayFrames = overlayEdit.GetFrames();
+                if (overlayFrames == null || overlayFrames.Length == 0)
+                {
+                    continue;
+                }
+
+                int baseCount = edit.Frames.Count;
+                int trackIndex = FramesTrackBar.Value;
+                int overlayIndex;
+                if (baseCount <= 1)
+                {
+                    overlayIndex = 0;
+                }
+                else
+                {
+                    overlayIndex = (int)Math.Round(trackIndex / (double)(baseCount - 1) * (overlayFrames.Length - 1));
+                }
+
+                overlayIndex = Math.Max(0, Math.Min(overlayIndex, overlayFrames.Length - 1));
+
+                if (overlayFrames[overlayIndex] == null || overlayEdit.Frames.Count <= overlayIndex)
+                {
+                    continue;
+                }
+
+                var overlayFrame = overlayEdit.Frames[overlayIndex];
+                int overlayW = overlayFrames[overlayIndex].Width;
+                int overlayH = overlayFrames[overlayIndex].Height;
+
+                bool shouldFlipFacingOnly = (_currentDir == 1 || _currentDir == 2 || _currentDir == 3);
+                if (shouldFlipFacingOnly)
+                {
+                    using (Bitmap flipped = (Bitmap)overlayFrames[overlayIndex].Clone())
+                    {
+                        flipped.RotateFlip(RotateFlipType.RotateNoneFlipX);
+                        int flippedCenterX = overlayW - overlayFrame.Center.X;
+                        int fox = _framePoint.X - flippedCenterX + tileOffset.X;
+                        int foy = _framePoint.Y - overlayFrame.Center.Y - overlayH + tileOffset.Y;
+                        g.DrawImage(flipped, fox, foy);
+                    }
+                }
+                else
+                {
+                    int ox = _framePoint.X - overlayFrame.Center.X + tileOffset.X;
+                    int oy = _framePoint.Y - overlayFrame.Center.Y - overlayH + tileOffset.Y;
+                    g.DrawImage(overlayFrames[overlayIndex], ox, oy);
+                }
+
+                return true;
+            }
+
+            // nothing found
+            g.DrawRectangle(Pens.Magenta, 10, 10, 40, 40);
+            return true;
+        }
+        /*
+        private void AnimationPictureBox_OnPaintFrame(object sender, PaintEventArgs e)
+        {
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+
+            e.Graphics.Clear(Color.LightGray);
+            e.Graphics.DrawLine(Pens.Black, new Point(_framePoint.X, 0), new Point(_framePoint.X, AnimationPictureBox.Height));
+            e.Graphics.DrawLine(Pens.Black, new Point(0, _framePoint.Y), new Point(AnimationPictureBox.Width, _framePoint.Y));
+
+            if (currentBits?.Length > 0 && currentBits[FramesTrackBar.Value] != null)
+            {
+                int varW;
+                int varH;
+                if (!_drawEmpty)
+                {
+                    varW = 0;
+                    varH = 0;
+                }
+                else
+                {
+                    varW = currentBits[FramesTrackBar.Value].Width;
+                    varH = currentBits[FramesTrackBar.Value].Height;
+                }
+
+                int varFw;
+                int varFh;
+                if (!_drawFull)
+                {
+                    varFw = 0;
+                    varFh = 0;
+                }
+                else
+                {
+                    varFw = currentBits[FramesTrackBar.Value].Width;
+                    varFh = currentBits[FramesTrackBar.Value].Height;
+                }
+
+                int x = _framePoint.X - edit.Frames[FramesTrackBar.Value].Center.X;
+                int y = _framePoint.Y - edit.Frames[FramesTrackBar.Value].Center.Y - currentBits[FramesTrackBar.Value].Height;
+
+                using (var whiteTransparent = new SolidBrush(Color.FromArgb(160, 255, 255, 255)))
+                {
+                    e.Graphics.FillRectangle(whiteTransparent, new Rectangle(x, y, varFw, varFh));
+                }
+
+                e.Graphics.DrawRectangle(Pens.Red, new Rectangle(x, y, varW, varH));
+                e.Graphics.DrawImage(currentBits[FramesTrackBar.Value], x, y);
+
+                //e.Graphics.DrawLine(Pens.Red, new Point(0, 335-(int)numericUpDown1.Value), new Point(animationPictureBox.Width, 335-(int)numericUpDown1.Value));
             }
 
             // Draw Reference Point Arrow
@@ -884,230 +1091,10 @@ namespace UoFiddler.Controls.Forms
             e.Graphics.FillPolygon(_whiteUnDraw, arrayPoints);
             e.Graphics.DrawPolygon(_blackUndraw, arrayPoints);
         }
+      */
+
+
         //End of Soulblighter Modification
-
-        private void OnZoomChanged(object sender, EventArgs e)
-        {
-            string text = ZoomComboBox.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(text))
-            {
-                return;
-            }
-
-            if (int.TryParse(text.TrimEnd('%').Trim(), out int percent) && percent > 0)
-            {
-                _zoomFactor = percent / 100.0f;
-                AnimationPictureBox.Invalidate();
-            }
-        }
-
-        private Color GetSecondAnimTintColor()
-        {
-            switch (_secondAnimColorMode)
-            {
-                case SecondAnimColorMode.Green: return Color.Lime;
-                case SecondAnimColorMode.Magenta: return Color.Magenta;
-                case SecondAnimColorMode.Cyan: return Color.Cyan;
-                case SecondAnimColorMode.Red: return Color.Red;
-                case SecondAnimColorMode.Custom: return _secondAnimCustomColor;
-                default: return Color.White;
-            }
-        }
-
-        private void DrawSecondAnimation(Graphics graphics)
-        {
-            if (!_secondAnimActivated || _secondAnimFileIndex < 1 || _secondAnimFileIndex > 5)
-            {
-                return;
-            }
-
-            // Action and direction follow the primary selection — equipment shares the human
-            // action set, so no action remapping is needed for the matching use case.
-            AnimIdx edit = AnimationEdit.GetAnimation(_secondAnimFileIndex, _secondAnimId, _currentAction, _currentDir);
-            Bitmap[] frames = edit?.GetFrames();
-            if (frames == null || frames.Length == 0)
-            {
-                return;
-            }
-
-            // Crash safety: wrap an out-of-range index (the overlay may have fewer frames
-            // than the primary animation) instead of indexing past the array.
-            int index = FramesTrackBar.Value;
-            if (index < 0 || index >= frames.Length)
-            {
-                index = 0;
-            }
-
-            Bitmap frame = frames[index];
-            if (frame == null)
-            {
-                return;
-            }
-
-            int centerX = edit.Frames[index].Center.X;
-            int centerY = edit.Frames[index].Center.Y;
-
-            int x = _framePoint.X - (int)(centerX * _zoomFactor);
-            int y = _framePoint.Y - (int)(centerY * _zoomFactor) - (int)(frame.Height * _zoomFactor);
-            int w = (int)(frame.Width * _zoomFactor);
-            int h = (int)(frame.Height * _zoomFactor);
-
-            float a = _secondAnimOpacity / 100f;
-            ColorMatrix matrix;
-            if (_secondAnimColorMode == SecondAnimColorMode.Original)
-            {
-                matrix = new ColorMatrix(new float[][]
-                {
-                    new float[] { 1, 0, 0, 0, 0 },
-                    new float[] { 0, 1, 0, 0, 0 },
-                    new float[] { 0, 0, 1, 0, 0 },
-                    new float[] { 0, 0, 0, a, 0 },
-                    new float[] { 0, 0, 0, 0, 1 }
-                });
-            }
-            else
-            {
-                // Colorize/hue: convert each source pixel to its luminance, then multiply by
-                // the tint colour. This keeps the original animation's shading and edges
-                // (light/dark detail is preserved) while shifting the hue, instead of flooding
-                // every pixel with one flat colour. Source alpha is kept and scaled by opacity.
-                Color tint = GetSecondAnimTintColor();
-                float tr = tint.R / 255f;
-                float tg = tint.G / 255f;
-                float tb = tint.B / 255f;
-                matrix = new ColorMatrix(new float[][]
-                {
-                    new float[] { 0.30f * tr, 0.30f * tg, 0.30f * tb, 0, 0 },
-                    new float[] { 0.59f * tr, 0.59f * tg, 0.59f * tb, 0, 0 },
-                    new float[] { 0.11f * tr, 0.11f * tg, 0.11f * tb, 0, 0 },
-                    new float[] { 0, 0, 0, a, 0 },
-                    new float[] { 0, 0, 0, 0, 1 }
-                });
-            }
-
-            using (var attr = new ImageAttributes())
-            {
-                attr.SetColorMatrix(matrix);
-                graphics.DrawImage(frame, new Rectangle(x, y, w, h),
-                    0, 0, frame.Width, frame.Height, GraphicsUnit.Pixel, attr);
-            }
-
-            if (_drawSecondAnimBox)
-            {
-                using (var cyanPen = new Pen(Color.Cyan, 1))
-                {
-                    graphics.DrawRectangle(cyanPen, x, y, w, h);
-                }
-            }
-        }
-
-        private void UpdateSecondAnimWarning()
-        {
-            if (!_secondAnimActivated || _secondAnimFileIndex < 1 || _secondAnimFileIndex > 5)
-            {
-                SecondAnimWarningLabel.Visible = false;
-                return;
-            }
-
-            int primaryCount = FramesTrackBar.Maximum + 1;
-
-            int overlayCount = 0;
-            AnimIdx overlay = AnimationEdit.GetAnimation(_secondAnimFileIndex, _secondAnimId, _currentAction, _currentDir);
-            Bitmap[] frames = overlay?.GetFrames();
-            if (frames != null)
-            {
-                overlayCount = frames.Length;
-            }
-
-            if (overlayCount > 0 && overlayCount != primaryCount)
-            {
-                SecondAnimWarningLabel.Text = $"Frame counts differ (primary {primaryCount} / overlay {overlayCount})";
-                SecondAnimWarningLabel.Visible = true;
-            }
-            else
-            {
-                SecondAnimWarningLabel.Visible = false;
-            }
-        }
-
-        private void SecondAnimCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
-            _secondAnimActivated = SecondAnimCheckBox.Checked;
-            UpdateSecondAnimWarning();
-            AnimationPictureBox.Invalidate();
-        }
-
-        private void SecondAnimFileComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            string sel = SecondAnimFileComboBox.SelectedItem?.ToString();
-            if (string.IsNullOrEmpty(sel))
-            {
-                return;
-            }
-
-            if (sel.Equals("anim", StringComparison.OrdinalIgnoreCase))
-            {
-                _secondAnimFileIndex = 1;
-            }
-            else if (sel.StartsWith("anim", StringComparison.OrdinalIgnoreCase)
-                     && int.TryParse(sel.Substring(4), out int idx))
-            {
-                _secondAnimFileIndex = idx;
-            }
-
-            UpdateSecondAnimWarning();
-            AnimationPictureBox.Invalidate();
-        }
-
-        private void SecondAnimIdNumericUpDown_ValueChanged(object sender, EventArgs e)
-        {
-            _secondAnimId = (int)SecondAnimIdNumericUpDown.Value;
-            UpdateSecondAnimWarning();
-            AnimationPictureBox.Invalidate();
-        }
-
-        private void SecondAnimColorComboBox_SelectedIndexChanged(object sender, EventArgs e)
-        {
-            switch (SecondAnimColorComboBox.SelectedIndex)
-            {
-                case 1: _secondAnimColorMode = SecondAnimColorMode.Green; break;
-                case 2: _secondAnimColorMode = SecondAnimColorMode.Magenta; break;
-                case 3: _secondAnimColorMode = SecondAnimColorMode.Cyan; break;
-                case 4: _secondAnimColorMode = SecondAnimColorMode.Red; break;
-                case 5:
-                    _secondAnimColorMode = SecondAnimColorMode.Custom;
-                    using (var dialog = new ColorDialog { Color = _secondAnimCustomColor })
-                    {
-                        if (dialog.ShowDialog() == DialogResult.OK)
-                        {
-                            _secondAnimCustomColor = dialog.Color;
-                        }
-                    }
-                    break;
-                default: _secondAnimColorMode = SecondAnimColorMode.Original; break;
-            }
-
-            AnimationPictureBox.Invalidate();
-        }
-
-        private void SecondAnimOpacityTrackBar_ValueChanged(object sender, EventArgs e)
-        {
-            _secondAnimOpacity = SecondAnimOpacityTrackBar.Value;
-            SecondAnimOpacityValueLabel.Text = _secondAnimOpacity + "%";
-            AnimationPictureBox.Invalidate();
-        }
-
-        private void SecondAnimInFrontCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
-            _isSecondAnimInFront = SecondAnimInFrontCheckBox.Checked;
-            AnimationPictureBox.Invalidate();
-        }
-
-        private void SecondAnimBoxCheckBox_CheckedChanged(object sender, EventArgs e)
-        {
-            _drawSecondAnimBox = SecondAnimBoxCheckBox.Checked;
-            AnimationPictureBox.Invalidate();
-        }
 
         //Soulblighter Modification
         private void OnFrameCountBarChanged(object sender, EventArgs e)
@@ -1295,7 +1282,8 @@ namespace UoFiddler.Controls.Forms
                 }
             }
 
-            FileSavedDialog.Show(FindForm(), path, "Frames saved successfully.");
+            MessageBox.Show($"Frames saved to {path}", "Saved", MessageBoxButtons.OK, MessageBoxIcon.Information,
+                MessageBoxDefaultButton.Button1);
         }
 
         private void OnClickRemoveAction(object sender, EventArgs e)
@@ -1314,10 +1302,10 @@ namespace UoFiddler.Controls.Forms
                     return;
                 }
 
-                AnimationListTreeView.SelectedNode.ForeColor = _invalidColor;
+                AnimationListTreeView.SelectedNode.ForeColor = Color.Red;
                 for (int i = 0; i < AnimationListTreeView.SelectedNode.Nodes.Count; ++i)
                 {
-                    AnimationListTreeView.SelectedNode.Nodes[i].ForeColor = _invalidColor;
+                    AnimationListTreeView.SelectedNode.Nodes[i].ForeColor = Color.Red;
                     for (int d = 0; d < 5; ++d)
                     {
                         AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, i, d);
@@ -1348,11 +1336,11 @@ namespace UoFiddler.Controls.Forms
                     edit?.ClearFrames();
                 }
 
-                AnimationListTreeView.SelectedNode.Parent.Nodes[_currentAction].ForeColor = _invalidColor;
+                AnimationListTreeView.SelectedNode.Parent.Nodes[_currentAction].ForeColor = Color.Red;
                 bool valid = false;
                 foreach (TreeNode node in AnimationListTreeView.SelectedNode.Parent.Nodes)
                 {
-                    if (node.ForeColor == _invalidColor)
+                    if (node.ForeColor == Color.Red)
                     {
                         continue;
                     }
@@ -1369,7 +1357,7 @@ namespace UoFiddler.Controls.Forms
                     }
                     else
                     {
-                        AnimationListTreeView.SelectedNode.Parent.ForeColor = _invalidColor;
+                        AnimationListTreeView.SelectedNode.Parent.ForeColor = Color.Red;
                     }
                 }
 
@@ -1390,206 +1378,6 @@ namespace UoFiddler.Controls.Forms
 
             MessageBox.Show($"AnimationFile saved to {Options.OutputPath}", "Saved", MessageBoxButtons.OK,
                 MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
-        }
-
-        private void OnClickCopyActionToLocation(object sender, EventArgs e)
-        {
-            if (_fileType == 0 || _currentAction < 0)
-            {
-                return;
-            }
-
-            int animLength = Animations.GetAnimLength(_currentBody, _fileType);
-            MobType mobType = Animations.GetBodyMobType(_currentBody, _fileType);
-            string[] actionNames = ResolveActionNames(mobType);
-
-            using (var dialog = new CopyActionDialog(_fileType, _currentBody, actionNames, _currentAction))
-            {
-                if (dialog.ShowDialog() != DialogResult.OK)
-                {
-                    return;
-                }
-
-                int targetAction = dialog.SelectedAction;
-                if (targetAction < 0 || targetAction >= animLength)
-                {
-                    return;
-                }
-
-                if (targetAction == _currentAction)
-                {
-                    return;
-                }
-
-                for (int d = 0; d < 5; d++)
-                {
-                    AnimIdx targetAnim = AnimationEdit.GetAnimation(_fileType, _currentBody, targetAction, d);
-                    if (targetAnim != null && targetAnim.Frames?.Count > 0)
-                    {
-                        MessageBox.Show("Target action has data in at least one direction. Use 'To Location Overwrite' to replace existing animations.", "Copy Action",
-                            MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        return;
-                    }
-                }
-
-                if (!CopyActionAllDirections(_currentBody, _currentAction, targetAction, overwrite: false))
-                {
-                    return;
-                }
-
-                RefreshTreeNodeAfterActionWrite(_currentBody, targetAction);
-                MessageBox.Show("Action copied successfully (all directions).", "Copy Action", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                Options.ChangedUltimaClass["Animations"] = true;
-                AfterSelectTreeView(this, null);
-            }
-        }
-
-        private void OnClickCopyActionToLocationOverwrite(object sender, EventArgs e)
-        {
-            if (_fileType == 0 || _currentAction < 0)
-            {
-                return;
-            }
-
-            int animLength = Animations.GetAnimLength(_currentBody, _fileType);
-            MobType mobType = Animations.GetBodyMobType(_currentBody, _fileType);
-            string[] actionNames = ResolveActionNames(mobType);
-
-            using (var dialog = new CopyActionDialog(_fileType, _currentBody, actionNames, _currentAction))
-            {
-                if (dialog.ShowDialog() != DialogResult.OK)
-                {
-                    return;
-                }
-
-                int targetAction = dialog.SelectedAction;
-                if (targetAction < 0 || targetAction >= animLength)
-                {
-                    return;
-                }
-
-                if (targetAction == _currentAction)
-                {
-                    return;
-                }
-
-                DialogResult result = MessageBox.Show($"Are you sure you want to overwrite action {targetAction} (all directions)?", "Copy Action Overwrite",
-                    MessageBoxButtons.YesNo, MessageBoxIcon.Question, MessageBoxDefaultButton.Button2);
-                if (result != DialogResult.Yes)
-                {
-                    return;
-                }
-
-                if (!CopyActionAllDirections(_currentBody, _currentAction, targetAction, overwrite: true))
-                {
-                    return;
-                }
-
-                RefreshTreeNodeAfterActionWrite(_currentBody, targetAction);
-                MessageBox.Show("Action copied successfully (all directions).", "Copy Action", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                Options.ChangedUltimaClass["Animations"] = true;
-                AfterSelectTreeView(this, null);
-            }
-        }
-
-        private bool CopyActionAllDirections(int body, int sourceAction, int targetAction, bool overwrite)
-        {
-            bool hasAnySourceData = false;
-
-            for (int d = 0; d < 5; d++)
-            {
-                AnimIdx sourceAnim = AnimationEdit.GetAnimation(_fileType, body, sourceAction, d);
-                AnimIdx targetAnim = AnimationEdit.GetAnimation(_fileType, body, targetAction, d);
-                if (targetAnim == null)
-                {
-                    continue;
-                }
-
-                if (overwrite)
-                {
-                    targetAnim.ClearFrames();
-                }
-
-                if (sourceAnim == null || sourceAnim.Frames == null || sourceAnim.Frames.Count == 0)
-                {
-                    continue;
-                }
-
-                hasAnySourceData = true;
-
-                ushort[] copiedPalette = (ushort[])sourceAnim.Palette.Clone();
-                targetAnim.ReplacePalette(copiedPalette);
-
-                Bitmap[] sourceBitmaps = sourceAnim.GetFrames();
-                if (sourceBitmaps == null)
-                {
-                    continue;
-                }
-
-                for (int i = 0; i < sourceBitmaps.Length; i++)
-                {
-                    Bitmap frameBmp = sourceBitmaps[i];
-                    if (frameBmp == null)
-                    {
-                        continue;
-                    }
-
-                    try
-                    {
-                        Point center = sourceAnim.Frames[i].Center;
-                        targetAnim.AddFrame(frameBmp, center.X, center.Y);
-                    }
-                    finally
-                    {
-                        frameBmp.Dispose();
-                    }
-                }
-            }
-
-            if (!hasAnySourceData)
-            {
-                MessageBox.Show("Source action is empty in all directions.", "Copy Action", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                return false;
-            }
-
-            return true;
-        }
-
-        private void RefreshTreeNodeAfterActionWrite(int body, int action)
-        {
-            TreeNode bodyNode = GetNode(body);
-            if (bodyNode == null)
-            {
-                if (_showOnlyValid)
-                {
-                    OnLoad(this, EventArgs.Empty);
-                    bodyNode = GetNode(body);
-                }
-                else
-                {
-                    return;
-                }
-            }
-
-            if (bodyNode == null || action < 0 || action >= bodyNode.Nodes.Count)
-            {
-                return;
-            }
-
-            bool actionDefined = AnimationEdit.IsActionDefined(_fileType, body, action);
-            bodyNode.Nodes[action].ForeColor = actionDefined ? Color.Empty : _invalidColor;
-
-            bool hasAnyValidAction = false;
-            for (int i = 0; i < bodyNode.Nodes.Count; i++)
-            {
-                if (AnimationEdit.IsActionDefined(_fileType, body, i))
-                {
-                    hasAnyValidAction = true;
-                    break;
-                }
-            }
-
-            bodyNode.ForeColor = hasAnyValidAction ? Color.Empty : _invalidColor;
         }
 
         //My Soulblighter Modification
@@ -1624,118 +1412,6 @@ namespace UoFiddler.Controls.Forms
             }
         }
         //End of Soulblighter Modification
-
-        private void OnClickExportFrameFormat(object sender, EventArgs e)
-        {
-            if (FramesListView.SelectedItems.Count <= 0)
-            {
-                return;
-            }
-
-            ToolStripMenuItem menu = (ToolStripMenuItem)sender;
-            string extension = (string)menu.Tag;
-
-            ImageFormat format;
-            switch (extension)
-            {
-                case ".tiff":
-                    format = ImageFormat.Tiff;
-                    break;
-                case ".png":
-                    format = ImageFormat.Png;
-                    break;
-                case ".jpg":
-                    format = ImageFormat.Jpeg;
-                    break;
-                default:
-                    format = ImageFormat.Bmp;
-                    break;
-            }
-
-            int frameIndex = (int)FramesListView.SelectedItems[0].Tag;
-            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
-
-            if (edit == null || edit.Frames == null || frameIndex >= edit.Frames.Count)
-            {
-                return;
-            }
-
-            try
-            {
-                string path = Options.OutputPath;
-                FrameEdit frame = edit.Frames[frameIndex];
-
-                // Generate filename: anim{fileType}_{body}_{action}_{direction}_{frameIndex}{extension}
-                string filename = string.Format("anim{5}_{0}_{1}_{2}_{3}{4}", 
-                    _currentBody, _currentAction, _currentDir, frameIndex, extension, _fileType);
-                string file = Path.Combine(path, filename);
-
-                // Create a bitmap from the frame
-                Bitmap bitmap = new Bitmap(frame.Width, frame.Height, PixelFormat.Format16bppArgb1555);
-                BitmapData bmpData = bitmap.LockBits(new Rectangle(0, 0, frame.Width, frame.Height), 
-                    ImageLockMode.WriteOnly, PixelFormat.Format16bppArgb1555);
-
-                unsafe
-                {
-                    ushort* line = (ushort*)bmpData.Scan0;
-                    int delta = bmpData.Stride >> 1;
-
-                    // Initialize with transparent
-                    for (int y = 0; y < frame.Height; y++)
-                    {
-                        ushort* cur = line;
-                        for (int x = 0; x < frame.Width; x++)
-                        {
-                            *cur = 0;
-                            cur++;
-                        }
-                        line += delta;
-                    }
-
-                    // Draw the frame data
-                    if (frame.RawData != null)
-                    {
-                        int xBase = frame.Center.X - 0x200;
-                        int yBase = frame.Center.Y + frame.Height - 0x200;
-
-                        foreach (var raw in frame.RawData)
-                        {
-                            int yPos = yBase + raw.offsetY;
-
-                            if (yPos < 0 || yPos >= frame.Height || raw.data == null)
-                                continue;
-
-                            int xStart = xBase + raw.offsetX;
-                            line = (ushort*)bmpData.Scan0 + (yPos * delta);
-
-                            for (int i = 0; i < raw.run && i < raw.data.Length; i++)
-                            {
-                                int xPos = xStart + i;
-                                if (xPos >= 0 && xPos < frame.Width)
-                                {
-                                    byte palIdx = raw.data[i];
-                                    if (palIdx < edit.Palette.Length)
-                                    {
-                                        line[xPos] = edit.Palette[palIdx];
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                bitmap.UnlockBits(bmpData);
-                bitmap.Save(file, format);
-                bitmap.Dispose();
-
-                FileSavedDialog.Show(FindForm(), path, $"Frame exported successfully to {filename}");
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(FindForm(), $"Error exporting frame: {ex.Message}",
-                    "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        }
 
         private void OnClickReplace(object sender, EventArgs e)
         {
@@ -1792,11 +1468,9 @@ namespace UoFiddler.Controls.Forms
                     dialog.Title = "Choose image file to add";
                     dialog.CheckFileExists = true;
                     dialog.Filter = "Gif files (*.gif;)|*.gif; |Bitmap files (*.bmp;)|*.bmp; |Tiff files (*.tif;*.tiff)|*.tif;*.tiff; |Png files (*.png;)|*.png; |Jpeg files (*.jpeg;*.jpg;)|*.jpeg;*.jpg;";
-                    dialog.FilterIndex = _lastAddFilterIndex;
 
                     if (dialog.ShowDialog() == DialogResult.OK)
                     {
-                        _lastAddFilterIndex = dialog.FilterIndex;
                         FramesListView.BeginUpdate();
                         try
                         {
@@ -1857,8 +1531,8 @@ namespace UoFiddler.Controls.Forms
                                         TreeNode node = GetNode(_currentBody);
                                         if (node != null)
                                         {
-                                            node.ForeColor = Color.Empty;
-                                            node.Nodes[_currentAction].ForeColor = Color.Empty;
+                                            node.ForeColor = Color.Black;
+                                            node.Nodes[_currentAction].ForeColor = Color.Black;
                                         }
 
                                         int i = edit.Frames.Count - 1;
@@ -1920,8 +1594,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -1951,6 +1625,270 @@ namespace UoFiddler.Controls.Forms
                     ProgressBar.Invalidate();
                 }
             }
+        }
+
+        private void OnClickExportFrameBmp(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Bmp);
+        }
+
+        private void OnClickExportFrameTiff(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Tiff);
+        }
+
+        private void OnClickExportFrameJpg(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Jpeg);
+        }
+
+        private void OnClickExportFramePng(object sender, EventArgs e)
+        {
+            ExportFrame(ImageFormat.Png);
+        }
+
+        private void ExportFrame(ImageFormat imageFormat)
+        {
+            if (FramesListView.SelectedItems.Count < 1)
+            {
+                return;
+            }
+
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+            if (currentBits == null || currentBits.Length == 0)
+            {
+                return;
+            }
+
+            int frameIndex = (int)FramesListView.SelectedItems[0].Tag;
+            Bitmap bit = currentBits[frameIndex];
+
+            if (bit == null)
+            {
+                return;
+            }
+
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+            string fileName = Path.Combine(Options.OutputPath, $"Frame_{_currentBody}_{_currentAction}_{_currentDir}_{frameIndex}");
+
+            using (Bitmap newBitmap = new Bitmap(bit.Width, bit.Height))
+            {
+                using (Graphics newGraph = Graphics.FromImage(newBitmap))
+                {
+                    newGraph.FillRectangle(Brushes.White, 0, 0, newBitmap.Width, newBitmap.Height);
+                    newGraph.DrawImage(bit, new Point(0, 0));
+                    newGraph.Save();
+                }
+
+                newBitmap.Save($"{fileName}.{fileExtension}", imageFormat);
+            }
+
+            MessageBox.Show($"Frame saved to '{fileName}.{fileExtension}'", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void OnClickExportAnimationAsBmp(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Bmp);
+        }
+
+        private void OnClickExportAnimationAsTiff(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Tiff);
+        }
+
+        private void OnClickExportAnimationAsJpg(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Jpeg);
+        }
+
+        private void OnClickExportAnimationAsPng(object sender, EventArgs e)
+        {
+            ExportAnimationFrames(ImageFormat.Png);
+        }
+
+        private void ExportAnimationFrames(ImageFormat imageFormat)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+            if (currentBits == null || currentBits.Length == 0)
+            {
+                return;
+            }
+
+            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
+            string fileName = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}");
+
+            for (int i = 0; i < currentBits.Length; i++)
+            {
+                if (currentBits[i] == null)
+                    continue;
+
+                using (Bitmap newBitmap = new Bitmap(currentBits[i].Width, currentBits[i].Height))
+                {
+                    using (Graphics newGraph = Graphics.FromImage(newBitmap))
+                    {
+                        newGraph.FillRectangle(Brushes.White, 0, 0, newBitmap.Width, newBitmap.Height);
+                        newGraph.DrawImage(currentBits[i], new Point(0, 0));
+                        newGraph.Save();
+                    }
+
+                    newBitmap.Save($"{fileName}-{i}.{fileExtension}", imageFormat);
+                }
+            }
+
+            MessageBox.Show($"Animation frames saved to '{fileName}-X.{fileExtension}'", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void OnClickExportAnimationAsGifThisDirection(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: false, allDirections: false);
+        }
+
+        private void OnClickExportAnimationAsGifAllDirections(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: false, allDirections: true);
+        }
+
+        private void OnClickExportAnimationAsGifLoopingThisDirection(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: true, allDirections: false);
+        }
+
+        private void OnClickExportAnimationAsGifLoopingAllDirections(object sender, EventArgs e)
+        {
+            ExportAnimationAsGif(looping: true, allDirections: true);
+        }
+
+        private void ExportAnimationAsGif(bool looping, bool allDirections)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            if (allDirections)
+            {
+                ExportAnimationAsGifAllDirections(looping);
+            }
+            else
+            {
+                ExportAnimationAsGifThisDirection(looping);
+            }
+        }
+
+        private void ExportAnimationAsGifThisDirection(bool looping)
+        {
+            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
+            if (edit == null)
+            {
+                return;
+            }
+
+            Bitmap[] currentBits = edit.GetFrames();
+            if (currentBits == null || currentBits.Length == 0 || edit.Frames == null || edit.Frames.Count == 0)
+            {
+                return;
+            }
+
+            var animFrames = new List<AnimatedFrame>();
+            for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
+            {
+                if (currentBits[i] != null)
+                {
+                    animFrames.Add(new AnimatedFrame(currentBits[i], edit.Frames[i].Center));
+                }
+            }
+
+            if (animFrames.Count == 0)
+            {
+                return;
+            }
+
+            var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_{_currentDir}.gif");
+
+            animFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
+            MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+        }
+
+        private void ExportAnimationAsGifAllDirections(bool looping)
+        {
+            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
+            {
+                return;
+            }
+
+            var allFrames = new List<AnimatedFrame>();
+
+            // Collect frames in circular order: 0, 1, 2, 3, 4, 3 reversed, 2 reversed, 1 reversed
+            // This creates a full 360-degree rotation effect when played
+            int[] directionOrder = { 0, 1, 2, 3, 4, 3, 2, 1 };
+            bool[] mirrorOrder = { false, false, false, false, false, true, true, true };
+
+            for (int orderIndex = 0; orderIndex < directionOrder.Length; orderIndex++)
+            {
+                int dir = directionOrder[orderIndex];
+                bool mirror = mirrorOrder[orderIndex];
+
+                AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, dir);
+                if (edit != null)
+                {
+                    Bitmap[] currentBits = edit.GetFrames();
+                    if (currentBits != null && edit.Frames != null)
+                    {
+                        for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
+                        {
+                            if (currentBits[i] != null)
+                            {
+                                if (mirror)
+                                {
+                                    var mirroredBitmap = new Bitmap(currentBits[i].Width, currentBits[i].Height);
+                                    using (Graphics g = Graphics.FromImage(mirroredBitmap))
+                                    {
+                                        g.ScaleTransform(-1, 1);
+                                        g.TranslateTransform(-currentBits[i].Width, 0);
+                                        g.DrawImage(currentBits[i], 0, 0);
+                                    }
+                                    allFrames.Add(new AnimatedFrame(mirroredBitmap, edit.Frames[i].Center));
+                                }
+                                else
+                                {
+                                    allFrames.Add(new AnimatedFrame(currentBits[i], edit.Frames[i].Center));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (allFrames.Count == 0)
+            {
+                return;
+            }
+
+            var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_AllDir.gif");
+
+            allFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
+            MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
+                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
         }
 
         private void OnClickExtractPalette(object sender, EventArgs e)
@@ -2068,18 +2006,14 @@ namespace UoFiddler.Controls.Forms
                 }
 
                 int animLength = Animations.GetAnimLength(_currentBody, _fileType);
-                // .vd file format: animType 0 = 22-action (monster), 1 = 13-action (animal),
-                // 2 = 35-action (human). Other lengths can't be represented; reject.
                 int currentType;
-                switch (animLength)
+                if (animLength == 22)
                 {
-                    case 22: currentType = 0; break;
-                    case 13: currentType = 1; break;
-                    case 35: currentType = 2; break;
-                    default:
-                        MessageBox.Show($"Body action length {animLength} cannot be imported as .vd palette.",
-                            "Import", MessageBoxButtons.OK, MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
-                        return;
+                    currentType = 0;
+                }
+                else
+                {
+                    currentType = animLength == 13 ? 1 : 2;
                 }
 
                 using (FileStream fs = new FileStream(dialog.FileName, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -2113,15 +2047,15 @@ namespace UoFiddler.Controls.Forms
                     {
                         if (AnimationEdit.IsActionDefined(_fileType, _currentBody, j))
                         {
-                            node.Nodes[j].ForeColor = Color.Empty;
+                            node.Nodes[j].ForeColor = Color.Black;
                             valid = true;
                         }
                         else
                         {
-                            node.Nodes[j].ForeColor = _invalidColor;
+                            node.Nodes[j].ForeColor = Color.Red;
                         }
                     }
-                    node.ForeColor = valid ? Color.Empty : _invalidColor;
+                    node.ForeColor = valid ? Color.Black : Color.Red;
                 }
 
                 Options.ChangedUltimaClass["Animations"] = true;
@@ -2139,27 +2073,15 @@ namespace UoFiddler.Controls.Forms
                 return;
             }
 
-            string path = Options.OutputPath;
-            string fileName = Path.Combine(path, $"anim{_fileType}_{Utils.FormatExportId(_currentBody)}.vd");
-            AnimationEdit.ExportToVD(_fileType, _currentBody, fileName);
-
-            FileSavedDialog.Show(FindForm(), Options.OutputPath, "Animation saved successfully.");
-        }
-        private void OnClickExportToVDRemap(object sender, EventArgs e)
-        {
-            if (_fileType == 0)
-            {
-                return;
-            }
-
             using (SaveFileDialog dialog = new SaveFileDialog())
             {
-                dialog.Title = "Export to remapped .vd";
+                dialog.Title = "Export to .vd";
                 dialog.InitialDirectory = Options.OutputPath;
                 dialog.Filter = "vd files (*.vd)|*.vd";
-                dialog.FileName = $"anim{_fileType}_{Utils.FormatExportId(_currentBody)}_remapped.vd";
+                dialog.FileName = $"anim{_fileType}_{_currentBody}.vd";
 
-                if (dialog.ShowDialog(FindForm()) != DialogResult.OK)
+                // Build a simple option dialog embedded in the SaveFileDialog's owner sequence
+                if (dialog.ShowDialog() != DialogResult.OK)
                 {
                     return;
                 }
@@ -2176,7 +2098,11 @@ namespace UoFiddler.Controls.Forms
                     int animLength = Animations.GetAnimLength(_currentBody, _fileType);
                     // Determine default type from animation length (same logic used elsewhere)
                     int defaultType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2; // 0=High,1=Low,2=People
-                    int sourceType = defaultType;
+                    // enlarge dialog when source animation is High (more rows)
+                    if (defaultType == 0)
+                        cfg.ClientSize = new System.Drawing.Size(420, 760);
+                    else
+                        cfg.ClientSize = new System.Drawing.Size(390, 450);
 
                     var lblType = new Label { Left = 8, Top = 12, Width = 120, Text = "Export VD Type:" };
                     // Use radio buttons for H / L / P selection
@@ -2223,54 +2149,64 @@ namespace UoFiddler.Controls.Forms
                     // people dropdown labels (used to label source frames when source animation is People)
                     string[] peopledropdownLabels = new string[]
                     {
-                        "00 (Walk)", "01 (Run)", "02 (Idle)", "03 (Eat)", "04 (Alert)", "05 (Attack1)",
-                        "06 (Attack2)", "07 (Idle2)", "08 (GetHit)", "09 (Die1)", "10 (Die2)", "11 (Fidget)", "12 (LieDown)",
-                        "13 (Fly)", "14 (Takeoff)", "15 (Unknown)", "16 (Unknown)", "17 (Unknown)", "18 (Unknown)",
-                        "19 (Unknown)", "20 (Unknown)", "21 (Unknown)", "22 (Unknown)", "23 (Unknown)", "24 (Unknown)",
-                        "25 (Unknown)", "26 (Unknown)", "27 (Unknown)", "28 (Unknown)", "29 (Unknown)", "30 (Unknown)",
-                        "31 (Unknown)", "32 (Unknown)", "33 (Unknown)", "34 (Unknown)"
+                        "00 Walk", "01 WalkStaff", "02 Run", "03 RunStaff", "04 Idle1", "05 Idle2", "06 Fidget_Yawn_Stretch",
+                        "07 CombatIdle1Hand01", "08 CombatIdle1Hand02", "09 AttackSlash1Hand", "10 AttackPierce1Hand", "11 AttackBash1Hand",
+                        "12 AttackBash2Hand", "13 AttackSlash2Hand", "14 AttackPierce2Hand", "15 CombatAdvance1Hand", "16 Spell1", "17 Spell2",
+                        "18 AttackBow", "19 AttackCrossbow", "20 GetHit Fr Hi", "21 DieForward", "22 DieBackward", "23 MountWalk",
+                        "24 MountRun", "25 MountIdle", "26 MountAttack1HandSlash", "27 MountAttackBow", "28 MountAttackCrossbow", "29 MountAttack2HandSlash",
+                        "30 BlockShield", "31 PunchJab", "32 BowLesser", "33 SaluateArmed1Hand", "34 Eat"
                     };
 
                     // also used for target labels for People mapping panel
                     string[] peopleLabels = new string[]
                     {
-                        "00 Walk", "01 Run", "02 Idle", "03 Eat", "04 Alert", "05 Attack1",
-                        "06 Attack2", "07 Idle2", "08 GetHit", "09 Die1", "10 Die2", "11 Fidget", "12 LieDown",
-                        "13 Fly", "14 Takeoff", "15 Unknown", "16 Unknown", "17 Unknown", "18 Unknown",
-                        "19 Unknown", "20 Unknown", "21 Unknown", "22 Unknown", "23 Unknown", "24 Unknown",
-                        "25 Unknown", "26 Unknown", "27 Unknown", "28 Unknown", "29 Unknown", "30 Unknown",
-                        "31 Unknown", "32 Unknown", "33 Unknown", "34 Unknown"
+                        "00 Walk", "01 WalkStaff", "02 Run", "03 RunStaff", "04 Idle1", "05 Idle2", "06 Fidget_Yawn_Stretch",
+                        "07 CombatIdle1Hand01", "08 CombatIdle1Hand02", "09 AttackSlash1Hand", "10 AttackPierce1Hand", "11 AttackBash1Hand",
+                        "12 AttackBash2Hand", "13 AttackSlash2Hand", "14 AttackPierce2Hand", "15 CombatAdvance1Hand", "16 Spell1", "17 Spell2",
+                        "18 AttackBow", "19 AttackCrossbow", "20 GetHit Fr Hi", "21 DieForward", "22 DieBackward", "23 MountWalk",
+                        "24 MountRun", "25 MountIdle", "26 MountAttack1HandSlash", "27 MountAttackBow", "28 MountAttackCrossbow", "29 MountAttack2HandSlash",
+                        "30 BlockShield", "31 PunchJab", "32 BowLesser", "33 SaluateArmed1Hand", "34 Eat"
                     };
 
+                    // Determine source animation type from animLength: 0=High,1=Low,2=People
+                    int sourceType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
+
+                    // Remapping UI: prepare map lists for each target type
                     var mapHigh = new System.Collections.Generic.List<ComboBox>();
                     var mapLow = new System.Collections.Generic.List<ComboBox>();
                     var mapPeople = new System.Collections.Generic.List<ComboBox>();
 
-                    int panelHeightHigh = 22 * 28 + 10;
-                    int panelHeightLow = 13 * 28 + 10;
-                    int panelHeightPeople = 35 * 28 + 10;
-                    int panelWidthHigh = 600;
-                    int panelWidthLow = 600;
-                    int panelWidthPeople = 600;
-                    int labelWidthHigh = 100;
-                    int labelWidthLow = 100;
-                    int labelWidthPeople = 100;
-                    int cbWidthPeople = 0;
+                    // Panel sizes per export target: fixed values
+                    const int panelHeightHigh = 621;
+                    const int panelHeightLow = 370;
+                    const int panelHeightPeople = 621;
+                    const int panelWidthHigh = 360;
+                    const int panelWidthLow = 360;
+                    // wider panel for People so labels and comboboxes don't require horizontal scroll
+                    const int panelWidthPeople = 570;
+                    // preferred combobox width for People (narrower than full panel)
+                    const int cbWidthPeople = 300;
+                    const int labelWidthHigh = 110;
+                    const int labelWidthLow = 110;
+                    const int labelWidthPeople = 240;
 
-                    Func<System.Collections.Generic.List<ComboBox>, string[], int, int, int, int, int, Panel> BuildMapPanel = 
-                        (mapList, targetLabels, srcType, panelHeight, panelWidth, labelWidth, cbWidth) =>
+                    // helper to build mapping panel
+                    Panel BuildMapPanel(System.Collections.Generic.List<ComboBox> mapList, string[] targetLabels = null, int srcType = -1, int panelHeight = 370, int panelWidth = 360, int lblWidth = 110, int cbWidth = -1)
                     {
-                        Panel pnl = new Panel { AutoScroll = true };
-                        int y = 5;
-                        int count = targetLabels != null ? targetLabels.Length : 0;
-                        int lblLeft = 8;
-                        int cbLeft = lblLeft + labelWidth + 5;
+                        var pnl = new Panel { AutoScroll = true };
+                        // fixed layout values
+                        int y = 4;
+                        int count = targetLabels != null ? targetLabels.Length : animLength;
+                        int lblLeft = 4;
+                        // lblWidth parameter allows wider labels for People
+                        // cbLeft and cbWidth adapt to provided panelWidth
+                        int cbLeft = lblLeft + lblWidth + 8;
                         int cbWidthLocal = cbWidth > 0 ? cbWidth : panelWidth - cbLeft - 8;
 
                         for (int tgt = 0; tgt < count; tgt++)
                         {
                             string lblText = targetLabels != null ? targetLabels[tgt] : tgt.ToString();
-                            var lbl = new Label { Left = lblLeft, Top = y + 6, Width = labelWidth, Text = lblText, AutoSize = false };
+                            var lbl = new Label { Left = lblLeft, Top = y + 6, Width = lblWidth, Text = lblText, AutoSize = false };
                             var cb = new ComboBox { Left = cbLeft, Top = y + 2, Width = cbWidthLocal, DropDownStyle = ComboBoxStyle.DropDownList };
                             // Only add valid source actions to the dropdown
                             var items = new System.Collections.Generic.List<MapItem>();
@@ -2280,8 +2216,8 @@ namespace UoFiddler.Controls.Forms
                                 if (!AnimationEdit.IsActionDefined(_fileType, _currentBody, src))
                                     continue;
 
-                                // Determine base label from the SOURCE animation type (animLength of the currently loaded animation)
-                                int effectiveSourceType = Animations.GetAnimLength(_currentBody, _fileType) == 22 ? 0 : Animations.GetAnimLength(_currentBody, _fileType) == 13 ? 1 : 2;
+                                // Determine base label from the SOURCE animation type (from srcType parameter)
+                                int effectiveSourceType = srcType >= 0 ? srcType : (Animations.GetAnimLength(_currentBody, _fileType) == 22 ? 0 : Animations.GetAnimLength(_currentBody, _fileType) == 13 ? 1 : 2);
                                 string baseLabel;
                                 if (effectiveSourceType == 1 && src < lowdropdownLabels.Length)
                                 {
@@ -2315,12 +2251,12 @@ namespace UoFiddler.Controls.Forms
                         // set a reasonable size; caller will position panel
                         pnl.Size = new System.Drawing.Size(panelWidth, panelHeight);
                         return pnl;
-                    };
+                    }
 
                     // Panels will be created once below and shown/hidden based on selection
 
-                    var panelHigh = BuildMapPanel(mapHigh, highLabels, sourceType, panelHeightHigh, panelWidthHigh, labelWidthHigh, 0);
-                    var panelLow = BuildMapPanel(mapLow, lowLabels, sourceType, panelHeightLow, panelWidthLow, labelWidthLow, 0);
+                    var panelHigh = BuildMapPanel(mapHigh, highLabels, sourceType, panelHeightHigh, panelWidthHigh, labelWidthHigh);
+                    var panelLow = BuildMapPanel(mapLow, lowLabels, sourceType, panelHeightLow, panelWidthLow, labelWidthLow);
                     var panelPeople = BuildMapPanel(mapPeople, peopleLabels, sourceType, panelHeightPeople, panelWidthPeople, labelWidthPeople, cbWidthPeople);
 
                     // position panels below radio buttons
@@ -2368,10 +2304,11 @@ namespace UoFiddler.Controls.Forms
                     cfg.AcceptButton = btnOk;
                     cfg.CancelButton = btnCancel;
 
-                    if (cfg.ShowDialog(FindForm()) != DialogResult.OK)
+                    if (cfg.ShowDialog(this) != DialogResult.OK)
                     {
                         return;
                     }
+
 
                     int selectedType = rbHigh.Checked ? 0 : rbLow.Checked ? 1 : 2; // 0=High,1=Low,2=People
 
@@ -2423,21 +2360,20 @@ namespace UoFiddler.Controls.Forms
 
                     if (selectedType >= 0)
                     {
-                        try
-                        {
-                            AnimationEdit.ExportToVDRemap(_fileType, _currentBody, filePath, selectedType, targetToSourceMap);
-                            FileSavedDialog.Show(FindForm(), Options.OutputPath, "Animation saved successfully.");
-                        }
-                        catch (Exception ex)
-                        {
-                            MessageBox.Show(FindForm(), $"Error exporting animation: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                        }
+                        AnimationEdit.ExportToVDRemap(_fileType, _currentBody, filePath, selectedType, targetToSourceMap);
                     }
+                    else
+                    {
+                        AnimationEdit.ExportToVDRemap(_fileType, _currentBody, filePath, -1, targetToSourceMap);
+                    }
+
+                    MessageBox.Show($"Animation saved to {Path.GetDirectoryName(filePath)}", "Export", MessageBoxButtons.OK,
+                        MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
                 }
             }
         }
 
-        private void OnClickExportToVDResized(object sender, EventArgs e)
+        private void OnClickExportToVDScaled(object sender, EventArgs e)
         {
             if (_fileType == 0)
             {
@@ -2447,339 +2383,37 @@ namespace UoFiddler.Controls.Forms
             // Show resize dialog
             using (var resizeDialog = new AnimationExportResizeDialog())
             {
-                if (resizeDialog.ShowDialog(FindForm()) != DialogResult.OK)
-                {
-                    return;
-                }
-
-                int scalePercentage = resizeDialog.ResizePercentage;
-                float scale = scalePercentage / 100.0f;
-
-                using (SaveFileDialog dialog = new SaveFileDialog())
-                {
-                    dialog.Title = $"Export to resized .vd ({scalePercentage}%)";
-                    dialog.InitialDirectory = Options.OutputPath;
-                    dialog.Filter = "vd files (*.vd)|*.vd";
-                    dialog.FileName = $"anim{_fileType}_{Utils.FormatExportId(_currentBody)}_resized.vd";
-
-                    if (dialog.ShowDialog(FindForm()) != DialogResult.OK)
-                    {
-                        return;
-                    }
-
-                    try
-                    {
-                        AnimationEdit.ExportToVDScaled(_fileType, _currentBody, dialog.FileName, -1, scale);
-                        FileSavedDialog.Show(FindForm(), Options.OutputPath, "Animation saved successfully.");
-                    }
-                    catch (Exception ex)
-                    {
-                        MessageBox.Show(FindForm(), $"Error exporting animation: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                    }
-                }
-            }
-        }
-
-        private void OnClickExportToVDResizedRemapped(object sender, EventArgs e)
-        {
-            if (_fileType == 0)
-            {
-                return;
-            }
-
-            // Show resize dialog
-            using (var resizeDialog = new AnimationExportResizeDialog())
-            {
-                if (resizeDialog.ShowDialog(FindForm()) != DialogResult.OK)
+                if (resizeDialog.ShowDialog() != DialogResult.OK)
                 {
                     return;
                 }
 
                 int scalePercentage = resizeDialog.ResizePercentage;
 
+                // Standard scaled export without remapping
                 using (SaveFileDialog dialog = new SaveFileDialog())
                 {
-                    dialog.Title = $"Export to .vd (Scaled {scalePercentage}%)";
+                    dialog.Title = $"Export to .vd (Resized to {scalePercentage}%)";
                     dialog.InitialDirectory = Options.OutputPath;
                     dialog.Filter = "vd files (*.vd)|*.vd";
-                    dialog.FileName = $"anim{_fileType}_{_currentBody}_scaled.vd";
+                    dialog.FileName = $"anim{_fileType}_{_currentBody}_{scalePercentage}pct.vd";
 
                     if (dialog.ShowDialog() != DialogResult.OK)
                     {
                         return;
                     }
 
-                    // Create small configuration dialog for VD type and frame selection
-                    using (Form cfg = new Form())
+                    try
                     {
-                        cfg.StartPosition = FormStartPosition.CenterParent;
-                        cfg.FormBorderStyle = FormBorderStyle.FixedDialog;
-                        cfg.MinimizeBox = false;
-                        cfg.MaximizeBox = false;
-                        cfg.ShowInTaskbar = false;
-                        cfg.Text = "Export VD Remapper (Scaled)";
-                        int animLength = Animations.GetAnimLength(_currentBody, _fileType);
-                        // Determine default type from animation length (same logic used elsewhere)
-                        int defaultType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2; // 0=High,1=Low,2=People
-                        int sourceType = defaultType;
-
-                        var lblType = new Label { Left = 8, Top = 12, Width = 120, Text = "Export VD Type:" };
-                        // Use radio buttons for H / L / P selection
-                        var rbHigh = new RadioButton { Left = 130, Top = 10, Width = 80, Text = "High (H)" };
-                        var rbLow = new RadioButton { Left = 210, Top = 10, Width = 80, Text = "Low (L)" };
-                        var rbPeople = new RadioButton { Left = 290, Top = 10, Width = 80, Text = "People (P)" };
-
-                        rbHigh.Checked = defaultType == 0;
-                        rbLow.Checked = defaultType == 1;
-                        rbPeople.Checked = defaultType == 2;
-
-                        // high dropdown labels (used to label source frames when source animation is High)
-                        string[] highdropdownLabels = new string[]
-                        {
-                            "00 (Walk)", "01 (Idle1)", "02 (Die1)", "03 (Die2)", "04 (Attack1)", "05 (Attack2)",
-                            "06 (Attack3)", "07 (AttackBow)", "08 (AttackCrossbow)", "09 (AttackThrow)", "10 (GetHit)", "11 (Pillage)",
-                            "12 (Stomp)", "13 (Cast2)", "14 (Cast3)", "15 (BlockRight)", "16 (BlockLeft)", "17 (Idle2)",
-                            "18 (Fidget)", "19 (Fly)", "20 (Takeoff)", "21 (GetHitInAir)"
-                        };
-
-                        // also used for target labels for High mapping panel
-                        string[] highLabels = new string[]
-                        {
-                            "00 Walk", "01 Idle1", "02 Die1", "03 Die2", "04 Attack1", "05 Attack2",
-                            "06 Attack3", "07 AttackBow", "08 AttackCrossbow", "09 AttackThrow", "10 GetHit", "11 Pillage",
-                            "12 Stomp", "13 Cast2", "14 Cast3", "15 BlockRight", "16 BlockLeft", "17 Idle2",
-                            "18 Fidget", "19 Fly", "20 Takeoff", "21 GetHitInAir"
-                        };
-
-                        // low dropdown labels (used to label source frames when source animation is Low)
-                        string[] lowdropdownLabels = new string[]
-                        {
-                            "00 (Walk)", "01 (Run)", "02 (Idle)", "03 (Eat)", "04 (Alert)", "05 (Attack1)",
-                            "06 (Attack2)", "07 (GetHit)", "08 (Die1)", "09 (Idle)", "10 (Fidget)", "11 (LieDown)", "12 (Die2)"
-                        };
-
-                        // also used for target labels for Low mapping panel
-                        string[] lowLabels = new string[]
-                        {
-                            "00 Walk", "01 Run", "02 Idle", "03 Eat", "04 Alert", "05 Attack1",
-                            "06 Attack2", "07 GetHit", "08 Die1", "09 Idle", "10 Fidget", "11 LieDown", "12 Die2"
-                        };
-
-                        // people dropdown labels (used to label source frames when source animation is People)
-                        string[] peopledropdownLabels = new string[]
-                        {
-                            "00 (Walk)", "01 (Run)", "02 (Idle)", "03 (Eat)", "04 (Alert)", "05 (Attack1)",
-                            "06 (Attack2)", "07 (Idle2)", "08 (GetHit)", "09 (Die1)", "10 (Die2)", "11 (Fidget)", "12 (LieDown)",
-                            "13 (Fly)", "14 (Takeoff)", "15 (Unknown)", "16 (Unknown)", "17 (Unknown)", "18 (Unknown)",
-                            "19 (Unknown)", "20 (Unknown)", "21 (Unknown)", "22 (Unknown)", "23 (Unknown)", "24 (Unknown)",
-                            "25 (Unknown)", "26 (Unknown)", "27 (Unknown)", "28 (Unknown)", "29 (Unknown)", "30 (Unknown)",
-                            "31 (Unknown)", "32 (Unknown)", "33 (Unknown)", "34 (Unknown)"
-                        };
-
-                        // also used for target labels for People mapping panel
-                        string[] peopleLabels = new string[]
-                        {
-                            "00 Walk", "01 Run", "02 Idle", "03 Eat", "04 Alert", "05 Attack1",
-                            "06 Attack2", "07 Idle2", "08 GetHit", "09 Die1", "10 Die2", "11 Fidget", "12 LieDown",
-                            "13 Fly", "14 Takeoff", "15 Unknown", "16 Unknown", "17 Unknown", "18 Unknown",
-                            "19 Unknown", "20 Unknown", "21 Unknown", "22 Unknown", "23 Unknown", "24 Unknown",
-                            "25 Unknown", "26 Unknown", "27 Unknown", "28 Unknown", "29 Unknown", "30 Unknown",
-                            "31 Unknown", "32 Unknown", "33 Unknown", "34 Unknown"
-                        };
-
-                        var mapHigh = new System.Collections.Generic.List<ComboBox>();
-                        var mapLow = new System.Collections.Generic.List<ComboBox>();
-                        var mapPeople = new System.Collections.Generic.List<ComboBox>();
-
-                        int panelHeightHigh = 22 * 28 + 10;
-                        int panelHeightLow = 13 * 28 + 10;
-                        int panelHeightPeople = 35 * 28 + 10;
-                        int panelWidthHigh = 600;
-                        int panelWidthLow = 600;
-                        int panelWidthPeople = 600;
-                        int labelWidthHigh = 100;
-                        int labelWidthLow = 100;
-                        int labelWidthPeople = 100;
-                        int cbWidthPeople = 0;
-
-                        Func<System.Collections.Generic.List<ComboBox>, string[], int, int, int, int, int, Panel> BuildMapPanel = 
-                            (mapList, targetLabels, srcType, panelHeight, panelWidth, labelWidth, cbWidth) =>
-                        {
-                            Panel pnl = new Panel { AutoScroll = true };
-                            int y = 5;
-                            int count = targetLabels != null ? targetLabels.Length : 0;
-                            int lblLeft = 8;
-                            int cbLeft = lblLeft + labelWidth + 5;
-                            int cbWidthLocal = cbWidth > 0 ? cbWidth : panelWidth - cbLeft - 8;
-
-                            for (int tgt = 0; tgt < count; tgt++)
-                            {
-                                string lblText = targetLabels != null ? targetLabels[tgt] : tgt.ToString();
-                                var lbl = new Label { Left = lblLeft, Top = y + 6, Width = labelWidth, Text = lblText, AutoSize = false };
-                                var cb = new ComboBox { Left = cbLeft, Top = y + 2, Width = cbWidthLocal, DropDownStyle = ComboBoxStyle.DropDownList };
-                                // Only add valid source actions to the dropdown
-                                var items = new System.Collections.Generic.List<MapItem>();
-                                items.Add(new MapItem(-1, "None"));
-                                for (int src = 0; src < animLength; src++)
-                                {
-                                    if (!AnimationEdit.IsActionDefined(_fileType, _currentBody, src))
-                                        continue;
-
-                                    // Determine base label from the SOURCE animation type (animLength of the currently loaded animation)
-                                    int effectiveSourceType = Animations.GetAnimLength(_currentBody, _fileType) == 22 ? 0 : Animations.GetAnimLength(_currentBody, _fileType) == 13 ? 1 : 2;
-                                    string baseLabel;
-                                    if (effectiveSourceType == 1 && src < lowdropdownLabels.Length)
-                                    {
-                                        baseLabel = lowdropdownLabels[src];
-                                    }
-                                    else if (effectiveSourceType == 0 && src < highdropdownLabels.Length)
-                                    {
-                                        baseLabel = highdropdownLabels[src];
-                                    }
-                                    else if (effectiveSourceType == 2 && src < peopledropdownLabels.Length)
-                                    {
-                                        baseLabel = peopledropdownLabels[src];
-                                    }
-                                    else
-                                    {
-                                        baseLabel = src.ToString();
-                                    }
-
-                                    items.Add(new MapItem(src, baseLabel));
-                                }
-
-                                foreach (var it in items) cb.Items.Add(it);
-                                // default mapping: identity if defined, otherwise None
-                                MapItem selItem = items.FirstOrDefault(x => x.Index == tgt);
-                                if (selItem != null) cb.SelectedItem = selItem; else cb.SelectedIndex = 0;
-                                pnl.Controls.Add(lbl);
-                                pnl.Controls.Add(cb);
-                                mapList.Add(cb);
-                                y += 28;
-                            }
-                            // set a reasonable size; caller will position panel
-                            pnl.Size = new System.Drawing.Size(panelWidth, panelHeight);
-                            return pnl;
-                        };
-
-                        // Panels will be created once below and shown/hidden based on selection
-
-                        var panelHigh = BuildMapPanel(mapHigh, highLabels, sourceType, panelHeightHigh, panelWidthHigh, labelWidthHigh, 0);
-                        var panelLow = BuildMapPanel(mapLow, lowLabels, sourceType, panelHeightLow, panelWidthLow, labelWidthLow, 0);
-                        var panelPeople = BuildMapPanel(mapPeople, peopleLabels, sourceType, panelHeightPeople, panelWidthPeople, labelWidthPeople, cbWidthPeople);
-
-                        // position panels below radio buttons
-                        panelHigh.Location = new System.Drawing.Point(8, 40);
-                        panelLow.Location = new System.Drawing.Point(8, 40);
-                        panelPeople.Location = new System.Drawing.Point(8, 40);
-                        panelHigh.Visible = rbHigh.Checked;
-                        panelLow.Visible = rbLow.Checked;
-                        panelPeople.Visible = rbPeople.Checked;
-
-                        // declare buttons so the rbChanged handler can reference them
-                        Button btnOk = null;
-                        Button btnCancel = null;
-
-                        EventHandler rbChanged = (s, ev) =>
-                        {
-                            panelHigh.Visible = rbHigh.Checked;
-                            panelLow.Visible = rbLow.Checked;
-                            panelPeople.Visible = rbPeople.Checked;
-
-                            // adjust dialog size based on selected target panel
-                            int newPanelH = rbHigh.Checked ? panelHeightHigh : rbLow.Checked ? panelHeightLow : panelHeightPeople;
-                            int newPanelW = rbHigh.Checked ? panelWidthHigh : rbLow.Checked ? panelWidthLow : panelWidthPeople;
-                            // keep a small margin around the panel
-                            cfg.ClientSize = new System.Drawing.Size(newPanelW + 60, newPanelH + 120);
-
-                            // reposition OK/Cancel so they stay a fixed distance from bottom
-                            btnOk.Top = cfg.ClientSize.Height - 45;
-                            btnCancel.Top = cfg.ClientSize.Height - 45;
-                        };
-
-                        rbHigh.CheckedChanged += rbChanged;
-                        rbLow.CheckedChanged += rbChanged;
-                        rbPeople.CheckedChanged += rbChanged;
-
-                        // set initial dialog size based on defaultType and panel heights
-                        int initialPanelHeight = defaultType == 0 ? panelHeightHigh : defaultType == 1 ? panelHeightLow : panelHeightPeople;
-                        int initialPanelWidth = defaultType == 0 ? panelWidthHigh : defaultType == 1 ? panelWidthLow : panelWidthPeople;
-                        cfg.ClientSize = new System.Drawing.Size(initialPanelWidth + 60, initialPanelHeight + 120);
-
-                        btnOk = new Button { Text = "OK", Left = 240, Width = 60, Top = cfg.ClientSize.Height - 45, DialogResult = DialogResult.OK };
-                        btnCancel = new Button { Text = "Cancel", Left = 310, Width = 60, Top = cfg.ClientSize.Height - 45, DialogResult = DialogResult.Cancel };
-
-                        cfg.Controls.AddRange(new Control[] { lblType, rbHigh, rbLow, rbPeople, panelHigh, panelLow, panelPeople, btnOk, btnCancel });
-                        cfg.AcceptButton = btnOk;
-                        cfg.CancelButton = btnCancel;
-
-                        if (cfg.ShowDialog(FindForm()) != DialogResult.OK)
-                        {
-                            return;
-                        }
-
-
-                        int selectedType = rbHigh.Checked ? 0 : rbLow.Checked ? 1 : 2; // 0=High,1=Low,2=People
-
-                        // Collect checked actions
-                        int[] actionsToInclude = null;
-                        // Build target->source mapping from the selected tab's ComboBoxes
-                        int[] targetToSourceMap = null;
-                        System.Collections.Generic.List<ComboBox> chosenMap = null;
-                        if (selectedType == 0) chosenMap = mapHigh;
-                        else if (selectedType == 1) chosenMap = mapLow;
-                        else if (selectedType == 2) chosenMap = mapPeople;
-                        else chosenMap = mapHigh;
-
-                        if (chosenMap != null)
-                        {
-                            targetToSourceMap = new int[chosenMap.Count];
-                            for (int t = 0; t < chosenMap.Count; t++)
-                            {
-                                // Be defensive: treat the first entry ("None"), no selection, or any negative index as an empty action
-                                var combo = chosenMap[t];
-                                var selObj = combo.SelectedItem as MapItem;
-                                if (combo.SelectedIndex <= 0 || selObj == null || selObj.Index < 0)
-                                    targetToSourceMap[t] = -1;
-                                else
-                                    targetToSourceMap[t] = selObj.Index;
-                            }
-                        }
-
-                        string filePath = dialog.FileName;
-                        // if exactly one target mapped to a single source, append that to filename
-                        if (targetToSourceMap != null)
-                        {
-                            int single = -1;
-                            for (int i = 0; i < targetToSourceMap.Length; i++)
-                            {
-                                if (targetToSourceMap[i] >= 0)
-                                {
-                                    if (single == -1) single = i; else { single = -2; break; }
-                                }
-                            }
-                            if (single >= 0)
-                            {
-                                string dir = Path.GetDirectoryName(filePath);
-                                string baseName = Path.GetFileNameWithoutExtension(filePath);
-                                string ext = Path.GetExtension(filePath);
-                                filePath = Path.Combine(dir, baseName + $"_t{single}_s{targetToSourceMap[single]}" + ext);
-                            }
-                        }
-
-                        if (selectedType >= 0)
-                        {
-                            float scale = scalePercentage / 100.0f;
-                            try
-                            {
-                                AnimationEdit.ExportToVDRemapScaled(_fileType, _currentBody, filePath, selectedType, targetToSourceMap, scale);
-                                FileSavedDialog.Show(FindForm(), Options.OutputPath, "Animation saved successfully.");
-                            }
-                            catch (Exception ex)
-                            {
-                                MessageBox.Show(FindForm(), $"Error exporting animation: {ex.Message}", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                            }
-                        }
+                        float scale = scalePercentage / 100.0f;
+                        AnimationEdit.ExportToVDScaled(_fileType, _currentBody, dialog.FileName, -1, scale);
+                        MessageBox.Show($"Animation exported to {Path.GetDirectoryName(dialog.FileName)}", "Export", MessageBoxButtons.OK,
+                            MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show($"Error exporting animation: {ex.Message}", "Export Error", MessageBoxButtons.OK,
+                            MessageBoxIcon.Error, MessageBoxDefaultButton.Button1);
                     }
                 }
             }
@@ -3099,435 +2733,6 @@ namespace UoFiddler.Controls.Forms
             }
         }
 
-        private void OnClickExportActionAsBmp(object sender, EventArgs e)
-        {
-            ExportActionFrames(ImageFormat.Bmp);
-        }
-
-        private void OnClickExportActionAsTiff(object sender, EventArgs e)
-        {
-            ExportActionFrames(ImageFormat.Tiff);
-        }
-
-        private void OnClickExportActionAsJpg(object sender, EventArgs e)
-        {
-            ExportActionFrames(ImageFormat.Jpeg);
-        }
-
-        private void OnClickExportActionAsPng(object sender, EventArgs e)
-        {
-            ExportActionFrames(ImageFormat.Png);
-        }
-
-        private void ExportActionFrames(ImageFormat imageFormat)
-        {
-            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
-            {
-                return;
-            }
-
-            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
-            if (edit == null)
-            {
-                return;
-            }
-
-            Bitmap[] currentBits = edit.GetFrames();
-            if (currentBits == null || currentBits.Length == 0)
-            {
-                return;
-            }
-
-            string fileExtension = Utils.GetFileExtensionFor(imageFormat);
-            string fileName = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}");
-
-            for (int i = 0; i < currentBits.Length; i++)
-            {
-                if (currentBits[i] == null)
-                    continue;
-
-                using (Bitmap newBitmap = new Bitmap(currentBits[i].Width, currentBits[i].Height))
-                {
-                    using (Graphics newGraph = Graphics.FromImage(newBitmap))
-                    {
-                        newGraph.FillRectangle(Brushes.White, 0, 0, newBitmap.Width, newBitmap.Height);
-                        newGraph.DrawImage(currentBits[i], new Point(0, 0));
-                        newGraph.Save();
-                    }
-
-                    newBitmap.Save($"{fileName}-{i}.{fileExtension}", imageFormat);
-                }
-            }
-
-            MessageBox.Show($"Animation frames saved to '{fileName}-X.{fileExtension}'", "Saved", MessageBoxButtons.OK,
-                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
-        }
-
-        private void OnClickExportActionAsGifThisDirection(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: false, allDirections: false);
-        }
-
-        private void OnClickExportActionAsGifAllDirections(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: false, allDirections: true);
-        }
-
-        private void OnClickExportActionAsGifLoopingThisDirection(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: true, allDirections: false);
-        }
-
-        private void OnClickExportActionAsGifLoopingAllDirections(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: true, allDirections: true);
-        }
-
-        private void ExportActionAsGif(bool looping, bool allDirections, bool withMount = false)
-        {
-            if (allDirections)
-            {
-                ExportActionAsGifAllDirections(looping, withMount);
-            }
-            else
-            {
-                if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
-                {
-                    return;
-                }
-
-                AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, _currentDir);
-                if (edit == null)
-                {
-                    return;
-                }
-
-                Bitmap[] currentBits = edit.GetFrames();
-                if (currentBits == null || currentBits.Length == 0)
-                {
-                    return;
-                }
-
-                // If with mount, pre-calculate canvas dimensions that work for all frames
-                int canvasWidth = -1, canvasHeight = -1, canvasLeft = -1, canvasTop = -1;
-                if (withMount && _fileType == 2)
-                {
-                    (canvasWidth, canvasHeight, canvasLeft, canvasTop) = CalculateMountCanvasDimensions(_currentDir);
-                }
-
-                var animFrames = new List<AnimatedFrame>();
-
-                for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
-                {
-                    if (currentBits[i] != null)
-                    {
-                        Bitmap frameToAdd = currentBits[i];
-                        Point frameCenter = edit.Frames[i].Center;
-
-                        // If with mount is requested and applicable, overlay the mount
-                        if (withMount && _fileType == 2)
-                        {
-                            (frameToAdd, frameCenter) = OverlayMountOnFrame(currentBits[i], edit.Frames[i].Center, _currentDir, i, canvasWidth, canvasHeight, canvasLeft, canvasTop);
-                        }
-
-                        animFrames.Add(new AnimatedFrame(frameToAdd, frameCenter));
-                    }
-                }
-
-                if (animFrames.Count == 0)
-                {
-                    return;
-                }
-
-                var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_{_currentDir}.gif");
-
-                animFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
-                MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
-                    MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
-            }
-        }
-
-        private void ExportActionAsGifAllDirections(bool looping, bool withMount = false)
-        {
-            if (AnimationListTreeView.SelectedNode == null || AnimationListTreeView.SelectedNode.Parent == null)
-            {
-                return;
-            }
-
-            var allFrames = new List<AnimatedFrame>();
-
-            // If with mount, pre-calculate canvas dimensions that work for all frames/directions
-            Dictionary<int, (int width, int height, int left, int top)> canvasDimsByDir = new();
-            if (withMount && _fileType == 2)
-            {
-                int[] uniqueDirs = { 0, 1, 2, 3, 4 };
-                foreach (int dir in uniqueDirs)
-                {
-                    canvasDimsByDir[dir] = CalculateMountCanvasDimensions(dir);
-                }
-            }
-
-            // Collect frames in circular order: 0, 1, 2, 3, 4, 3 reversed, 2 reversed, 1 reversed
-            // This creates a full 360-degree rotation effect when played
-            int[] directionOrder = { 0, 1, 2, 3, 4, 3, 2, 1 };
-            bool[] mirrorOrder = { false, false, false, false, false, true, true, true };
-
-            for (int orderIndex = 0; orderIndex < directionOrder.Length; orderIndex++)
-            {
-                int dir = directionOrder[orderIndex];
-                bool mirror = mirrorOrder[orderIndex];
-
-                AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, dir);
-                if (edit != null)
-                {
-                    Bitmap[] currentBits = edit.GetFrames();
-                    if (currentBits != null && edit.Frames != null)
-                    {
-                        for (int i = 0; i < edit.Frames.Count && i < currentBits.Length; i++)
-                        {
-                            if (currentBits[i] != null)
-                            {
-                                Bitmap frameToUse = currentBits[i];
-                                Point frameCenter = edit.Frames[i].Center;
-
-                                // If with mount is requested and applicable, overlay the mount
-                                if (withMount && _fileType == 2)
-                                {
-                                    var (w, h, l, t) = canvasDimsByDir[dir];
-                                    (frameToUse, frameCenter) = OverlayMountOnFrame(currentBits[i], edit.Frames[i].Center, dir, i, w, h, l, t);
-                                }
-
-                                if (mirror)
-                                {
-                                    var mirroredBitmap = new Bitmap(frameToUse.Width, frameToUse.Height);
-                                    using (Graphics g = Graphics.FromImage(mirroredBitmap))
-                                    {
-                                        g.ScaleTransform(-1, 1);
-                                        g.TranslateTransform(-frameToUse.Width, 0);
-                                        g.DrawImage(frameToUse, 0, 0);
-                                    }
-                                    allFrames.Add(new AnimatedFrame(mirroredBitmap, frameCenter));
-                                }
-                                else
-                                {
-                                    allFrames.Add(new AnimatedFrame(frameToUse, frameCenter));
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (allFrames.Count == 0)
-            {
-                return;
-            }
-
-            var outputFile = Path.Combine(Options.OutputPath, $"Anim_{_fileType}_{_currentBody}_{_currentAction}_AllDir.gif");
-
-            allFrames.ToGif(outputFile, looping: looping, delay: 150, showFrameBounds: false);
-            MessageBox.Show($"Animation saved to {outputFile}", "Saved", MessageBoxButtons.OK,
-                MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
-        }
-
-        private void OnClickExportActionAsGifWithMountThisDirection(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: false, allDirections: false, withMount: true);
-        }
-
-        private void OnClickExportActionAsGifWithMountAllDirections(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: false, allDirections: true, withMount: true);
-        }
-
-        private void OnClickExportActionAsGifLoopingWithMountThisDirection(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: true, allDirections: false, withMount: true);
-        }
-
-        private void OnClickExportActionAsGifLoopingWithMountAllDirections(object sender, EventArgs e)
-        {
-            ExportActionAsGif(looping: true, allDirections: true, withMount: true);
-        }
-
-        private (int width, int height, int left, int top) CalculateMountCanvasDimensions(int direction)
-        {
-            // Get the mount overlay based on action
-            int overlayAction = -1;
-            if (_currentAction == 0) overlayAction = 23; // Walk -> mount walk
-            else if (_currentAction == 1) overlayAction = 24; // Run -> mount run
-            else if (_currentAction == 2) overlayAction = 25; // Idle -> mount idle
-
-            if (overlayAction == -1)
-            {
-                return (0, 0, 0, 0);
-            }
-
-            AnimIdx edit = AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, direction);
-            if (edit == null || edit.Frames == null || edit.Frames.Count == 0)
-            {
-                return (0, 0, 0, 0);
-            }
-
-            // Mount always uses body 400 from anim.mul (fileType 1)
-            int overlayBody = 400;
-            int overlayFileType = 1;
-            var mountEdit = Ultima.AnimationEdit.GetAnimation(overlayFileType, overlayBody, overlayAction, direction);
-            if (mountEdit == null || mountEdit.Frames == null || mountEdit.Frames.Count == 0)
-            {
-                return (0, 0, 0, 0);
-            }
-
-            var mountBits = mountEdit.GetFrames();
-            var baseBits = edit.GetFrames();
-            if (mountBits == null || mountBits.Length == 0 || baseBits == null)
-            {
-                return (0, 0, 0, 0);
-            }
-
-            // Calculate bounds assuming reference point at (0, 0)
-            // Both animal and mount are drawn relative to this point using:
-            // x = refX - frame.Center.X
-            // y = refY - frame.Center.Y - frame.Height
-
-            int minX = int.MaxValue, maxX = int.MinValue;
-            int minY = int.MaxValue, maxY = int.MinValue;
-
-            int refX = 0; // Reference point
-            int refY = 0;
-
-            // Check all animal frames
-            for (int i = 0; i < Math.Min(edit.Frames.Count, baseBits.Length); i++)
-            {
-                if (baseBits[i] != null)
-                {
-                    var baseFrame = edit.Frames[i];
-                    int baseW = baseBits[i].Width;
-                    int baseH = baseBits[i].Height;
-                    int baseCx = baseFrame.Center.X;
-                    int baseCy = baseFrame.Center.Y;
-
-                    // Animal drawn at: (refX - baseCx, refY - baseCy - baseH)
-                    int animalLeft = refX - baseCx;
-                    int animalTop = refY - baseCy - baseH;
-                    int animalRight = animalLeft + baseW;
-                    int animalBottom = animalTop + baseH;
-
-                    minX = Math.Min(minX, animalLeft);
-                    maxX = Math.Max(maxX, animalRight);
-                    minY = Math.Min(minY, animalTop);
-                    maxY = Math.Max(maxY, animalBottom);
-                }
-            }
-
-            // Check all mount frames
-            for (int i = 0; i < Math.Min(mountEdit.Frames.Count, mountBits.Length); i++)
-            {
-                if (mountBits[i] != null)
-                {
-                    var mountFrame = mountEdit.Frames[i];
-                    int mountW = mountBits[i].Width;
-                    int mountH = mountBits[i].Height;
-                    int mountCx = mountFrame.Center.X;
-                    int mountCy = mountFrame.Center.Y;
-
-                    // Mount drawn at: (refX - mountCx, refY - mountCy - mountH)
-                    int mountLeft = refX - mountCx;
-                    int mountTop = refY - mountCy - mountH;
-                    int mountRight = mountLeft + mountW;
-                    int mountBottom = mountTop + mountH;
-
-                    minX = Math.Min(minX, mountLeft);
-                    maxX = Math.Max(maxX, mountRight);
-                    minY = Math.Min(minY, mountTop);
-                    maxY = Math.Max(maxY, mountBottom);
-                }
-            }
-
-            // Handle edge case where no valid frames were found
-            if (minX == int.MaxValue || maxX == int.MinValue || minY == int.MaxValue || maxY == int.MinValue)
-            {
-                return (0, 0, 0, 0);
-            }
-
-            // Calculate canvas dimensions and offset to make room for negative coordinates
-            int offsetX = -minX;
-            int offsetY = -minY;
-            int canvasWidth = maxX - minX;
-            int canvasHeight = maxY - minY;
-
-            return (canvasWidth, canvasHeight, offsetX, offsetY);
-        }
-
-        private (Bitmap bitmap, Point center) OverlayMountOnFrame(Bitmap baseBitmap, Point baseCenter, int direction, int frameIndex, int canvasWidth, int canvasHeight, int canvasLeft, int canvasTop)
-        {
-            // Get the mount overlay based on action
-            int overlayAction = -1;
-            if (_currentAction == 0) overlayAction = 23; // Walk -> mount walk
-            else if (_currentAction == 1) overlayAction = 24; // Run -> mount run
-            else if (_currentAction == 2) overlayAction = 25; // Idle -> mount idle
-
-            if (overlayAction == -1)
-            {
-                return (baseBitmap, baseCenter);
-            }
-
-            // Mount always uses body 400 from anim.mul (fileType 1)
-            int overlayBody = 400;
-            int overlayFileType = 1;
-            var mountEdit = Ultima.AnimationEdit.GetAnimation(overlayFileType, overlayBody, overlayAction, direction);
-
-            if (mountEdit == null || mountEdit.GetFrames() == null || frameIndex >= mountEdit.GetFrames().Length || mountEdit.Frames.Count <= frameIndex)
-            {
-                return (baseBitmap, baseCenter);
-            }
-
-            var mountFrames = mountEdit.GetFrames();
-            if (mountFrames[frameIndex] == null)
-            {
-                return (baseBitmap, baseCenter);
-            }
-
-            var mountFrame = mountEdit.Frames[frameIndex];
-            int mountW = mountFrames[frameIndex].Width;
-            int mountH = mountFrames[frameIndex].Height;
-            int mountCx = mountFrame.Center.X;
-            int mountCy = mountFrame.Center.Y;
-
-            int baseW = baseBitmap.Width;
-            int baseH = baseBitmap.Height;
-
-            // Create the new bitmap with the pre-calculated canvas dimensions
-            Bitmap result = new Bitmap(canvasWidth, canvasHeight);
-            using (Graphics g = Graphics.FromImage(result))
-            {
-                // Fill with transparent background
-                g.Clear(Color.Transparent);
-
-                // Reference point is where the mount's bottom-center effectively sits
-                // Mount drawn at: (refX - mountCx, refY - mountCy - mountH)
-                // Animal drawn at: (refX - baseCx, refY - baseCy - baseH)
-                // Both centered at the same reference point
-
-                int refX = canvasLeft;
-                int refY = canvasTop;
-
-                // Animal drawn first (underneath)
-                int baseX = refX - baseCenter.X;
-                int baseY = refY - baseCenter.Y - baseH;
-                g.DrawImage(baseBitmap, baseX, baseY);
-
-                // Mount drawn on top (in front) of the animal
-                int mountX = refX - mountCx;
-                int mountY = refY - mountCy - mountH;
-                g.DrawImage(mountFrames[frameIndex], mountX, mountY);
-            }
-
-            // Return the new frame with the canvas center as the center point
-            Point newCenter = new Point(canvasLeft, canvasTop);
-            return (result, newCenter);
-        }
-
         private void OnClickShowOnlyValid(object sender, EventArgs e)
         {
             _showOnlyValid = !_showOnlyValid;
@@ -3539,7 +2744,7 @@ namespace UoFiddler.Controls.Forms
                 {
                     for (int i = AnimationListTreeView.Nodes.Count - 1; i >= 0; --i)
                     {
-                        if (AnimationListTreeView.Nodes[i].ForeColor == _invalidColor)
+                        if (AnimationListTreeView.Nodes[i].ForeColor == Color.Red)
                         {
                             AnimationListTreeView.Nodes[i].Remove();
                         }
@@ -4387,8 +3592,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -4566,12 +3771,12 @@ namespace UoFiddler.Controls.Forms
                 {
                     int index = (int)AnimationListTreeView.Nodes[i].Tag;
                     if (index < 0 || AnimationListTreeView.Nodes[i].Parent != null ||
-                        AnimationListTreeView.Nodes[i].ForeColor == _invalidColor)
+                        AnimationListTreeView.Nodes[i].ForeColor == Color.Red)
                     {
                         continue;
                     }
 
-                    string fileName = Path.Combine(dialog.SelectedPath, $"anim{_fileType}_{Utils.FormatExportId(index)}.vd");
+                    string fileName = Path.Combine(dialog.SelectedPath, $"anim{_fileType}_{index}.vd");
                     AnimationEdit.ExportToVD(_fileType, index, fileName);
                 }
 
@@ -4767,8 +3972,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -4817,8 +4022,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -4867,8 +4072,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -4917,8 +4122,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -4967,8 +4172,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -5503,8 +4708,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -5553,8 +4758,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -5603,8 +4808,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -5653,8 +4858,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -5703,8 +4908,8 @@ namespace UoFiddler.Controls.Forms
                 TreeNode node = GetNode(_currentBody);
                 if (node != null)
                 {
-                    node.ForeColor = Color.Empty;
-                    node.Nodes[_currentAction].ForeColor = Color.Empty;
+                    node.ForeColor = Color.Black;
+                    node.Nodes[_currentAction].ForeColor = Color.Black;
                 }
 
                 int i = edit.Frames.Count - 1;
@@ -6509,127 +5714,6 @@ namespace UoFiddler.Controls.Forms
                     animIdx.Palette[i] = 0x8000;
                 }
             }
-        }
-
-        private void CbDrawMounted_CheckedChanged(object sender, EventArgs e)
-        {
-            AnimationPictureBox.Invalidate();
-        }
-
-        private void CbDrawOppositeHuman_CheckedChanged(object sender, EventArgs e)
-        {
-            AnimationPictureBox.Invalidate();
-        }
-
-        private static Point GetTilePixelOffsetForDir(int dir, int dx, int dy)
-        {
-            // Return pixel offset (x,y) for one isometric tile in given direction.
-            // Using common UO offsets: moving up subtracts dy vertically, moving left/right adjust by dx.
-            switch (dir)
-            {
-                case 0: // down
-                    return new Point(-4, dy);
-                case 1: // down-left
-                    return new Point(-dx, dy / 2);
-                case 2: // left
-                    return new Point(-dx * 2, 0);
-                case 3: // up-left
-                    return new Point(-dx, -dy / 2);
-                case 4: // up
-                    return new Point(0, -dy);
-                default:
-                    return Point.Empty;
-            }
-        }
-
-        private bool DrawOppositeHumanOverlay(Graphics g, AnimIdx edit)
-        {
-            if (!DrawOppositeHumanCheckBox.Checked)
-            {
-                return false;
-            }
-
-            // idle action for humans is usually 4 (Idle_01)
-            int humanIdleAction = 4;
-            int humanFile = 1; // anim.mul
-
-            int dx = 22;
-            int dy = 44;
-
-            // compute facing and offset
-            int humanFacingDir = (_currentDir + 4) % 8;
-            Point tileOffset = GetTilePixelOffsetForDir(_currentDir, dx, dy);
-
-            int[] humanBodies = { 744, 401, 605, 606, 666, 667 };
-
-            // Guard against missing or empty base animation frames (can happen for some directions/actions)
-            if (edit == null || edit.Frames == null || edit.Frames.Count == 0)
-            {
-                return false;
-            }
-
-            foreach (int humanBody in humanBodies)
-            {
-                var overlayEdit = Ultima.AnimationEdit.GetAnimation(humanFile, humanBody, humanIdleAction, humanFacingDir);
-                if (overlayEdit == null)
-                {
-                    continue;
-                }
-
-                var overlayFrames = overlayEdit.GetFrames();
-                if (overlayFrames == null || overlayFrames.Length == 0)
-                {
-                    continue;
-                }
-
-                int baseCount = edit.Frames.Count;
-                int trackIndex = FramesTrackBar.Value;
-                int overlayIndex;
-                if (baseCount <= 1)
-                {
-                    overlayIndex = 0;
-                }
-                else
-                {
-                    overlayIndex = (int)Math.Round(trackIndex / (double)(baseCount - 1) * (overlayFrames.Length - 1));
-                }
-
-                overlayIndex = Math.Max(0, Math.Min(overlayIndex, overlayFrames.Length - 1));
-
-                if (overlayFrames[overlayIndex] == null || overlayEdit.Frames.Count <= overlayIndex)
-                {
-                    continue;
-                }
-
-                var overlayFrame = overlayEdit.Frames[overlayIndex];
-                int overlayW = overlayFrames[overlayIndex].Width;
-                int overlayH = overlayFrames[overlayIndex].Height;
-
-                bool shouldFlipFacingOnly = (_currentDir == 1 || _currentDir == 2 || _currentDir == 3);
-                if (shouldFlipFacingOnly)
-                {
-                    using (Bitmap flipped = (Bitmap)overlayFrames[overlayIndex].Clone())
-                    {
-                        flipped.RotateFlip(RotateFlipType.RotateNoneFlipX);
-                        int flippedCenterX = overlayW - overlayFrame.Center.X;
-                        int fox = _framePoint.X - flippedCenterX + tileOffset.X;
-                        int foy = _framePoint.Y - overlayFrame.Center.Y - overlayH + tileOffset.Y;
-                        g.DrawImage(flipped, fox, foy);
-                    }
-                }
-                else
-                {
-                    int ox = _framePoint.X - overlayFrame.Center.X + tileOffset.X;
-                    int oy = _framePoint.Y - overlayFrame.Center.Y - overlayH + tileOffset.Y;
-                    g.DrawImage(overlayFrames[overlayIndex], ox, oy);
-                }
-
-                return true;
-            }
-
-            // nothing found
-            g.DrawRectangle(Pens.Magenta, 10, 10, 40, 40);
-            return true;
         }
     }
 }
