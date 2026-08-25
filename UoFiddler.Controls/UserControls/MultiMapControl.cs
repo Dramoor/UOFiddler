@@ -58,7 +58,9 @@ namespace UoFiddler.Controls.UserControls
             }
 
             _moving = false;
-            ToolStripMenuItem strip;
+            ToolStripMenuItem strip = null;
+
+            // Check hardcoded menu items first
             if (multiMapToolStripMenuItem.Checked)
             {
                 strip = multiMapToolStripMenuItem;
@@ -88,6 +90,22 @@ namespace UoFiddler.Controls.UserControls
                 strip = facet05ToolStripMenuItem;
             }
             else
+            {
+                // Check dynamic menu items
+                if (toolStripDropDownButton1?.DropDownItems.Count > 7)
+                {
+                    for (int i = 7; i < toolStripDropDownButton1.DropDownItems.Count; i++)
+                    {
+                        if (toolStripDropDownButton1.DropDownItems[i] is ToolStripMenuItem dynamicItem && dynamicItem.Checked)
+                        {
+                            strip = dynamicItem;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (strip == null)
             {
                 return;
             }
@@ -274,13 +292,26 @@ namespace UoFiddler.Controls.UserControls
 
             using (new WaitCursorScope(this))
             {
-                multiMapToolStripMenuItem.Checked =
-                    facet00ToolStripMenuItem.Checked =
-                    facet01ToolStripMenuItem.Checked =
-                    facet02ToolStripMenuItem.Checked =
-                    facet03ToolStripMenuItem.Checked =
-                    facet04ToolStripMenuItem.Checked =
-                    facet05ToolStripMenuItem.Checked = false;
+                // Uncheck all facet menu items (both hardcoded and dynamic)
+                multiMapToolStripMenuItem.Checked = false;
+                facet00ToolStripMenuItem.Checked = false;
+                facet01ToolStripMenuItem.Checked = false;
+                facet02ToolStripMenuItem.Checked = false;
+                facet03ToolStripMenuItem.Checked = false;
+                facet04ToolStripMenuItem.Checked = false;
+                facet05ToolStripMenuItem.Checked = false;
+
+                // Uncheck any dynamic facet menu items
+                if (toolStripDropDownButton1?.DropDownItems.Count > 7)
+                {
+                    for (int i = 7; i < toolStripDropDownButton1.DropDownItems.Count; i++)
+                    {
+                        if (toolStripDropDownButton1.DropDownItems[i] is ToolStripMenuItem dynamicItem)
+                        {
+                            dynamicItem.Checked = false;
+                        }
+                    }
+                }
 
                 strip.Checked = true;
 
@@ -379,6 +410,9 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
+            // Build dynamic facet menu items for any facets beyond facet05
+            BuildDynamicFacetMenuItems();
+
             multiMapToolStripMenuItem.Checked = true;
             pictureBox.Image = Ultima.MultiMap.GetMultiMap();
             if (pictureBox.Image != null)
@@ -388,6 +422,40 @@ namespace UoFiddler.Controls.UserControls
             }
             ControlEvents.FilePathChangeEvent += OnFilePathChangeEvent;
             _loaded = true;
+        }
+
+        /// <summary>
+        /// Dynamically builds menu items for any facet files found beyond the hardcoded facet00-05
+        /// </summary>
+        private void BuildDynamicFacetMenuItems()
+        {
+            var availableFacets = Ultima.Files.GetAvailableFacetIndices();
+
+            // Find the toolStripDropDownButton1 that contains the facet menu items
+            if (toolStripDropDownButton1?.DropDownItems.Count > 0)
+            {
+                // Remove any previously added dynamic items (in case of refresh)
+                int staticItemCount = 7; // multiMap, facet00-05 = 7 items
+                while (toolStripDropDownButton1.DropDownItems.Count > staticItemCount)
+                {
+                    toolStripDropDownButton1.DropDownItems.RemoveAt(staticItemCount);
+                }
+
+                // Add dynamic menu items for facets beyond 05
+                foreach (int facetIndex in availableFacets)
+                {
+                    if (facetIndex > 5)  // Skip 0-5 as they're already hardcoded
+                    {
+                        ToolStripMenuItem facetMenuItem = new ToolStripMenuItem
+                        {
+                            Text = $"Facet{facetIndex:00}",
+                            Tag = facetIndex
+                        };
+                        facetMenuItem.Click += ShowImage;
+                        toolStripDropDownButton1.DropDownItems.Add(facetMenuItem);
+                    }
+                }
+            }
         }
 
         private void OnPaint(object sender, PaintEventArgs e)

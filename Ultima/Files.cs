@@ -240,6 +240,7 @@ namespace Ultima
             string[] mapPatterns = { "map*.mul", "map*legacymul.uop", "mapdif*.mul", "mapdifl*.mul" };
             string[] staidxPatterns = { "staidx*.mul", "stadifi*.mul", "stadifl*.mul" };
             string[] staticsPatterns = { "statics*.mul", "stadif*.mul" };
+            string[] facetPatterns = { "facet*.mul" };
 
             // Discover map files
             foreach (string pattern in mapPatterns)
@@ -271,6 +272,20 @@ namespace Ultima
 
             // Discover statics files
             foreach (string pattern in staticsPatterns)
+            {
+                var files = System.IO.Directory.GetFiles(RootDir, pattern, System.IO.SearchOption.TopDirectoryOnly);
+                foreach (var filePath in files)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    if (!MulPath.ContainsKey(fileName))
+                    {
+                        MulPath[fileName] = fileName;
+                    }
+                }
+            }
+
+            // Discover facet files
+            foreach (string pattern in facetPatterns)
             {
                 var files = System.IO.Directory.GetFiles(RootDir, pattern, System.IO.SearchOption.TopDirectoryOnly);
                 foreach (var filePath in files)
@@ -367,6 +382,25 @@ namespace Ultima
             }
 
             return File.Exists(path) ? path : null;
+        }
+
+        /// <summary>
+        /// Gets all available facet file indices (e.g., returns [0, 1, 2, 3, 4, 5, 6] for facet00.mul through facet06.mul)
+        /// </summary>
+        public static List<int> GetAvailableFacetIndices()
+        {
+            var facetIndices = new List<int>();
+
+            for (int i = 0; i <= 99; i++)  // Check up to facet99
+            {
+                string fileName = $"facet{i:00}.mul";
+                if (GetFilePath(fileName) != null)
+                {
+                    facetIndices.Add(i);
+                }
+            }
+
+            return facetIndices;
         }
 
         private static readonly string[] _knownRegKeys = {
