@@ -220,6 +220,68 @@ namespace Ultima
 
                 MulPath[file] = File.Exists(filePath) ? file : string.Empty;
             }
+
+            // Dynamically discover additional map files beyond the hardcoded list
+            DiscoverDynamicMapFiles();
+        }
+
+        /// <summary>
+        /// Dynamically discovers and adds map-related files that weren't in the hardcoded _uoFiles list.
+        /// This allows loading any number of bonus maps as long as the files exist.
+        /// </summary>
+        private static void DiscoverDynamicMapFiles()
+        {
+            if (string.IsNullOrEmpty(RootDir) || !System.IO.Directory.Exists(RootDir))
+            {
+                return;
+            }
+
+            // Patterns for dynamic map file discovery
+            string[] mapPatterns = { "map*.mul", "map*legacymul.uop", "mapdif*.mul", "mapdifl*.mul" };
+            string[] staidxPatterns = { "staidx*.mul", "stadifi*.mul", "stadifl*.mul" };
+            string[] staticsPatterns = { "statics*.mul", "stadif*.mul" };
+
+            // Discover map files
+            foreach (string pattern in mapPatterns)
+            {
+                var files = System.IO.Directory.GetFiles(RootDir, pattern, System.IO.SearchOption.TopDirectoryOnly);
+                foreach (var filePath in files)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    if (!MulPath.ContainsKey(fileName))
+                    {
+                        MulPath[fileName] = fileName;
+                    }
+                }
+            }
+
+            // Discover staidx files
+            foreach (string pattern in staidxPatterns)
+            {
+                var files = System.IO.Directory.GetFiles(RootDir, pattern, System.IO.SearchOption.TopDirectoryOnly);
+                foreach (var filePath in files)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    if (!MulPath.ContainsKey(fileName))
+                    {
+                        MulPath[fileName] = fileName;
+                    }
+                }
+            }
+
+            // Discover statics files
+            foreach (string pattern in staticsPatterns)
+            {
+                var files = System.IO.Directory.GetFiles(RootDir, pattern, System.IO.SearchOption.TopDirectoryOnly);
+                foreach (var filePath in files)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    if (!MulPath.ContainsKey(fileName))
+                    {
+                        MulPath[fileName] = fileName;
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -259,6 +321,9 @@ namespace Ultima
                 filePath = Path.Combine(RootDir, file);
                 MulPath[file] = File.Exists(filePath) ? filePath : string.Empty;
             }
+
+            // Dynamically discover additional map files
+            DiscoverDynamicMapFiles();
         }
 
         /// <summary>

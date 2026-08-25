@@ -34,13 +34,19 @@ namespace UoFiddler.Controls.Forms
             numericUpDownToY1.Maximum = _workingMap.Height;
             Text = $"MapReplace ID:{_workingMap.FileIndex}";
             comboBoxMapID.BeginUpdate();
-            comboBoxMapID.Items.Add(new RFeluccaOld());
-            comboBoxMapID.Items.Add(new RFelucca());
-            comboBoxMapID.Items.Add(new RTrammel());
-            comboBoxMapID.Items.Add(new RIlshenar());
-            comboBoxMapID.Items.Add(new RMalas());
-            comboBoxMapID.Items.Add(new RTokuno());
-            comboBoxMapID.Items.Add(new RTerMur());
+
+            // Load all available maps dynamically from loaded map data
+            foreach (Ultima.Map map in Ultima.Map.GetAllMaps())
+            {
+                comboBoxMapID.Items.Add(new SupportedMaps(map.FileIndex, map.Name ?? $"Map {map.FileIndex}", map.Width, map.Height));
+            }
+
+            // Add the legacy Felucca option if available
+            if (Options.MapNames.Length > 0)
+            {
+                comboBoxMapID.Items.Insert(0, new SupportedMaps(0, Options.MapNames[0] + " Old", 6144, 4096));
+            }
+
             comboBoxMapID.EndUpdate();
             comboBoxMapID.SelectedIndex = 0;
         }
@@ -465,7 +471,7 @@ namespace UoFiddler.Controls.Forms
             public int Height { get; }
             public int Width { get; }
 
-            protected SupportedMaps(int id, string name, int width, int height)
+            public SupportedMaps(int id, string name, int width, int height)
             {
                 Id = id;
                 Name = name;
@@ -477,41 +483,6 @@ namespace UoFiddler.Controls.Forms
             {
                 return $"{Id} - {Name} : {Width}x{Height}";
             }
-        }
-
-        private class RFeluccaOld : SupportedMaps
-        {
-            public RFeluccaOld() : base(0, Options.MapNames[0] + "Old", 6144, 4096) { }
-        }
-
-        private class RFelucca : SupportedMaps
-        {
-            public RFelucca() : base(0, Options.MapNames[0], 7168, 4096) { }
-        }
-
-        private class RTrammel : SupportedMaps
-        {
-            public RTrammel() : base(1, Options.MapNames[1], 7168, 4096) { }
-        }
-
-        private class RIlshenar : SupportedMaps
-        {
-            public RIlshenar() : base(2, Options.MapNames[2], 2304, 1600) { }
-        }
-
-        private class RMalas : SupportedMaps
-        {
-            public RMalas() : base(3, Options.MapNames[3], 2560, 2048) { }
-        }
-
-        private class RTokuno : SupportedMaps
-        {
-            public RTokuno() : base(4, Options.MapNames[4], 1448, 1448) { }
-        }
-
-        private class RTerMur : SupportedMaps
-        {
-            public RTerMur() : base(5, Options.MapNames[5], 1280, 4096) { }
         }
     }
 }

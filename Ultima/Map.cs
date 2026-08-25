@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -192,13 +193,106 @@ namespace Ultima
             }
         }
 
-        public static Map Felucca = new Map(0, 0, 6144, 4096);
-        public static Map Trammel = new Map(0, 1, 6144, 4096);
-        public static readonly Map Ilshenar = new Map(2, 2, 2304, 1600);
-        public static readonly Map Malas = new Map(3, 3, 2560, 2048);
-        public static readonly Map Tokuno = new Map(4, 4, 1448, 1448);
-        public static readonly Map TerMur = new Map(5, 5, 1280, 4096);
+        // Static map instances - will be initialized from Mapnames.xml
+        private static Dictionary<int, Map> _mapsByIndex = new Dictionary<int, Map>();
+        private static bool _mapsInitialized = false;
+
+        // Convenience properties for accessing standard maps
+        public static Map Felucca
+        {
+            get { EnsureMapsInitialized(); return GetMapByIndex(0) ?? new Map(0, 0, 6144, 4096); }
+        }
+
+        public static Map Trammel
+        {
+            get { EnsureMapsInitialized(); return GetMapByIndex(1) ?? new Map(0, 1, 6144, 4096); }
+        }
+
+        public static Map Ilshenar
+        {
+            get { EnsureMapsInitialized(); return GetMapByIndex(2) ?? new Map(2, 2, 2304, 1600); }
+        }
+
+        public static Map Malas
+        {
+            get { EnsureMapsInitialized(); return GetMapByIndex(3) ?? new Map(3, 3, 2560, 2048); }
+        }
+
+        public static Map Tokuno
+        {
+            get { EnsureMapsInitialized(); return GetMapByIndex(4) ?? new Map(4, 4, 1448, 1448); }
+        }
+
+        public static Map TerMur
+        {
+            get { EnsureMapsInitialized(); return GetMapByIndex(5) ?? new Map(5, 5, 1280, 4096); }
+        }
+
         public static Map Custom;
+
+        /// <summary>
+        /// Initializes maps from Mapnames.xml file
+        /// </summary>
+        /// <param name="mapnamesXmlPath">Path to Mapnames.xml file</param>
+        public static void InitializeFromXml(string mapnamesXmlPath)
+        {
+            _mapsByIndex.Clear();
+            _mapsInitialized = false;
+
+            List<MapDefinition> mapDefs = MapLoader.LoadMapDefinitions(mapnamesXmlPath);
+
+            foreach (MapDefinition mapDef in mapDefs)
+            {
+                // fileIndex and mapId are the same as index for now
+                Map map = new Map(mapDef.Index, mapDef.Index, mapDef.Width, mapDef.Height, mapDef.Name);
+                _mapsByIndex[mapDef.Index] = map;
+            }
+
+            _mapsInitialized = true;
+        }
+
+        /// <summary>
+        /// Gets a map by its index
+        /// </summary>
+        public static Map GetMapByIndex(int index)
+        {
+            EnsureMapsInitialized();
+            _mapsByIndex.TryGetValue(index, out Map map);
+            return map;
+        }
+
+        /// <summary>
+        /// Sets or replaces a map in the collection by index
+        /// </summary>
+        public static void SetMapByIndex(int index, Map map)
+        {
+            EnsureMapsInitialized();
+            _mapsByIndex[index] = map;
+        }
+
+        /// <summary>
+        /// Gets all loaded maps
+        /// </summary>
+        public static IEnumerable<Map> GetAllMaps()
+        {
+            EnsureMapsInitialized();
+            return _mapsByIndex.Values;
+        }
+
+        private static void EnsureMapsInitialized()
+        {
+            if (!_mapsInitialized)
+            {
+                // Load default maps if XML initialization wasn't called
+                _mapsByIndex[0] = new Map(0, 0, 6144, 4096, "Felucca");
+                _mapsByIndex[1] = new Map(1, 1, 6144, 4096, "Trammel");
+                _mapsByIndex[2] = new Map(2, 2, 2304, 1600, "Ilshenar");
+                _mapsByIndex[3] = new Map(3, 3, 2560, 2048, "Malas");
+                _mapsByIndex[4] = new Map(4, 4, 1448, 1448, "Tokuno");
+                _mapsByIndex[5] = new Map(5, 5, 1280, 4096, "Ter Mur");
+                _mapsInitialized = true;
+            }
+        }
 
         public static void StartUpSetDiff(bool value)
         {
@@ -211,6 +305,17 @@ namespace Ultima
             _mapId = mapId;
             Width = width;
             Height = height;
+            Name = null;
+            _path = null;
+        }
+
+        public Map(int fileIndex, int mapId, int width, int height, string name)
+        {
+            FileIndex = fileIndex;
+            _mapId = mapId;
+            Width = width;
+            Height = height;
+            Name = name;
             _path = null;
         }
 
@@ -220,6 +325,17 @@ namespace Ultima
             _mapId = mapId;
             Width = width;
             Height = height;
+            Name = null;
+            _path = path;
+        }
+
+        public Map(string path, int fileIndex, int mapId, int width, int height, string name)
+        {
+            FileIndex = fileIndex;
+            _mapId = mapId;
+            Width = width;
+            Height = height;
+            Name = name;
             _path = path;
         }
 
@@ -228,38 +344,18 @@ namespace Ultima
         /// </summary>
         public static void Reload()
         {
-            Felucca.Tiles.CloseStreams();
-            Trammel.Tiles.CloseStreams();
-            Ilshenar.Tiles.CloseStreams();
-            Malas.Tiles.CloseStreams();
-            Tokuno.Tiles.CloseStreams();
-            TerMur.Tiles.CloseStreams();
-
-            Felucca.Tiles.StaticIndexInit = false;
-            Trammel.Tiles.StaticIndexInit = false;
-            Ilshenar.Tiles.StaticIndexInit = false;
-            Malas.Tiles.StaticIndexInit = false;
-            Tokuno.Tiles.StaticIndexInit = false;
-            TerMur.Tiles.StaticIndexInit = false;
-
-            Felucca._cache = Trammel._cache = Ilshenar._cache = Malas._cache = Tokuno._cache = TerMur._cache = null;
-            Felucca._tiles = Trammel._tiles = Ilshenar._tiles = Malas._tiles = Tokuno._tiles = TerMur._tiles = null;
-            Felucca._cacheNoStatics =
-                Trammel._cacheNoStatics =
-                Ilshenar._cacheNoStatics = Malas._cacheNoStatics = Tokuno._cacheNoStatics = TerMur._cacheNoStatics = null;
-            Felucca._cacheNoPatch =
-                Trammel._cacheNoPatch =
-                Ilshenar._cacheNoPatch = Malas._cacheNoPatch = Tokuno._cacheNoPatch = TerMur._cacheNoPatch = null;
-            Felucca._cacheNoStaticsNoPatch =
-                Trammel._cacheNoStaticsNoPatch =
-                Ilshenar._cacheNoStaticsNoPatch =
-                Malas._cacheNoStaticsNoPatch = Tokuno._cacheNoStaticsNoPatch = TerMur._cacheNoStaticsNoPatch = null;
-
-            foreach (Map m in new[] { Felucca, Trammel, Ilshenar, Malas, Tokuno, TerMur })
+            foreach (Map map in GetAllMaps())
             {
-                m.ClearMipCaches();
-                m.ClearAltitudeCaches();
-                m.ClearLitCache();
+                map.Tiles.CloseStreams();
+                map.Tiles.StaticIndexInit = false;
+                map._cache = null;
+                map._tiles = null;
+                map._cacheNoStatics = null;
+                map._cacheNoPatch = null;
+                map._cacheNoStaticsNoPatch = null;
+                map.ClearMipCaches();
+                map.ClearAltitudeCaches();
+                map.ClearLitCache();
             }
         }
 
@@ -310,7 +406,9 @@ namespace Ultima
 
         public int Width { get; set; }
 
-        public int Height { get; }
+        public int Height { get; set; }
+
+        public string Name { get; set; }
 
         public int FileIndex { get; }
 

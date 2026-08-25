@@ -76,6 +76,23 @@ namespace UoFiddler.Controls.Classes
         public static string[] MapNames { get; set; } = { "Felucca", "Trammel", "Ilshenar", "Malas", "Tokuno", "Ter Mur" };
 
         /// <summary>
+        /// Updates MapNames from loaded map definitions
+        /// </summary>
+        public static void UpdateMapNamesFromMaps()
+        {
+            List<string> names = new List<string>();
+            foreach (Ultima.Map map in Ultima.Map.GetAllMaps())
+            {
+                names.Add(map.Name ?? $"Map {map.FileIndex}");
+            }
+
+            if (names.Count > 0)
+            {
+                MapNames = names.ToArray();
+            }
+        }
+
+        /// <summary>
         /// Defines which Plugins to load on startup
         /// </summary>
         public static List<string> PluginsToLoad { get; set; } = new List<string>();

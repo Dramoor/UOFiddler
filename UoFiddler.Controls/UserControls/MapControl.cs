@@ -15,6 +15,7 @@ using System.Drawing;
 using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using System.Xml;
 using Ultima;
@@ -155,6 +156,7 @@ namespace UoFiddler.Controls.UserControls
                 tokunoToolStripMenuItem.Checked = false;
                 PreloadMap.Visible = true;
                 ChangeMapNames();
+                BuildMapContextMenu();
                 ZoomLabel.Text = $"Zoom: {Zoom}";
                 SetScrollBarValues();
                 Refresh();
@@ -179,6 +181,7 @@ namespace UoFiddler.Controls.UserControls
         private void OnMapNameChangeEvent()
         {
             ChangeMapNames();
+            BuildMapContextMenu();
         }
 
         private void OnMapSizeChangeEvent()
@@ -206,24 +209,18 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
-            feluccaToolStripMenuItem.Text = Options.MapNames[0];
-            trammelToolStripMenuItem.Text = Options.MapNames[1];
-            ilshenarToolStripMenuItem.Text = Options.MapNames[2];
-            malasToolStripMenuItem.Text = Options.MapNames[3];
-            tokunoToolStripMenuItem.Text = Options.MapNames[4];
-            terMurToolStripMenuItem.Text = Options.MapNames[5];
+            // Dynamic context menu items are built in BuildMapContextMenu(), no need to update hardcoded items
 
             if (OverlayObjectTree.Nodes.Count <= 0)
             {
                 return;
             }
 
-            OverlayObjectTree.Nodes[0].Text = Options.MapNames[0];
-            OverlayObjectTree.Nodes[1].Text = Options.MapNames[1];
-            OverlayObjectTree.Nodes[2].Text = Options.MapNames[2];
-            OverlayObjectTree.Nodes[3].Text = Options.MapNames[3];
-            OverlayObjectTree.Nodes[4].Text = Options.MapNames[4];
-            OverlayObjectTree.Nodes[5].Text = Options.MapNames[5];
+            int nodesToUpdate = Math.Min(OverlayObjectTree.Nodes.Count, Options.MapNames.Length);
+            for (int i = 0; i < nodesToUpdate; i++)
+            {
+                OverlayObjectTree.Nodes[i].Text = Options.MapNames[i];
+            }
             OverlayObjectTree.Invalidate();
         }
 
@@ -370,6 +367,79 @@ namespace UoFiddler.Controls.UserControls
             ilshenarToolStripMenuItem.Checked = false;
             tokunoToolStripMenuItem.Checked = false;
             terMurToolStripMenuItem.Checked = false;
+        }
+
+        private void OnMapMenuItemClick(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem item && item.Tag is int mapId)
+            {
+                Map selectedMap = Map.GetMapByIndex(mapId);
+                if (selectedMap != null)
+                {
+                    ResetCheckedMap();
+
+                    // Uncheck all dynamic menu items first
+                    int separatorIndex = contextMenuStrip1.Items.IndexOf(toolStripSeparator2);
+                    if (separatorIndex >= 0)
+                    {
+                        for (int i = separatorIndex + 1; i < contextMenuStrip1.Items.Count; i++)
+                        {
+                            if (contextMenuStrip1.Items[i] is ToolStripMenuItem dynamicItem)
+                            {
+                                dynamicItem.Checked = false;
+                            }
+                        }
+                    }
+
+                    // Now check only the selected item
+                    item.Checked = true;
+                    CurrentMap = selectedMap;
+                    _currentMapId = mapId;
+                    ChangeMap();
+                }
+            }
+        }
+
+        private void BuildMapContextMenu()
+        {
+            // Find the separator that precedes the map items in the context menu
+            int separatorIndex = contextMenuStrip1.Items.IndexOf(toolStripSeparator2);
+            if (separatorIndex < 0)
+            {
+                return; // Separator not found, abort
+            }
+
+            // Remove all existing map menu items (those after the separator)
+            int removeCount = contextMenuStrip1.Items.Count - separatorIndex - 1;
+            for (int i = 0; i < removeCount; i++)
+            {
+                contextMenuStrip1.Items.RemoveAt(separatorIndex + 1);
+            }
+
+            // Add dynamic menu items for each loaded map using Options.MapNames for consistency
+            var allMaps = Map.GetAllMaps().ToList();
+            for (int i = 0; i < allMaps.Count; i++)
+            {
+                Map map = allMaps[i];
+                // Use Options.MapNames which is populated from XML, with fallback to Map.Name or fileIndex
+                string displayName = (i < Options.MapNames.Length) 
+                    ? Options.MapNames[i] 
+                    : (map.Name ?? $"Map {map.FileIndex}");
+
+                ToolStripMenuItem mapItem = new ToolStripMenuItem
+                {
+                    Text = displayName,
+                    Tag = map.FileIndex
+                };
+                mapItem.Click += OnMapMenuItemClick;
+                contextMenuStrip1.Items.Add(mapItem);
+
+                // Check the item if it's the currently selected map
+                if (map.FileIndex == _currentMapId)
+                {
+                    mapItem.Checked = true;
+                }
+            }
         }
 
         private void ChangeMapFelucca(object sender, EventArgs e)
@@ -1110,41 +1180,16 @@ namespace UoFiddler.Controls.UserControls
 
         private void AddOverlayGroups()
         {
-            TreeNode node = new TreeNode(Options.MapNames[0])
-            {
-                Tag = 0
-            };
-            OverlayObjectTree.Nodes.Add(node);
+            OverlayObjectTree.Nodes.Clear();
 
-            node = new TreeNode(Options.MapNames[1])
+            for (int i = 0; i < Options.MapNames.Length; i++)
             {
-                Tag = 1
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[2])
-            {
-                Tag = 2
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[3])
-            {
-                Tag = 3
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[4])
-            {
-                Tag = 4
-            };
-            OverlayObjectTree.Nodes.Add(node);
-
-            node = new TreeNode(Options.MapNames[5])
-            {
-                Tag = 5
-            };
-            OverlayObjectTree.Nodes.Add(node);
+                TreeNode node = new TreeNode(Options.MapNames[i])
+                {
+                    Tag = i
+                };
+                OverlayObjectTree.Nodes.Add(node);
+            }
         }
 
         public static void SaveMapOverlays()

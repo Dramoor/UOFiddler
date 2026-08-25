@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Windows.Forms;
 using System.Xml;
 using Microsoft.Extensions.Logging;
@@ -80,6 +81,8 @@ namespace UoFiddler.Classes
             MoveFiles(di.GetFiles("Multilist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Gumplist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("DynamicItems.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
+            MoveFiles(di.GetFiles("AnimMap.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
+            MoveFiles(di.GetFiles("Mapnames.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
 
             di = new DirectoryInfo(Path.Combine(Application.StartupPath, "plugins"));
             MoveFiles(di.GetFiles("*.xml", SearchOption.TopDirectoryOnly), plugInPath);
@@ -92,6 +95,31 @@ namespace UoFiddler.Classes
             }
 
             DynamicItemsConfig.EnsureLoaded();
+
+            // Initialize maps from Mapnames.xml or profile-specific version
+            string mapnamesPath = null;
+            string profile = null;
+            if (!string.IsNullOrEmpty(Options.ProfileName))
+                profile = Options.ProfileName.Replace("Options_", "").Replace(".xml", "");
+
+            // Try profile-specific Mapnames first (including default profile!)
+            if (!string.IsNullOrEmpty(profile))
+                mapnamesPath = Path.Combine(Options.AppDataPath, $"Mapnames_{profile}.xml");
+
+            // Fall back to default if no profile-specific file
+            if (mapnamesPath == null || !File.Exists(mapnamesPath))
+                mapnamesPath = Path.Combine(Options.AppDataPath, "Mapnames.xml");
+
+            if (File.Exists(mapnamesPath))
+            {
+                _log.LogInformation("Initializing maps from {MapnamesPath}", mapnamesPath);
+                Ultima.Map.InitializeFromXml(mapnamesPath);
+                UoFiddler.Controls.Classes.Options.UpdateMapNamesFromMaps();
+            }
+            else
+            {
+                _log.LogWarning("Mapnames.xml not found at {MapnamesPath}, using default maps", mapnamesPath);
+            }
         }
 
         public static void SaveProfile()
@@ -378,15 +406,54 @@ namespace UoFiddler.Classes
                 Options.MapArgs = elem.GetAttribute("args");
             }
 
-            elem = (XmlElement)xOptions.SelectSingleNode("MapNames");
-            if (elem != null)
+            // Map names now come exclusively from Mapnames.xml, not from Options XML
+
+            // Reload maps for the current profile
+            string profileNameWithoutOptions = filename.Replace("Options_", "").Replace(".xml", "");
+            string mapnamesPath = null;
+
+            System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: filename={filename}");
+            System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: profileNameWithoutOptions={profileNameWithoutOptions}");
+            System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: AppDataPath={Options.AppDataPath}");
+
+            // Try profile-specific Mapnames first (including default profile!)
+            if (!string.IsNullOrEmpty(profileNameWithoutOptions))
             {
-                Options.MapNames[0] = elem.GetAttribute("map0");
-                Options.MapNames[1] = elem.GetAttribute("map1");
-                Options.MapNames[2] = elem.GetAttribute("map2");
-                Options.MapNames[3] = elem.GetAttribute("map3");
-                Options.MapNames[4] = elem.GetAttribute("map4");
-                Options.MapNames[5] = elem.GetAttribute("map5");
+                mapnamesPath = Path.Combine(Options.AppDataPath, $"Mapnames_{profileNameWithoutOptions}.xml");
+                System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: Looking for profile-specific maps at {mapnamesPath}");
+                if (!File.Exists(mapnamesPath))
+                {
+                    System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: Profile-specific map file NOT FOUND, falling back to default");
+                    mapnamesPath = null;
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: Profile-specific map file FOUND!");
+                }
+            }
+
+            // Fall back to default if no profile-specific file
+            if (mapnamesPath == null)
+            {
+                mapnamesPath = Path.Combine(Options.AppDataPath, "Mapnames.xml");
+                System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: Using default maps at {mapnamesPath}");
+            }
+
+            if (File.Exists(mapnamesPath))
+            {
+                _log.LogInformation("Loading maps from {MapnamesPath}", mapnamesPath);
+                System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: Loading from {mapnamesPath}");
+                Ultima.Map.InitializeFromXml(mapnamesPath);
+                UoFiddler.Controls.Classes.Options.UpdateMapNamesFromMaps();
+                System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: Loaded {Ultima.Map.GetAllMaps().Count()} maps total");
+
+                // Notify UI that maps have changed
+                UoFiddler.Controls.Classes.ControlEvents.FireMapNameChangeEvent();
+            }
+            else
+            {
+                System.Diagnostics.Debug.WriteLine($"FiddlerOptions.LoadProfile: ERROR - No map file found at {mapnamesPath}");
+                _log.LogWarning("No map file found at {MapnamesPath}", mapnamesPath);
             }
 
             ExternTools = new List<ExternTool>();

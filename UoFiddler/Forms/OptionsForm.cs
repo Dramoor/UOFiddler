@@ -81,12 +81,10 @@ namespace UoFiddler.Forms
             numericUpDownItemSizeWidth.Value = Options.ArtItemSizeWidth;
             numericUpDownItemSizeHeight.Value = Options.ArtItemSizeHeight;
             checkBoxItemClip.Checked = Options.ArtItemClip;
-            map0Nametext.Text = Options.MapNames[0];
-            map1Nametext.Text = Options.MapNames[1];
-            map2Nametext.Text = Options.MapNames[2];
-            map3Nametext.Text = Options.MapNames[3];
-            map4Nametext.Text = Options.MapNames[4];
-            map5Nametext.Text = Options.MapNames[5];
+
+            // Build dynamic map name controls instead of hardcoded ones
+            BuildDynamicMapPanel();
+
             cmdtext.Text = Options.MapCmd;
             argstext.Text = Options.MapArgs;
             textBoxOutputPath.Text = Options.OutputPath;
@@ -168,21 +166,8 @@ namespace UoFiddler.Forms
                 ControlEvents.FirePreviewBackgroundColorChangeEvent();
             }
 
-            if (map0Nametext.Text != Options.MapNames[0]
-                || map1Nametext.Text != Options.MapNames[1]
-                || map2Nametext.Text != Options.MapNames[2]
-                || map3Nametext.Text != Options.MapNames[3]
-                || map4Nametext.Text != Options.MapNames[4]
-                || map5Nametext.Text != Options.MapNames[5])
-            {
-                Options.MapNames[0] = map0Nametext.Text;
-                Options.MapNames[1] = map1Nametext.Text;
-                Options.MapNames[2] = map2Nametext.Text;
-                Options.MapNames[3] = map3Nametext.Text;
-                Options.MapNames[4] = map4Nametext.Text;
-                Options.MapNames[5] = map5Nametext.Text;
-                ControlEvents.FireMapNameChangeEvent();
-            }
+            // Save all dynamic map names
+            SaveDynamicMapNames();
 
             Options.MapCmd = cmdtext.Text;
             Options.MapArgs = argstext.Text;
@@ -313,6 +298,104 @@ namespace UoFiddler.Forms
         private void OnClickClose(object sender, EventArgs e)
         {
             Close();
+        }
+
+        private Panel _mapNamesScrollPanel;
+        private TextBox[] _mapNameTextBoxes;
+
+        private void BuildDynamicMapPanel()
+        {
+            // Store all map textboxes in an array for easy access
+            int mapCount = Options.MapNames.Length;
+            _mapNameTextBoxes = new TextBox[mapCount];
+
+            // Remove all old hardcoded map controls (map0Nametext through map5Nametext, and their labels)
+            Control[] controlsToRemove = new Control[12];
+            int removeIndex = 0;
+
+            // Labels
+            foreach (Control ctrl in groupBox3.Controls)
+            {
+                if (ctrl is Label label && (label.Text.StartsWith("map") && label.Text.EndsWith("Name")))
+                {
+                    controlsToRemove[removeIndex++] = ctrl;
+                }
+            }
+
+            // TextBoxes (map0Nametext through map5Nametext)
+            if (map0Nametext != null && groupBox3.Controls.Contains(map0Nametext)) controlsToRemove[removeIndex++] = map0Nametext;
+            if (map1Nametext != null && groupBox3.Controls.Contains(map1Nametext)) controlsToRemove[removeIndex++] = map1Nametext;
+            if (map2Nametext != null && groupBox3.Controls.Contains(map2Nametext)) controlsToRemove[removeIndex++] = map2Nametext;
+            if (map3Nametext != null && groupBox3.Controls.Contains(map3Nametext)) controlsToRemove[removeIndex++] = map3Nametext;
+            if (map4Nametext != null && groupBox3.Controls.Contains(map4Nametext)) controlsToRemove[removeIndex++] = map4Nametext;
+            if (map5Nametext != null && groupBox3.Controls.Contains(map5Nametext)) controlsToRemove[removeIndex++] = map5Nametext;
+
+            // Remove them
+            for (int i = 0; i < removeIndex; i++)
+            {
+                if (controlsToRemove[i] != null)
+                    groupBox3.Controls.Remove(controlsToRemove[i]);
+            }
+
+            // Create a scrollable panel for all maps
+            _mapNamesScrollPanel = new Panel
+            {
+                AutoScroll = true,
+                Location = new Point(4, 15),
+                Size = new Size(groupBox3.Width - 20, 180),
+                Anchor = AnchorStyles.Top | AnchorStyles.Left | AnchorStyles.Right
+            };
+
+            // Add label + textbox for each map
+            for (int i = 0; i < mapCount; i++)
+            {
+                int yPosition = i * 30;
+
+                // Create label
+                var label = new Label
+                {
+                    Text = $"map{i} Name",
+                    AutoSize = true,
+                    Location = new Point(7, yPosition + 5)
+                };
+                _mapNamesScrollPanel.Controls.Add(label);
+
+                // Create textbox
+                var textBox = new TextBox
+                {
+                    Text = Options.MapNames[i],
+                    Location = new Point(90, yPosition + 2),
+                    Width = _mapNamesScrollPanel.Width - 110,
+                    Height = 23
+                };
+
+                _mapNameTextBoxes[i] = textBox;
+                _mapNamesScrollPanel.Controls.Add(textBox);
+            }
+
+            // Add the scrollable panel to groupBox3
+            groupBox3.Controls.Add(_mapNamesScrollPanel);
+        }
+
+        private void SaveDynamicMapNames()
+        {
+            if (_mapNameTextBoxes == null)
+                return;
+
+            bool changed = false;
+            for (int i = 0; i < _mapNameTextBoxes.Length && i < Options.MapNames.Length; i++)
+            {
+                if (_mapNameTextBoxes[i] != null && _mapNameTextBoxes[i].Text != Options.MapNames[i])
+                {
+                    Options.MapNames[i] = _mapNameTextBoxes[i].Text;
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                ControlEvents.FireMapNameChangeEvent();
+            }
         }
     }
 }

@@ -10,8 +10,10 @@
  ***************************************************************************/
 
 using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Extensions.Logging;
@@ -808,7 +810,9 @@ namespace UoFiddler.Plugin.UopPacker.UserControls
                     Extract(inputBase, outputBase, "soundLegacyMUL.uop", "sound.mul", "soundidx.mul", FileType.SoundLegacyMul, 0, Per(), statusProgress); ++fileIndex;
                     Extract(inputBase, outputBase, "MultiCollection.uop", _batchMultiMulName, _batchMultiIdxName, FileType.MultiCollection, 0, Per(), statusProgress, "housing.bin"); ++fileIndex;
 
-                    for (int i = 0; i <= 5; ++i)
+                    // Extract maps - loop through all loaded maps
+                    int maxMapId = (int)Ultima.Map.GetAllMaps().Max(m => m.FileIndex);
+                    for (int i = 0; i <= maxMapId; ++i)
                     {
                         string map = $"map{i}";
                         Extract(inputBase, outputBase, map + "LegacyMUL.uop", map + ".mul", null, FileType.MapLegacyMul, i, Per(), statusProgress); ++fileIndex;
@@ -846,7 +850,9 @@ namespace UoFiddler.Plugin.UopPacker.UserControls
                     Pack(inputBase, outputBase, "sound.mul", "soundidx.mul", "soundLegacyMUL.uop", FileType.SoundLegacyMul, 0, CompressionFlag.None, Per(), statusProgress); ++fileIndex;
                     Pack(inputBase, outputBase, _batchMultiMulName, _batchMultiIdxName, "MultiCollection.uop", FileType.MultiCollection, 0, CompressionFlag.Zlib, Per(), statusProgress, housingBinPath); ++fileIndex;
 
-                    for (int i = 0; i <= 5; ++i)
+                    // Pack maps - loop through all loaded maps
+                    int maxMapId = (int)Ultima.Map.GetAllMaps().Max(m => m.FileIndex);
+                    for (int i = 0; i <= maxMapId; ++i)
                     {
                         string map = $"map{i}";
                         Pack(inputBase, outputBase, map + ".mul", null, map + "LegacyMUL.uop", FileType.MapLegacyMul, i, CompressionFlag.None, Per(), statusProgress); ++fileIndex;

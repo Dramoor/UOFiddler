@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AnimFiles>
+	<AnimFile file="anim.idx">
+		<Segment start="0" end="200" entriesPerBody="110" />
+		<Segment start="200" end="400" entriesPerBody="65" />
+		<Segment start="400" entriesPerBody="175" />
+	</AnimFile>
+	<AnimFile file="anim2.idx">
+		<Segment start="0" end="200" entriesPerBody="110" />
+		<Segment start="200" entriesPerBody="65" />
+	</AnimFile>
+	<AnimFile file="anim3.idx">
+		<Segment start="0" end="300" entriesPerBody="65" />
+		<Segment start="300" end="400" entriesPerBody="110" />
+		<Segment start="400" entriesPerBody="175" />
+	</AnimFile>
+	<AnimFile file="anim4.idx">
+		<Segment start="0" end="200" entriesPerBody="110" />
+		<Segment start="200" end="400" entriesPerBody="65" />
+		<Segment start="400" entriesPerBody="175" />
+	</AnimFile>
+	<AnimFile file="anim5.idx">
+		<Segment start="0" end="200" entriesPerBody="110" />
+		<Segment start="200" end="400" entriesPerBody="65" />
+		<Segment start="400" entriesPerBody="175" />
+	</AnimFile>
+	<AnimFile file="anim6.idx">
+		<Segment start="0" end="200" entriesPerBody="110" />
+		<Segment start="200" end="400" entriesPerBody="65" />
+		<Segment start="400" entriesPerBody="175" />
+	</AnimFile>
+</AnimFiles>
