@@ -204,6 +204,7 @@ namespace Ultima
         public static void ReLoadDirectory()
         {
             Directory = LoadDirectory();
+            LoadMulPath();  // Refresh MulPath when directory changes
         }
 
         /// <summary>
@@ -223,6 +224,9 @@ namespace Ultima
 
             // Dynamically discover additional map files beyond the hardcoded list
             DiscoverDynamicMapFiles();
+
+            // Dynamically discover additional animation files beyond the hardcoded list
+            DiscoverDynamicAnimFiles();
         }
 
         /// <summary>
@@ -300,6 +304,35 @@ namespace Ultima
         }
 
         /// <summary>
+        /// Dynamically discovers and adds animation-related files (anim*.idx and anim*.mul).
+        /// This allows loading anim7+ files and any other additional animation files.
+        /// </summary>
+        private static void DiscoverDynamicAnimFiles()
+        {
+            if (string.IsNullOrEmpty(RootDir) || !System.IO.Directory.Exists(RootDir))
+            {
+                return;
+            }
+
+            // Patterns for dynamic animation file discovery
+            string[] animPatterns = { "anim*.idx", "anim*.mul" };
+
+            // Discover animation files
+            foreach (string pattern in animPatterns)
+            {
+                var files = System.IO.Directory.GetFiles(RootDir, pattern, System.IO.SearchOption.TopDirectoryOnly);
+                foreach (var filePath in files)
+                {
+                    string fileName = Path.GetFileName(filePath);
+                    if (!MulPath.ContainsKey(fileName))
+                    {
+                        MulPath[fileName] = fileName;
+                    }
+                }
+            }
+        }
+
+        /// <summary>
         /// ReSets <see cref="MulPath"/> with given path
         /// </summary>
         /// <param name="path"></param>
@@ -339,6 +372,9 @@ namespace Ultima
 
             // Dynamically discover additional map files
             DiscoverDynamicMapFiles();
+
+            // Dynamically discover additional animation files
+            DiscoverDynamicAnimFiles();
         }
 
         /// <summary>
@@ -401,6 +437,39 @@ namespace Ultima
             }
 
             return facetIndices;
+        }
+
+        /// <summary>
+        /// Gets all available animation file indices (e.g., returns [0, 1, 2, 3, 4, 5, 6, 7, 8] for anim.mul through anim8.mul)
+        /// Returns indices of anim files that have both .idx and .mul present
+        /// </summary>
+        /// <summary>
+        /// Gets all available animation file indices
+        /// Returns file type indices where: anim.idx = 1, anim2.idx = 2, anim3.idx = 3, etc.
+        /// File type 1 (not 0) represents anim.idx for historical compatibility
+        /// </summary>
+        public static List<int> GetAvailableAnimFiles()
+        {
+            var animIndices = new List<int>();
+
+            // Check anim.idx (corresponds to fileType = 1)
+            if (GetFilePath("anim.idx") != null && GetFilePath("anim.mul") != null)
+            {
+                animIndices.Add(1);
+            }
+
+            // Check anim2-anim99 (fileType = 2-99, direct mapping)
+            for (int i = 2; i <= 99; i++)
+            {
+                string idxFileName = $"anim{i}.idx";
+                string mulFileName = $"anim{i}.mul";
+                if (GetFilePath(idxFileName) != null && GetFilePath(mulFileName) != null)
+                {
+                    animIndices.Add(i);
+                }
+            }
+
+            return animIndices;
         }
 
         private static readonly string[] _knownRegKeys = {

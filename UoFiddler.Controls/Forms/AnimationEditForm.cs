@@ -334,6 +334,97 @@ namespace UoFiddler.Controls.Forms
         {
             Options.LoadedUltimaClass["AnimationEdit"] = true;
 
+            // Ensure Animations and AnimationEdit have reloaded and discovered any animN files
+            // Pass profile name if available
+            string profileName = null;
+            try
+            {
+                var optionsType = Type.GetType("UoFiddler.Controls.Classes.Options, UoFiddler.Controls");
+                if (optionsType != null)
+                {
+                    var profileProp = optionsType.GetProperty("ProfileName");
+                    if (profileProp != null)
+                        profileName = profileProp.GetValue(null) as string;
+                }
+            }
+            catch { }
+
+            try
+            {
+                Ultima.Animations.Reload(null, profileName);
+            }
+            catch
+            {
+                // ignore reload errors
+            }
+
+            try
+            {
+                Ultima.AnimationEdit.Reload(null, profileName);
+            }
+            catch
+            {
+                // ignore
+            }
+
+            // Populate file selection combo dynamically based on available anim files
+            try
+            {
+                // Temporarily detach event handler to avoid recursive SelectedIndexChanged calls
+                SelectFileToolStripComboBox.SelectedIndexChanged -= OnAnimChanged;
+
+                SelectFileToolStripComboBox.Items.Clear();
+                SelectFileToolStripComboBox.Items.Add("Choose anim file");
+
+                int maxType = 5;
+                // Use AnimationEdit's available file types since that's what's actually being edited
+                var typesEdit = Ultima.AnimationEdit.GetAvailableFileTypes();
+                var typesAnim = Ultima.Animations.GetAvailableFileTypes();
+                int foundEdit = 0;
+                int foundAnim = 0;
+
+                if (typesEdit != null)
+                {
+                    foreach (var t in typesEdit)
+                    {
+                        if (t > foundEdit) foundEdit = t;
+                    }
+                }
+
+                if (typesAnim != null)
+                {
+                    foreach (var t in typesAnim)
+                    {
+                        if (t > foundAnim) foundAnim = t;
+                    }
+                }
+
+                if (foundEdit > 0) maxType = foundEdit;
+                if (foundAnim > foundEdit && foundAnim > 0) maxType = foundAnim;
+
+                for (int i = 1; i <= maxType; ++i)
+                {
+                    if (i == 1)
+                        SelectFileToolStripComboBox.Items.Add("anim");
+                    else
+                        SelectFileToolStripComboBox.Items.Add($"anim{i}");
+                }
+
+                // Ensure selection is valid (defaults to 0)
+                if (_fileType >= 0 && _fileType <= maxType)
+                    SelectFileToolStripComboBox.SelectedIndex = _fileType;
+                else
+                    SelectFileToolStripComboBox.SelectedIndex = 0;
+
+                // Re-attach handler
+                SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged;
+            }
+            catch (Exception ex)
+            {
+                // ignore and leave designer defaults
+                try { SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged; } catch { }
+            }
+
             _galleryBodies.Clear();
             AnimationListTreeView.BeginUpdate();
             try

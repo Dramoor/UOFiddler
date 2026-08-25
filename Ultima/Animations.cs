@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -50,20 +52,57 @@ namespace Ultima
                  | ((isUop ? 1L : 0L) << 50);
         }
 
-        private static FileIndex _fileIndex = new FileIndex("Anim.idx", "Anim.mul", 0x40000, 6);
-        private static FileIndex _fileIndex2 = new FileIndex("Anim2.idx", "Anim2.mul", 0x10000, -1);
-        private static FileIndex _fileIndex3 = new FileIndex("Anim3.idx", "Anim3.mul", 0x20000, -1);
-        private static FileIndex _fileIndex4 = new FileIndex("Anim4.idx", "Anim4.mul", 0x20000, -1);
-        private static FileIndex _fileIndex5 = new FileIndex("Anim5.idx", "Anim5.mul", 0x20000, -1);
-        private static FileIndex _fileIndex6 = new FileIndex("Anim6.idx", "Anim6.mul", 0x20000, -1);
+        // Dynamic animation file registry keyed by file type index
+        private static Dictionary<int, FileIndex> _fileIndices = new Dictionary<int, FileIndex>();
+        private static Dictionary<int, AnimMapConfiguration> _animMapConfig = new Dictionary<int, AnimMapConfiguration>();
 
         private static byte[] _streamBuffer;
 
+        // Legacy fallback fields for backward compatibility (used in Reload initialization)
+        private static FileIndex _fileIndex;
+        private static FileIndex _fileIndex2;
+        private static FileIndex _fileIndex3;
+        private static FileIndex _fileIndex4;
+        private static FileIndex _fileIndex5;
+        private static FileIndex _fileIndex6;
+
+        private static bool _initialized = false;
+
         /// <summary>
-        /// Rereads AnimX files and bodyconv, body.def
+        /// Ensures legacy files are initialized (called before any access)
         /// </summary>
-        public static void Reload()
+        private static void EnsureInitialized()
         {
+            if (!_initialized)
+            {
+                _fileIndex = new FileIndex("Anim.idx", "Anim.mul", 0x40000, 6);
+                _fileIndex2 = new FileIndex("Anim2.idx", "Anim2.mul", 0x10000, -1);
+                _fileIndex3 = new FileIndex("Anim3.idx", "Anim3.mul", 0x20000, -1);
+                _fileIndex4 = new FileIndex("Anim4.idx", "Anim4.mul", 0x20000, -1);
+                _fileIndex5 = new FileIndex("Anim5.idx", "Anim5.mul", 0x20000, -1);
+                _fileIndex6 = new FileIndex("Anim6.idx", "Anim6.mul", 0x20000, -1);
+
+                // Add to dynamic registry with correct fileType mappings
+                // fileType 1 = Anim.idx, fileType 2-6 = Anim2-6.idx
+                _fileIndices[1] = _fileIndex;
+                _fileIndices[2] = _fileIndex2;
+                _fileIndices[3] = _fileIndex3;
+                _fileIndices[4] = _fileIndex4;
+                _fileIndices[5] = _fileIndex5;
+                _fileIndices[6] = _fileIndex6;
+
+                _initialized = true;
+            }
+        }
+
+        /// <summary>
+        /// Rereads AnimX files with profile-specific AnimMap support
+        /// </summary>
+        public static void Reload(string appDataPath = null, string profileName = null)
+        {
+            EnsureInitialized();
+
+            // Dispose legacy fallback fields
             _fileIndex?.Dispose();
             _fileIndex2?.Dispose();
             _fileIndex3?.Dispose();
@@ -71,14 +110,36 @@ namespace Ultima
             _fileIndex5?.Dispose();
             _fileIndex6?.Dispose();
 
-            _cache?.Clear();
+            // Dispose all dynamic file indices
+            foreach (var fileIndex in _fileIndices.Values)
+            {
+                fileIndex?.Dispose();
+            }
+            _fileIndices.Clear();
+            _animMapConfig.Clear();
 
+            // Reinitialize legacy files
             _fileIndex = new FileIndex("Anim.idx", "Anim.mul", 0x40000, 6);
             _fileIndex2 = new FileIndex("Anim2.idx", "Anim2.mul", 0x10000, -1);
             _fileIndex3 = new FileIndex("Anim3.idx", "Anim3.mul", 0x20000, -1);
             _fileIndex4 = new FileIndex("Anim4.idx", "Anim4.mul", 0x20000, -1);
             _fileIndex5 = new FileIndex("Anim5.idx", "Anim5.mul", 0x20000, -1);
             _fileIndex6 = new FileIndex("Anim6.idx", "Anim6.mul", 0x20000, -1);
+
+            // Add legacy files to dynamic registry with correct fileType mappings
+            // fileType 1 = Anim.idx, fileType 2-6 = Anim2-6.idx
+            _fileIndices[1] = _fileIndex;
+            _fileIndices[2] = _fileIndex2;
+            _fileIndices[3] = _fileIndex3;
+            _fileIndices[4] = _fileIndex4;
+            _fileIndices[5] = _fileIndex5;
+            _fileIndices[6] = _fileIndex6;
+
+            // Load AnimMap.xml configuration with profile support
+            LoadAnimMapConfig(appDataPath, profileName);
+
+            // Discover and initialize anim7+ files dynamically
+            InitializeDynamicAnimFiles();
 
             BodyConverter.Initialize();
             BodyTable.Initialize();
@@ -88,6 +149,81 @@ namespace Ultima
             // just reloaded above, so drop the cache to force a rebuild from the current data - otherwise a
             // stale table keeps applying the old body.def translation and ignores bodyconv.def mappings.
             _table = null;
+        }
+
+        /// <summary>
+        /// Loads the AnimMap configuration from default location or profile-specific location.
+        /// Can be called with explicit parameters or will attempt to load from standard Options paths.
+        /// </summary>
+        private static void LoadAnimMapConfig(string appDataPath = null, string profileName = null)
+        {
+            // If not provided, try to get from Options (may fail if Options is not initialized)
+            if (appDataPath == null)
+            {
+                try
+                {
+                    var optionsType = Type.GetType("UoFiddler.Controls.Classes.Options, UoFiddler.Controls");
+                    if (optionsType != null)
+                    {
+                        var appDataProp = optionsType.GetProperty("AppDataPath");
+                        var profileProp = optionsType.GetProperty("ProfileName");
+                        if (appDataProp != null)
+                            appDataPath = appDataProp.GetValue(null) as string;
+                        if (profileProp != null)
+                            profileName = profileProp.GetValue(null) as string;
+                    }
+                }
+                catch
+                {
+                    // Ignore reflection errors, will use default path
+                }
+            }
+
+            // Fallback to default path if Options is not available
+            if (appDataPath == null)
+            {
+                appDataPath = Path.Combine(
+                    Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                    "UOFiddler"
+                );
+                // Also check local path
+                if (!Directory.Exists(appDataPath))
+                {
+                    appDataPath = AppDomain.CurrentDomain.BaseDirectory;
+                }
+            }
+
+            _animMapConfig = AnimMapLoader.LoadAnimMap(appDataPath, profileName);
+        }
+
+        /// <summary>
+        /// Initializes FileIndex objects for any dynamically discovered anim7+ files
+        /// </summary>
+        private static void InitializeDynamicAnimFiles()
+        {
+            var availableAnimFiles = Files.GetAvailableAnimFiles();
+
+            // Iterate through all discovered files, only process those not already in the registry
+            // (files 1-6 are already initialized as legacy files in _fileIndices)
+            foreach (int fileType in availableAnimFiles)
+            {
+                if (!_fileIndices.ContainsKey(fileType))
+                {
+                    // Determine correct naming (fileType 1 = anim.idx, fileType 2+ = anim#.idx)
+                    string idxFileName = fileType == 1 ? "Anim.idx" : $"Anim{fileType}.idx";
+                    string mulFileName = fileType == 1 ? "Anim.mul" : $"Anim{fileType}.mul";
+
+                    // Get configuration from AnimMap.xml or use defaults
+                    AnimMapConfiguration config = _animMapConfig.ContainsKey(fileType)
+                        ? _animMapConfig[fileType]
+                        : AnimMapLoader.GetAnimConfiguration(idxFileName, fileType);
+
+                    // Create FileIndex with default capacity (0x20000 like Anim3-6)
+                    var fileIndex = new FileIndex(idxFileName, mulFileName, 0x20000, -1);
+                    _fileIndices[fileType] = fileIndex;
+                    _animMapConfig[fileType] = config;
+                }
+            }
         }
 
         /// <summary>
@@ -403,10 +539,44 @@ namespace Ultima
         /// <returns></returns>
         public static int GetAnimCount(int fileType)
         {
+            EnsureInitialized();
+
+            // Try to get FileIndex from dynamic registry
+            if (_fileIndices.TryGetValue(fileType, out FileIndex fileIndex))
+            {
+                // Use AnimMap.xml segment configuration if available
+                if (_animMapConfig.TryGetValue(fileType, out AnimMapConfiguration config))
+                {
+                    // Calculate max body based on segments
+                    int maxBody = 0;
+                    foreach (var segment in config.Segments)
+                    {
+                        // If segment has end == -1, it goes to the end of the file
+                        if (segment.End == -1)
+                        {
+                            // Calculate based on file size and entries per body
+                            int maxEntries = (int)(fileIndex.IdxLength / 12);
+                            maxBody = Math.Max(maxBody, segment.Start + (maxEntries / segment.EntriesPerBody));
+                        }
+                        else
+                        {
+                            maxBody = Math.Max(maxBody, segment.End);
+                        }
+                    }
+                    return maxBody;
+                }
+                else
+                {
+                    // Fallback: use file size if no config
+                    // This is a reasonable default for unknown files
+                    return 400 + ((int)(fileIndex.IdxLength - (35000 * 12)) / (12 * 175));
+                }
+            }
+
+            // Fallback for legacy hardcoded files (shouldn't normally reach here if _initialized properly)
             switch (fileType)
             {
                 case 1:
-                default:
                     return 400 + ((int)(_fileIndex.IdxLength - (35000 * 12)) / (12 * 175));
                 case 2:
                     return 200 + ((int)(_fileIndex2.IdxLength - (22000 * 12)) / (12 * 65));
@@ -418,7 +588,19 @@ namespace Ultima
                     return 400 + ((int)(_fileIndex5.IdxLength - (35000 * 12)) / (12 * 175));
                 case 6:
                     return 400 + ((int)(_fileIndex6.IdxLength - (35000 * 12)) / (12 * 175));
+                default:
+                    return 400; // Safe default
             }
+        }
+
+        /// <summary>
+        /// Returns a list of all available animation file type indices
+        /// This includes both legacy files (1-6) and any dynamically discovered anim7+ files
+        /// </summary>
+        public static System.Collections.Generic.IEnumerable<int> GetAvailableFileTypes()
+        {
+            EnsureInitialized();
+            return _fileIndices.Keys;
         }
 
         /// <summary>
@@ -576,101 +758,42 @@ namespace Ultima
         /// <param name="index"></param>
         private static void GetFileIndex(int body, int action, int direction, int fileType, out FileIndex fileIndex, out int index)
         {
-            switch (fileType)
+            EnsureInitialized();
+
+            fileIndex = null;
+            index = 0;
+
+            // Try to get the FileIndex from dynamic registry
+            if (_fileIndices.TryGetValue(fileType, out FileIndex dynamicFileIndex))
             {
-                case 1:
-                default:
-                    fileIndex = _fileIndex;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
+                fileIndex = dynamicFileIndex;
+            }
+            else
+            {
+                // Fallback for unknown file types (shouldn't happen with proper initialization)
+                System.Diagnostics.Debug.WriteLine($"Warning: FileType {fileType} not found in animation registry");
+                fileIndex = _fileIndex;
+                fileType = 1;
+            }
 
-                    break;
-                case 2:
-                    fileIndex = _fileIndex2;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-
-                    break;
-                case 3:
-                    fileIndex = _fileIndex3;
-                    if (body < 300)
-                    {
-                        index = body * 65;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 33000 + ((body - 300) * 110);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-                case 4:
-                    fileIndex = _fileIndex4;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-                case 5:
-                    fileIndex = _fileIndex5;
-                    if ((body < 200) && (body != 34)) // looks strange, though it works.
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
-                case 6:
-                    fileIndex = _fileIndex6;
-                    if (body < 200)
-                    {
-                        index = body * 110;
-                    }
-                    else if (body < 400)
-                    {
-                        index = 22000 + ((body - 200) * 65);
-                    }
-                    else
-                    {
-                        index = 35000 + ((body - 400) * 175);
-                    }
-
-                    break;
+            // Calculate index based on the animation segments from config
+            AnimMapConfiguration config = null;
+            if (_animMapConfig.TryGetValue(fileType, out config))
+            {
+                // Use the configuration from AnimMap.xml
+                index = CalculateAnimationIndex(body, config);
+            }
+            else
+            {
+                // Fallback to Anim2 defaults (for backward compatibility)
+                if (body < 200)
+                {
+                    index = body * 110;
+                }
+                else
+                {
+                    index = 22000 + ((body - 200) * 65);
+                }
             }
 
             index += action * 5;
@@ -683,6 +806,47 @@ namespace Ultima
             {
                 index += direction - ((direction - 4) * 2);
             }
+        }
+
+        /// <summary>
+        /// Calculates the animation index for a body within a specific animation file,
+        /// using the segment ranges defined in the configuration.
+        /// </summary>
+        private static int CalculateAnimationIndex(int body, AnimMapConfiguration config)
+        {
+            if (config?.Segments == null || config.Segments.Count == 0)
+            {
+                // Fallback if config is invalid
+                return body < 200 ? body * 110 : 22000 + ((body - 200) * 65);
+            }
+
+            int baseIndex = 0;
+            foreach (var segment in config.Segments)
+            {
+                bool inRange = body >= segment.Start && 
+                               (segment.End == -1 || body < segment.End);
+                if (inRange)
+                {
+                    int offset = body - segment.Start;
+                    return baseIndex + (offset * segment.EntriesPerBody);
+                }
+
+                // Add the size of this segment to baseIndex for the next segment
+                if (segment.End == -1)
+                {
+                    // Open-ended segment; can't continue past it
+                    break;
+                }
+                baseIndex += (segment.End - segment.Start) * segment.EntriesPerBody;
+            }
+
+            // Body not found in any segment; use first segment as fallback
+            if (config.Segments.Count > 0)
+            {
+                return (body - config.Segments[0].Start) * config.Segments[0].EntriesPerBody;
+            }
+
+            return 0;
         }
 
         /// <summary>
