@@ -61,6 +61,14 @@ namespace Ultima
 
                 XmlNodeList animFiles = doc.SelectNodes("//AnimFile");
                 System.Diagnostics.Debug.WriteLine($"AnimMapLoader: Found {animFiles.Count} animation file definitions in {filePath}");
+                foreach (XmlNode animFileNode in animFiles)
+                {
+                    if (animFileNode is XmlElement animFileElement)
+                    {
+                        string fileName = animFileElement.GetAttribute("file");
+                        System.Diagnostics.Debug.WriteLine($"  - {fileName}");
+                    }
+                }
 
                 foreach (XmlNode animFileNode in animFiles)
                 {
@@ -101,7 +109,14 @@ namespace Ultima
                                         int.TryParse(segmentElement.GetAttribute("end"), out end);
                                     }
 
-                                    config.Segments.Add(new AnimMapSegment(start, end, entriesPerBody));
+                                    int offset = 0;  // Default to no offset
+                                    if (!string.IsNullOrEmpty(segmentElement.GetAttribute("offset")))
+                                    {
+                                        int.TryParse(segmentElement.GetAttribute("offset"), out offset);
+                                    }
+
+                                    config.Segments.Add(new AnimMapSegment(start, end, entriesPerBody, offset));
+                                    System.Diagnostics.Debug.WriteLine($"    Segment: start={start}, end={end}, entriesPerBody={entriesPerBody}, offset={offset}");
                                 }
                             }
                         }

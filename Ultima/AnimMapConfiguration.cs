@@ -59,6 +59,11 @@ namespace Ultima
         /// </summary>
         public int EntriesPerBody { get; set; }
 
+        /// <summary>
+        /// Byte offset in the MUL file where this segment starts (0 if not specified)
+        /// </summary>
+        public int Offset { get; set; } = 0;
+
         public AnimMapSegment()
         {
         }
@@ -68,6 +73,14 @@ namespace Ultima
             Start = start;
             End = end;
             EntriesPerBody = entriesPerBody;
+        }
+
+        public AnimMapSegment(int start, int end, int entriesPerBody, int offset)
+        {
+            Start = start;
+            End = end;
+            EntriesPerBody = entriesPerBody;
+            Offset = offset;
         }
     }
 }

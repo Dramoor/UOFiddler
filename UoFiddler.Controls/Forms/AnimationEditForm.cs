@@ -351,7 +351,7 @@ namespace UoFiddler.Controls.Forms
 
             try
             {
-                Ultima.Animations.Reload(null, profileName);
+                Ultima.Animations.Reload();
             }
             catch
             {
@@ -360,14 +360,14 @@ namespace UoFiddler.Controls.Forms
 
             try
             {
-                Ultima.AnimationEdit.Reload(null, profileName);
+                Ultima.AnimationEdit.Reload();
             }
             catch
             {
                 // ignore
             }
 
-            // Populate file selection combo dynamically based on available anim files
+            // Populate file selection combo with anim1-6
             try
             {
                 // Temporarily detach event handler to avoid recursive SelectedIndexChanged calls
@@ -376,33 +376,8 @@ namespace UoFiddler.Controls.Forms
                 SelectFileToolStripComboBox.Items.Clear();
                 SelectFileToolStripComboBox.Items.Add("Choose anim file");
 
-                int maxType = 5;
-                // Use AnimationEdit's available file types since that's what's actually being edited
-                var typesEdit = Ultima.AnimationEdit.GetAvailableFileTypes();
-                var typesAnim = Ultima.Animations.GetAvailableFileTypes();
-                int foundEdit = 0;
-                int foundAnim = 0;
-
-                if (typesEdit != null)
-                {
-                    foreach (var t in typesEdit)
-                    {
-                        if (t > foundEdit) foundEdit = t;
-                    }
-                }
-
-                if (typesAnim != null)
-                {
-                    foreach (var t in typesAnim)
-                    {
-                        if (t > foundAnim) foundAnim = t;
-                    }
-                }
-
-                if (foundEdit > 0) maxType = foundEdit;
-                if (foundAnim > foundEdit && foundAnim > 0) maxType = foundAnim;
-
-                for (int i = 1; i <= maxType; ++i)
+                // Standard anim1-6 file types
+                for (int i = 1; i <= 6; ++i)
                 {
                     if (i == 1)
                         SelectFileToolStripComboBox.Items.Add("anim");
@@ -410,11 +385,11 @@ namespace UoFiddler.Controls.Forms
                         SelectFileToolStripComboBox.Items.Add($"anim{i}");
                 }
 
-                // Ensure selection is valid (defaults to 0)
-                if (_fileType >= 0 && _fileType <= maxType)
+                // Ensure selection is valid (defaults to 1 for 'anim')
+                if (_fileType >= 1 && _fileType <= 6)
                     SelectFileToolStripComboBox.SelectedIndex = _fileType;
                 else
-                    SelectFileToolStripComboBox.SelectedIndex = 0;
+                    SelectFileToolStripComboBox.SelectedIndex = 1; // Default to 'anim' file
 
                 // Re-attach handler
                 SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged;

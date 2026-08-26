@@ -386,6 +386,38 @@ namespace Ultima
         }
 
         /// <summary>
+        /// Gets the maximum server body ID that has a mapping to the specified file type.
+        /// </summary>
+        public static int GetMaxBodyForFileType(int fileType)
+        {
+            int[] table = fileType switch
+            {
+                2 => Table1,
+                3 => Table2,
+                4 => Table3,
+                5 => Table4,
+                6 => Table5,
+                _ => null
+            };
+
+            if (table == null)
+            {
+                return -1;
+            }
+
+            // Find the highest index with a non-(-1) value
+            for (int i = table.Length - 1; i >= 0; --i)
+            {
+                if (table[i] != -1)
+                {
+                    return i;
+                }
+            }
+
+            return -1;
+        }
+
+        /// <summary>
         /// Converts backward
         /// </summary>
         /// <param name="fileType"></param>

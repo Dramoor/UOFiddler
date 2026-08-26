@@ -252,40 +252,101 @@ namespace Ultima
         private static void GetFileIndex(
                 int body, int fileType, int action, int direction, out FileIndex fileIndex, out int index)
         {
-            fileIndex = null;
-            index = 0;
+            switch (fileType)
+            {
+                case 1:
+                default:
+                    fileIndex = _fileIndex;
+                    if (body < 200)
+                    {
+                        index = body * 110;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
 
-            // Try to get the FileIndex from dynamic registry
-            if (_fileIndices.TryGetValue(fileType, out FileIndex dynamicFileIndex))
-            {
-                fileIndex = dynamicFileIndex;
-            }
-            else
-            {
-                // Fallback for unknown file types (shouldn't happen with proper initialization)
-                System.Diagnostics.Debug.WriteLine($"Warning: FileType {fileType} not found in animation registry");
-                fileIndex = _fileIndex;
-                fileType = 1;
-            }
+                    break;
+                case 2:
+                    fileIndex = _fileIndex2;
+                    if (body < 200)
+                    {
+                        index = body * 110;
+                    }
+                    else
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
 
-            // Calculate index based on the animation segments from config
-            AnimMapConfiguration config = null;
-            if (_animMapConfig.TryGetValue(fileType, out config))
-            {
-                // Use the configuration from AnimMap.xml
-                index = CalculateAnimationIndex(body, config);
-            }
-            else
-            {
-                // Fallback to Anim2 defaults (for backward compatibility)
-                if (body < 200)
-                {
-                    index = body * 110;
-                }
-                else
-                {
-                    index = 22000 + ((body - 200) * 65);
-                }
+                    break;
+                case 3:
+                    fileIndex = _fileIndex3;
+                    if (body < 300)
+                    {
+                        index = body * 65;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 33000 + ((body - 300) * 110);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
+                case 4:
+                    fileIndex = _fileIndex4;
+                    if (body < 200)
+                    {
+                        index = body * 110;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
+                case 5:
+                    fileIndex = _fileIndex5;
+                    if ((body < 200) && (body != 34))
+                    {
+                        index = body * 110;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
+                case 6:
+                    fileIndex = _fileIndex6;
+                    if (body < 200)
+                    {
+                        index = body * 110;
+                    }
+                    else if (body < 400)
+                    {
+                        index = 22000 + ((body - 200) * 65);
+                    }
+                    else
+                    {
+                        index = 35000 + ((body - 400) * 175);
+                    }
+
+                    break;
             }
 
             index += action * 5;
