@@ -118,7 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.2.9
+    <value>Version 5.3.0
+- Update to a better way for loading Animations past Anim6. 
+- Items tab can now export a generic script for an item by right clicking. This can work in ServUO, RunUO, and ModernUO scripts. 
+
+Version 5.2.9
 - Update to current uo fiddler with my custom updates.
 
 Version 5.2.8
@@ -164,7 +168,7 @@ Version 5.1.7
 - MultiCollection.UOP can be read and written in the .uop compressed format that can read on the CUO client and on the OSI client. Some programs cannot read the file though, Still needs some tweaking.
 	
 Version 5.1.6
-- This dynaimcally loads all anim.mul/anim.idx files and allows for using in animedit. This will load info from a AnimMap.xml file that is in the appdata directory. You can edit them for profile by adding AnimMap_profilename.xml as the name to load with a specific profile. 
+- This dynaimcally loads all anim.mul/anim.idx files and allows for using in animedit. These will default to using the Anim2 file structure at the moment. 
 		
 Version 5.1.5
 - Added in a check box in the misc tab to allow for dynamic searching for items in the items tab. This will load all items containing the searched name and not show the rest.

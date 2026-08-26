@@ -81,7 +81,6 @@ namespace UoFiddler.Classes
             MoveFiles(di.GetFiles("Multilist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Gumplist.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("DynamicItems.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
-            MoveFiles(di.GetFiles("AnimMap.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
             MoveFiles(di.GetFiles("Mapnames.xml", SearchOption.TopDirectoryOnly), Options.AppDataPath);
 
             di = new DirectoryInfo(Path.Combine(Application.StartupPath, "plugins"));

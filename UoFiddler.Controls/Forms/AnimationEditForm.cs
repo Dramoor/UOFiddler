@@ -367,7 +367,7 @@ namespace UoFiddler.Controls.Forms
                 // ignore
             }
 
-            // Populate file selection combo with anim1-6
+            // Populate file selection combo dynamically based on available anim files
             try
             {
                 // Temporarily detach event handler to avoid recursive SelectedIndexChanged calls
@@ -376,20 +376,32 @@ namespace UoFiddler.Controls.Forms
                 SelectFileToolStripComboBox.Items.Clear();
                 SelectFileToolStripComboBox.Items.Add("Choose anim file");
 
-                // Standard anim1-6 file types
-                for (int i = 1; i <= 6; ++i)
-                {
-                    if (i == 1)
-                        SelectFileToolStripComboBox.Items.Add("anim");
-                    else
-                        SelectFileToolStripComboBox.Items.Add($"anim{i}");
-                }
+                // Get all available anim files (1-99, discovered dynamically)
+                var availableAnimFiles = Ultima.Files.GetAvailableAnimFiles();
 
-                // Ensure selection is valid (defaults to 1 for 'anim')
-                if (_fileType >= 1 && _fileType <= 6)
-                    SelectFileToolStripComboBox.SelectedIndex = _fileType;
+                if (availableAnimFiles != null && availableAnimFiles.Count > 0)
+                {
+                    foreach (int fileType in availableAnimFiles)
+                    {
+                        if (fileType == 1)
+                            SelectFileToolStripComboBox.Items.Add("anim");
+                        else
+                            SelectFileToolStripComboBox.Items.Add($"anim{fileType}");
+                    }
+
+                    // Ensure selection is valid (defaults to 1 for 'anim' if it exists)
+                    if (_fileType >= 1 && _fileType < SelectFileToolStripComboBox.Items.Count)
+                        SelectFileToolStripComboBox.SelectedIndex = _fileType;
+                    else if (availableAnimFiles.Contains(1))
+                        SelectFileToolStripComboBox.SelectedIndex = 1; // Default to 'anim' if available
+                    else
+                        SelectFileToolStripComboBox.SelectedIndex = availableAnimFiles.Count > 0 ? 1 : 0; // Use first available or placeholder
+                }
                 else
-                    SelectFileToolStripComboBox.SelectedIndex = 1; // Default to 'anim' file
+                {
+                    // No anim files found - only show placeholder
+                    SelectFileToolStripComboBox.SelectedIndex = 0;
+                }
 
                 // Re-attach handler
                 SelectFileToolStripComboBox.SelectedIndexChanged += OnAnimChanged;
