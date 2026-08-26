@@ -20,8 +20,10 @@ namespace UoFiddler.Controls.Classes
         /// <param name="previewHue">The preview hue value (if useHue is true)</param>
         /// <param name="isStackable">Whether the item is stackable</param>
         /// <param name="prefix">The prefix to add to the item name (None, A, An, The)</param>
+        /// <param name="lootType">The loot type (Regular, Newbied, Blessed, Cursed)</param>
+        /// <param name="flippableId">The flippable graphic ID (0 if not flippable)</param>
         /// <returns>The full path to the generated script file, or null if generation failed</returns>
-        public static string GenerateItemScript(int itemId, string itemName, string outputDirectory, int itemWeight = 1, bool useHue = false, int previewHue = 0, bool isStackable = false, string prefix = "None")
+        public static string GenerateItemScript(int itemId, string itemName, string outputDirectory, int itemWeight = 1, bool useHue = false, int previewHue = 0, bool isStackable = false, string prefix = "None", string lootType = "Regular", int flippableId = 0)
         {
             if (string.IsNullOrWhiteSpace(itemName) || string.IsNullOrWhiteSpace(outputDirectory))
             {
@@ -38,7 +40,7 @@ namespace UoFiddler.Controls.Classes
                 string filePath = Path.Combine(outputDirectory, fileName);
 
                 // Generate the script content
-                string scriptContent = GenerateScriptContent(className, itemId, itemName, itemWeight, useHue, previewHue, isStackable, prefix);
+                string scriptContent = GenerateScriptContent(className, itemId, itemName, itemWeight, useHue, previewHue, isStackable, prefix, lootType, flippableId);
 
                 // Write the file
                 File.WriteAllText(filePath, scriptContent, Encoding.UTF8);
@@ -89,7 +91,7 @@ namespace UoFiddler.Controls.Classes
         /// <summary>
         /// Generates the C# script content for a ModernUO item
         /// </summary>
-        private static string GenerateScriptContent(string className, int itemId, string itemName, int itemWeight, bool useHue, int previewHue, bool isStackable, string prefix = "None")
+        private static string GenerateScriptContent(string className, int itemId, string itemName, int itemWeight, bool useHue, int previewHue, bool isStackable, string prefix = "None", string lootType = "Regular", int flippableId = 0)
         {
             string hex = $"0x{itemId:X}";
 
@@ -113,18 +115,30 @@ namespace UoFiddler.Controls.Classes
                 constructorBody.AppendLine($"        Hue = {previewHue + 1};");
             }
             constructorBody.AppendLine($"        Weight = {itemWeight};");
+            if (lootType != "Regular")
+            {
+                constructorBody.AppendLine($"        LootType = LootType.{lootType};");
+            }
 
             // Build the constructor signature
             string constructorSignature = isStackable
                 ? $"public {className}(int amount = 1) : base({hex})"
                 : $"public {className}() : base({hex})";
 
+            // Build the flippable attribute if applicable
+            string flippableAttribute = "";
+            if (flippableId > 0)
+            {
+                string flippableHex = $"0x{flippableId:X}";
+                flippableAttribute = $"[Flippable({hex}, {flippableHex})]\n";
+            }
+
             return $@"using ModernUO.Serialization;
 
 namespace Server.Items;
 
 [SerializationGenerator(0, false)]
-public partial class {className} : Item
+{flippableAttribute}    public partial class {className} : Item
 {{
     [Constructible]
     {constructorSignature}

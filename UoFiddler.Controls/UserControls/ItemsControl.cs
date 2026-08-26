@@ -1586,7 +1586,7 @@ namespace UoFiddler.Controls.UserControls
                     return;
                 }
 
-                // Generate the script with weight, hue, stackable, artifact, and prefix settings
+                // Generate the script with weight, hue, stackable, artifact, prefix, lootType, and flippable settings
                 string outputDir = Options.OutputPath;
                 int hueValue = _previewHue >= 0 ? _previewHue : 0;
                 string scriptPath = ServUOScriptGenerator.GenerateItemScript(
@@ -1598,7 +1598,9 @@ namespace UoFiddler.Controls.UserControls
                     hueValue,
                     form.IsStackable,
                     form.IsArtifact,
-                    form.SelectedPrefix);
+                    form.SelectedPrefix,
+                    form.SelectedLootType,
+                    form.FlippableId);
 
                 if (scriptPath != null)
                 {
@@ -1642,7 +1644,7 @@ namespace UoFiddler.Controls.UserControls
                     return;
                 }
 
-                // Generate the script with weight, hue, stackable, and prefix settings (no artifact for RunUO)
+                // Generate the script with weight, hue, stackable, prefix, lootType, and flippable settings (no artifact for RunUO)
                 string outputDir = Options.OutputPath;
                 int hueValue = _previewHue >= 0 ? _previewHue : 0;
                 string scriptPath = RunUOScriptGenerator.GenerateItemScript(
@@ -1653,7 +1655,9 @@ namespace UoFiddler.Controls.UserControls
                     form.UseHue, 
                     hueValue,
                     form.IsStackable,
-                    form.SelectedPrefix);
+                    form.SelectedPrefix,
+                    form.SelectedLootType,
+                    form.FlippableId);
 
                 if (scriptPath != null)
                 {
@@ -1697,7 +1701,7 @@ namespace UoFiddler.Controls.UserControls
                     return;
                 }
 
-                // Generate the script with weight, hue, stackable, and prefix settings (no artifact for ModernUO)
+                // Generate the script with weight, hue, stackable, prefix, lootType, and flippable settings (no artifact for ModernUO)
                 string outputDir = Options.OutputPath;
                 int hueValue = _previewHue >= 0 ? _previewHue : 0;
                 string scriptPath = ModernUOScriptGenerator.GenerateItemScript(
@@ -1708,7 +1712,9 @@ namespace UoFiddler.Controls.UserControls
                     form.UseHue, 
                     hueValue,
                     form.IsStackable,
-                    form.SelectedPrefix);
+                    form.SelectedPrefix,
+                    form.SelectedLootType,
+                    form.FlippableId);
 
                 if (scriptPath != null)
                 {

@@ -7,10 +7,12 @@ namespace UoFiddler.Controls.Forms
     {
         private TextBox itemNameTextBox;
         private TextBox weightTextBox;
+        private TextBox flippableTextBox;
         private CheckBox useHueCheckBox;
         private CheckBox isStackableCheckBox;
         private CheckBox isArtifactCheckBox;
         private ComboBox prefixComboBox;
+        private ComboBox lootTypeComboBox;
         private Button okButton;
         private Button cancelButton;
         private Label instructionLabel;
@@ -23,6 +25,8 @@ namespace UoFiddler.Controls.Forms
         public bool IsStackable { get; private set; }
         public bool IsArtifact { get; private set; }
         public string SelectedPrefix { get; private set; }
+        public string SelectedLootType { get; private set; }
+        public int FlippableId { get; private set; }
 
         public ItemNameInputForm(bool isItemStackable = false, bool isRunUO = false, int previewHue = -1)
         {
@@ -33,6 +37,8 @@ namespace UoFiddler.Controls.Forms
             IsStackable = false;
             IsArtifact = false;
             SelectedPrefix = "None";
+            SelectedLootType = "Regular";
+            FlippableId = 0;
 
             // Only show stackable checkbox if the item can be stackable
             if (isItemStackable)
@@ -66,10 +72,12 @@ namespace UoFiddler.Controls.Forms
         {
             this.itemNameTextBox = new TextBox();
             this.weightTextBox = new TextBox();
+            this.flippableTextBox = new TextBox();
             this.useHueCheckBox = new CheckBox();
             this.isStackableCheckBox = new CheckBox();
             this.isArtifactCheckBox = new CheckBox();
             this.prefixComboBox = new ComboBox();
+            this.lootTypeComboBox = new ComboBox();
             this.okButton = new Button();
             this.cancelButton = new Button();
             this.instructionLabel = new Label();
@@ -78,6 +86,8 @@ namespace UoFiddler.Controls.Forms
             Label stackableLabel = new Label();
             Label artifactLabel = new Label();
             Label prefixLabel = new Label();
+            Label lootTypeLabel = new Label();
+            Label flippableLabel = new Label();
 
             // 
 
@@ -200,13 +210,54 @@ namespace UoFiddler.Controls.Forms
             this.prefixComboBox.SelectedIndex = 0;
 
             // 
+            // lootTypeLabel
+            // 
+            lootTypeLabel.AutoSize = true;
+            lootTypeLabel.Location = new System.Drawing.Point(150, 105);
+            lootTypeLabel.Name = "lootTypeLabel";
+            lootTypeLabel.Size = new System.Drawing.Size(62, 13);
+            lootTypeLabel.TabIndex = 12;
+            lootTypeLabel.Text = "Loot Type:";
+
+            // 
+            // lootTypeComboBox
+            // 
+            this.lootTypeComboBox.DropDownStyle = ComboBoxStyle.DropDownList;
+            this.lootTypeComboBox.FormattingEnabled = true;
+            this.lootTypeComboBox.Items.AddRange(new object[] { "Regular", "Newbied", "Blessed", "Cursed" });
+            this.lootTypeComboBox.Location = new System.Drawing.Point(220, 102);
+            this.lootTypeComboBox.Name = "lootTypeComboBox";
+            this.lootTypeComboBox.Size = new System.Drawing.Size(100, 21);
+            this.lootTypeComboBox.TabIndex = 13;
+            this.lootTypeComboBox.SelectedIndex = 0;
+
+            // 
+            // flippableLabel
+            // 
+            flippableLabel.AutoSize = true;
+            flippableLabel.Location = new System.Drawing.Point(12, 130);
+            flippableLabel.Name = "flippableLabel";
+            flippableLabel.Size = new System.Drawing.Size(62, 13);
+            flippableLabel.TabIndex = 14;
+            flippableLabel.Text = "Flippable:";
+
+            // 
+            // flippableTextBox
+            // 
+            this.flippableTextBox.Location = new System.Drawing.Point(80, 127);
+            this.flippableTextBox.Name = "flippableTextBox";
+            this.flippableTextBox.Size = new System.Drawing.Size(120, 20);
+            this.flippableTextBox.TabIndex = 15;
+            this.flippableTextBox.Text = "";
+
+            // 
             // okButton
             // 
             this.okButton.DialogResult = DialogResult.OK;
-            this.okButton.Location = new System.Drawing.Point(216, 130);
+            this.okButton.Location = new System.Drawing.Point(216, 185);
             this.okButton.Name = "okButton";
             this.okButton.Size = new System.Drawing.Size(75, 23);
-            this.okButton.TabIndex = 12;
+            this.okButton.TabIndex = 16;
             this.okButton.Text = "OK";
             this.okButton.UseVisualStyleBackColor = true;
             this.okButton.Click += okButton_Click;
@@ -215,10 +266,10 @@ namespace UoFiddler.Controls.Forms
             // cancelButton
             // 
             this.cancelButton.DialogResult = DialogResult.Cancel;
-            this.cancelButton.Location = new System.Drawing.Point(297, 130);
+            this.cancelButton.Location = new System.Drawing.Point(297, 185);
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(75, 23);
-            this.cancelButton.TabIndex = 13;
+            this.cancelButton.TabIndex = 17;
             this.cancelButton.Text = "Cancel";
             this.cancelButton.UseVisualStyleBackColor = true;
 
@@ -229,9 +280,13 @@ namespace UoFiddler.Controls.Forms
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = AutoScaleMode.Font;
             this.CancelButton = this.cancelButton;
-            this.ClientSize = new System.Drawing.Size(384, 165);
+            this.ClientSize = new System.Drawing.Size(384, 225);
             this.Controls.Add(this.cancelButton);
             this.Controls.Add(this.okButton);
+            this.Controls.Add(this.flippableTextBox);
+            this.Controls.Add(flippableLabel);
+            this.Controls.Add(this.lootTypeComboBox);
+            this.Controls.Add(lootTypeLabel);
             this.Controls.Add(this.prefixComboBox);
             this.Controls.Add(prefixLabel);
             this.Controls.Add(this.isArtifactCheckBox);
@@ -263,6 +318,7 @@ namespace UoFiddler.Controls.Forms
             IsStackable = isStackableCheckBox.Checked;
             IsArtifact = isArtifactCheckBox.Checked;
             SelectedPrefix = prefixComboBox.SelectedItem?.ToString() ?? "None";
+            SelectedLootType = lootTypeComboBox.SelectedItem?.ToString() ?? "Regular";
 
             // Parse weight, default to 1 if invalid
             if (!int.TryParse(weightTextBox.Text, out int weight) || weight < 0)
@@ -270,6 +326,29 @@ namespace UoFiddler.Controls.Forms
                 weight = 1;
             }
             ItemWeight = weight;
+
+            // Parse flippable ID - supports both hex (0x####) and decimal formats
+            FlippableId = 0;
+            string flippableInput = flippableTextBox.Text.Trim();
+            if (!string.IsNullOrEmpty(flippableInput))
+            {
+                if (flippableInput.StartsWith("0x", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Hex format
+                    if (int.TryParse(flippableInput.Substring(2), System.Globalization.NumberStyles.HexNumber, null, out int hexValue))
+                    {
+                        FlippableId = hexValue;
+                    }
+                }
+                else
+                {
+                    // Decimal format
+                    if (int.TryParse(flippableInput, out int decimalValue))
+                    {
+                        FlippableId = decimalValue;
+                    }
+                }
+            }
 
             this.DialogResult = DialogResult.OK;
             this.Close();

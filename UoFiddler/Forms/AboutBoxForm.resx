@@ -118,7 +118,10 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.3.0
+    <value>Version 5.3.1
+- Can now make flipable items and set the loottype in the script making for modernuo, servuo, and runuo.
+
+Version 5.3.0
 - Update to a better way for loading Animations past Anim6. 
 - Items tab can now export a generic script for an item by right clicking. This can work in ServUO, RunUO, and ModernUO scripts. 
 
