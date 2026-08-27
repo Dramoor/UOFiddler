@@ -1439,6 +1439,151 @@ namespace Ultima
 
         internal static void ScaleAndSaveFrame(FrameEdit frame, float scale, ushort[] palette, BinaryWriter output)
         {
+            if (frame == null) return;
+
+            if (Math.Abs(scale - 1.0f) < 0.001f)
+            {
+                frame.Save(output);
+                return;
+            }
+
+            int width = frame.Width;
+            int height = frame.Height;
+
+            // FIX: Change TRANSPARENT_MARKER from 0x00 to 0xFF. 
+            // This leaves index 0 free to be drawn as a real color so legs don't get holes.
+            const byte TRANSPARENT_MARKER = 0xFF;
+
+            // Step 1: Decode the frame's run-length data into a 2D indexed pixel grid
+            byte[][] pixelGrid = new byte[height][];
+            for (int i = 0; i < height; i++)
+            {
+                pixelGrid[i] = new byte[width];
+                Array.Fill(pixelGrid[i], TRANSPARENT_MARKER);
+            }
+
+            int xBase = frame.Center.X - 0x200;
+            int yBase = frame.Center.Y + height - 0x200;
+
+            if (frame.RawData != null)
+            {
+                foreach (var raw in frame.RawData)
+                {
+                    int xStart = xBase + raw.offsetX;
+                    int yPos = yBase + raw.offsetY;
+
+                    if (yPos < 0 || yPos >= height || raw.data == null)
+                        continue;
+
+                    for (int i = 0; i < raw.run && i < raw.data.Length; i++)
+                    {
+                        int xPos = xStart + i;
+                        if (xPos >= 0 && xPos < width)
+                        {
+                            // Copy index as-is. If index is 0, it safely writes 0 instead of being ignored
+                            pixelGrid[yPos][xPos] = raw.data[i];
+                        }
+                    }
+                }
+            }
+
+            // Step 2: Scale the pixel grid using Nearest-Neighbor with Midpoint-Sampling
+            int newWidth = Math.Max(1, (int)Math.Round(width * scale));
+            int newHeight = Math.Max(1, (int)Math.Round(height * scale));
+            byte[][] scaledGrid = new byte[newHeight][];
+
+            for (int y = 0; y < newHeight; y++)
+            {
+                scaledGrid[y] = new byte[newWidth];
+
+                int srcY = (int)Math.Floor((y + 0.5f) / scale);
+                srcY = Math.Clamp(srcY, 0, height - 1);
+
+                for (int x = 0; x < newWidth; x++)
+                {
+                    int srcX = (int)Math.Floor((x + 0.5f) / scale);
+                    srcX = Math.Clamp(srcX, 0, width - 1);
+
+                    scaledGrid[y][x] = pixelGrid[srcY][srcX];
+                }
+            }
+
+            // Step 3: Scale the frame center and dimensions
+            int newCenterX = (int)Math.Round(frame.Center.X * scale);
+            int newCenterY = (int)Math.Round(frame.Center.Y * scale);
+
+            // Step 4: Write header
+            output.Write((short)newCenterX);
+            output.Write((short)newCenterY);
+            output.Write((ushort)newWidth);
+            output.Write((ushort)newHeight);
+
+            // Step 5: Re-encode the scaled grid to run format
+            const int _doubleXor = (0x200 << 22) | (0x200 << 12);
+            int newXBase = newCenterX - 0x200;
+            int newYBase = newCenterY + newHeight - 0x200;
+
+            for (int y = 0; y < newHeight; y++)
+            {
+                int x = 0;
+                while (x < newWidth)
+                {
+                    // Correctly skip our internal transparent marker (0xFF)
+                    while (x < newWidth && scaledGrid[y][x] == TRANSPARENT_MARKER)
+                        x++;
+
+                    if (x >= newWidth)
+                        break;
+
+                    int runStart = x;
+                    var runData = new List<byte>();
+
+                    // Collect opaque run data (including valid 0x00 indices!)
+                    while (x < newWidth && scaledGrid[y][x] != TRANSPARENT_MARKER)
+                    {
+                        runData.Add(scaledGrid[y][x]);
+                        x++;
+                    }
+
+                    if (runData.Count == 0)
+                        continue;
+
+                    int remainingRun = runData.Count;
+                    int runDataOffset = 0;
+
+                    while (remainingRun > 0)
+                    {
+                        int currentChunkSize = Math.Min(remainingRun, 0x3FF);
+
+                        int runOffsetX = (runStart + runDataOffset) - newXBase;
+                        int runOffsetY = y - newYBase;
+
+                        // Safe 10-bit wrap
+                        runOffsetX = ((runOffsetX % 1024) + 1024) % 1024;
+                        runOffsetY = ((runOffsetY % 1024) + 1024) % 1024;
+
+                        int header = currentChunkSize | (runOffsetY << 12) | (runOffsetX << 22);
+                        header ^= _doubleXor;
+                        output.Write(header);
+
+                        for (int i = 0; i < currentChunkSize; i++)
+                        {
+                            output.Write(runData[runDataOffset + i]);
+                        }
+
+                        remainingRun -= currentChunkSize;
+                        runDataOffset += currentChunkSize;
+                    }
+                }
+            }
+
+            output.Write(0x7FFF7FFF);
+        }
+
+
+        /*
+        internal static void ScaleAndSaveFrame(FrameEdit frame, float scale, ushort[] palette, BinaryWriter output)
+        {
             // Null check
             if (frame == null)
             {
@@ -1522,6 +1667,7 @@ namespace Ultima
             output.Write((ushort)newHeight);
 
             // Step 5: Re-encode the scaled grid to run format using the same coordinate system
+            const int _doubleXor = (0x200 << 22) | (0x200 << 12);
             int newXBase = newCenterX - 0x200;
             int newYBase = newCenterY + newHeight - 0x200;
 
@@ -1571,5 +1717,7 @@ namespace Ultima
 
             output.Write(0x7FFF7FFF);
         }
+    */
+
     }
 }
