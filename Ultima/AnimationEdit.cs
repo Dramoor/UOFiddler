@@ -1096,40 +1096,6 @@ namespace Ultima
         }
 
         /// <summary>
-        /// Corrects pure black (0,0,0) to near-black (0,0,8) and pure white (255,255,255) to near-white (255,255,247).
-        /// This prevents the UO client from being unable to read these pixels.
-        /// Converts 16-bit ARGB1555 color by fixing palette colors if needed.
-        /// </summary>
-        private static ushort CorrectPureColor(ushort color16bit)
-        {
-            // In ARGB1555: bit 15 = alpha, bits 14-10 = red, bits 9-5 = green, bits 4-0 = blue
-            // Extract individual components (5 bits each, so values 0-31)
-            int red = (color16bit >> 10) & 0x1F;
-            int green = (color16bit >> 5) & 0x1F;
-            int blue = color16bit & 0x1F;
-            int alpha = (color16bit >> 15) & 0x01;
-
-            // Check for pure black (0,0,0) and convert to near-black (0,0,1)
-            // In 5-bit: pure black = (0,0,0), near-black = (0,0,1)
-            if (red == 0 && green == 0 && blue == 0)
-            {
-                // Change to (0,0,1) in 5-bit = (0,0,8) in 8-bit
-                blue = 1;
-            }
-            // Check for pure white (31,31,31) and convert to near-white (31,31,30)
-            // In 5-bit: pure white = (31,31,31), near-white = (31,31,30)
-            else if (red == 31 && green == 31 && blue == 31)
-            {
-                // Change to (31,31,30) in 5-bit = (255,255,247) in 8-bit
-                blue = 30;
-            }
-
-            // Reconstruct the 16-bit color
-            ushort corrected = (ushort)((alpha << 15) | (red << 10) | (green << 5) | blue);
-            return corrected;
-        }
-
-        /// <summary>
         /// Debug method: Export a single frame to PNG for visual inspection.
         /// </summary>
         private static void ExportFrameToPng(FrameEdit frame, ushort[] palette, string filePath)
@@ -1217,12 +1183,11 @@ namespace Ultima
             indexpos = bin.BaseStream.Position;
             bin.BaseStream.Seek(animpos, SeekOrigin.Begin);
 
-            // Write corrected palette to prevent pure black/white rendering issues
-            for (int i = 0; i < PaletteCapacity; ++i)
+            for (int i = 0; i < PaletteCapacity; i++)
             {
-                ushort correctedColor = CorrectPureColor(Palette[i]);
-                bin.Write((ushort)(correctedColor ^ 0x8000));
+                bin.Write((ushort)(Palette[i] ^ 0x8000));
             }
+
 
             long startPosition = (int)bin.BaseStream.Position;
             bin.Write(Frames.Count);
@@ -1262,11 +1227,10 @@ namespace Ultima
             indexpos = bin.BaseStream.Position;
             bin.BaseStream.Seek(animpos, SeekOrigin.Begin);
 
-            // Write corrected palette to prevent pure black/white rendering issues
+
             for (int i = 0; i < PaletteCapacity; i++)
             {
-                ushort correctedColor = CorrectPureColor(Palette[i]);
-                bin.Write((ushort)(correctedColor ^ 0x8000));
+                bin.Write((ushort)(Palette[i] ^ 0x8000));
             }
 
             long startPosition = (int)bin.BaseStream.Position;
@@ -1473,190 +1437,6 @@ namespace Ultima
             bin.Write(0x7FFF7FFF);
         }
 
-        /// <summary>
-        /// Corrects pure black (0,0,0) to near-black (0,0,8) and pure white (255,255,255) to near-white (255,255,247).
-        /// This prevents the UO client from being unable to read these pixels.
-        /// Converts 16-bit ARGB1555 color indices by fixing palette colors if needed.
-        /// </summary>
-        private static ushort CorrectPureColor(ushort color16bit)
-        {
-            // In ARGB1555: bit 15 = alpha, bits 14-10 = red, bits 9-5 = green, bits 4-0 = blue
-            // Extract individual components (5 bits each, so values 0-31)
-            int red = (color16bit >> 10) & 0x1F;
-            int green = (color16bit >> 5) & 0x1F;
-            int blue = color16bit & 0x1F;
-            int alpha = (color16bit >> 15) & 0x01;
-
-            // Convert 5-bit values to 8-bit for easier comparison
-            // 5-bit max (31) = 255, so multiply by 255/31 ≈ 8.23, or shift left 3 for approximation
-            int r8 = red << 3;
-            int g8 = green << 3;
-            int b8 = blue << 3;
-
-            // Check for pure black (0,0,0) and convert to near-black (0,0,8)
-            // In 5-bit: pure black = (0,0,0), near-black = (0,0,1)
-            if (red == 0 && green == 0 && blue == 0)
-            {
-                // Change to (0,0,1) in 5-bit = (0,0,8) in 8-bit
-                blue = 1;
-            }
-            // Check for pure white (31,31,31) and convert to near-white (31,31,247)
-            // In 5-bit: pure white = (31,31,31), near-white = (31,31,30)
-            else if (red == 31 && green == 31 && blue == 31)
-            {
-                // Change to (31,31,30) in 5-bit = (255,255,247) in 8-bit
-                blue = 30;
-            }
-
-            // Reconstruct the 16-bit color
-            ushort corrected = (ushort)((alpha << 15) | (red << 10) | (green << 5) | blue);
-            return corrected;
-        }
-
-        /// <summary>
-        /// Builds a remap table for palette indices that point to unsafe black/white ranges.
-        /// Unsafe ranges: RGB(0-7, 0-7, 0-7) and RGB(248-255, 248-255, 248-255) become transparent.
-        /// Safe replacements: any color where at least one channel is outside the unsafe range.
-        /// Used to fix artifacts created during frame scaling.
-        /// </summary>
-        private static byte[] BuildPaletteIndexRemap(ushort[] palette)
-        {
-            byte[] remap = new byte[256];
-
-            // Initialize identity mapping (no change by default)
-            for (int i = 0; i < 256; i++)
-            {
-                remap[i] = (byte)i;
-            }
-
-            if (palette == null || palette.Length == 0)
-                return remap;
-
-            // Find the best safe indices for near-black and near-white
-            byte nearBlackIdx = 1;  // Default to 1, not 0 (0 is transparent)
-            byte nearWhiteIdx = 1;  // Default to 1, not 0
-            int bestBlackDist = int.MaxValue;
-            int bestWhiteDist = int.MaxValue;
-
-            // Unsafe black: RGB(0-7, 0-7, 0-7) = 5-bit (0,0,0) only
-            // Unsafe white: RGB(248-255, 248-255, 248-255) = 5-bit (31,31,31) only
-
-            // First pass: search for safe colors (preferred)
-            // Second pass: will search for least-unsafe colors if needed
-
-            // Search palette for closest matches to safe target colors
-            for (int i = 1; i < palette.Length; i++)  // Start from 1, skip transparency
-            {
-                ushort palColor = palette[i];
-                int palRed = (palColor >> 10) & 0x1F;
-                int palGreen = (palColor >> 5) & 0x1F;
-                int palBlue = palColor & 0x1F;
-
-                // Check if this is a safe color (at least one channel outside unsafe range)
-                bool isSafeForBlack = (palRed > 0) || (palGreen > 0) || (palBlue > 0);
-                bool isSafeForWhite = (palRed < 31) || (palGreen < 31) || (palBlue < 31);
-
-                // For black replacement, look for color closest to near-black (1,0,0)
-                if (isSafeForBlack)
-                {
-                    int drb = palRed - 1;
-                    int dgb = palGreen - 0;
-                    int dbb = palBlue - 0;
-                    int distBlack = drb * drb + dgb * dgb + dbb * dbb;
-
-                    if (distBlack < bestBlackDist)
-                    {
-                        bestBlackDist = distBlack;
-                        nearBlackIdx = (byte)i;
-                    }
-                }
-
-                // For white replacement, look for color closest to near-white (30,31,31)
-                if (isSafeForWhite)
-                {
-                    int drw = palRed - 30;
-                    int dgw = palGreen - 31;
-                    int dbw = palBlue - 31;
-                    int distWhite = drw * drw + dgw * dgw + dbw * dbw;
-
-                    if (distWhite < bestWhiteDist)
-                    {
-                        bestWhiteDist = distWhite;
-                        nearWhiteIdx = (byte)i;
-                    }
-                }
-            }
-
-            // Second pass: if we still haven't found good replacements, find ANY non-transparent color
-            if (nearBlackIdx == 1 && bestBlackDist == int.MaxValue)
-            {
-                // All colors were unsafe for black, find the one closest to (1,0,0)
-                for (int i = 1; i < palette.Length; i++)
-                {
-                    ushort palColor = palette[i];
-                    int palRed = (palColor >> 10) & 0x1F;
-                    int palGreen = (palColor >> 5) & 0x1F;
-                    int palBlue = palColor & 0x1F;
-
-                    int drb = palRed - 1;
-                    int dgb = palGreen - 0;
-                    int dbb = palBlue - 0;
-                    int distBlack = drb * drb + dgb * dgb + dbb * dbb;
-
-                    if (distBlack < bestBlackDist)
-                    {
-                        bestBlackDist = distBlack;
-                        nearBlackIdx = (byte)i;
-                    }
-                }
-            }
-
-            if (nearWhiteIdx == 1 && bestWhiteDist == int.MaxValue)
-            {
-                // All colors were unsafe for white, find the one closest to (30,31,31)
-                for (int i = 1; i < palette.Length; i++)
-                {
-                    ushort palColor = palette[i];
-                    int palRed = (palColor >> 10) & 0x1F;
-                    int palGreen = (palColor >> 5) & 0x1F;
-                    int palBlue = palColor & 0x1F;
-
-                    int drw = palRed - 30;
-                    int dgw = palGreen - 31;
-                    int dbw = palBlue - 31;
-                    int distWhite = drw * drw + dgw * dgw + dbw * dbw;
-
-                    if (distWhite < bestWhiteDist)
-                    {
-                        bestWhiteDist = distWhite;
-                        nearWhiteIdx = (byte)i;
-                    }
-                }
-            }
-
-            // Now remap any palette entries that are in the unsafe ranges
-            for (int i = 0; i < palette.Length; i++)
-            {
-                ushort palColor = palette[i];
-                int palRed = (palColor >> 10) & 0x1F;
-                int palGreen = (palColor >> 5) & 0x1F;
-                int palBlue = palColor & 0x1F;
-
-                // If ALL three channels are in the unsafe black range (0 in 5-bit = 0-7 in 8-bit)
-                if (palRed == 0 && palGreen == 0 && palBlue == 0)
-                {
-                    remap[i] = nearBlackIdx;
-                }
-                // If ALL three channels are in the unsafe white range (31 in 5-bit = 248-255 in 8-bit)
-                else if (palRed == 31 && palGreen == 31 && palBlue == 31)
-                {
-                    remap[i] = nearWhiteIdx;
-                }
-            }
-
-            return remap;
-        }
-
         internal static void ScaleAndSaveFrame(FrameEdit frame, float scale, ushort[] palette, BinaryWriter output)
         {
             // Null check
@@ -1728,20 +1508,6 @@ namespace Ultima
                     int srcX = (int)(x / scale);
                     if (srcX >= width) srcX = width - 1;
                     scaledGrid[y][x] = pixelGrid[srcY][srcX];
-                }
-            }
-
-            // Step 2.5: Correct unsafe color indices in the scaled grid
-            // After scaling, replace any palette indices that point to pure black/white
-            // with safe alternatives (near-black/near-white)
-            byte[] indexRemap = BuildPaletteIndexRemap(palette);
-            for (int y = 0; y < newHeight; y++)
-            {
-                for (int x = 0; x < newWidth; x++)
-                {
-                    byte oldIdx = scaledGrid[y][x];
-                    byte newIdx = indexRemap[oldIdx];
-                    scaledGrid[y][x] = newIdx;
                 }
             }
 
