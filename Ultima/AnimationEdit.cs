@@ -650,26 +650,30 @@ namespace Ultima
                     currType = animLength == 22 ? 0 : animLength == 13 ? 1 : 2;
                 }
 
+                // Determine target animation length based on the target animation type
+                int targetAnimLength = currType == 0 ? 22 : currType == 1 ? 13 : 35;
+
                 bin.Write((short)currType);
                 long indexPos = bin.BaseStream.Position;
-                long animPos = bin.BaseStream.Position + (12 * animLength * 5);
+                long animPos = bin.BaseStream.Position + (12 * targetAnimLength * 5);
 
-                for (int i = index; i < index + (animLength * 5); i++)
+                for (int i = 0; i < (targetAnimLength * 5); i++)
                 {
-                    int action = (i - index) / 5;
-                    int directionOffset = (i - index) % 5;
+                    int action = i / 5;
+                    int directionOffset = i % 5;
 
-                    if (targetToSourceMap == null || targetToSourceMap.Length != animLength)
+                    if (targetToSourceMap == null || targetToSourceMap.Length != targetAnimLength)
                     {
                         // Fallback to default scaled behavior
+                        int fallbackIndex = index + (action * 5) + directionOffset;
                         AnimIdx anim;
                         if (cache != null)
                         {
-                            anim = cache[i] != null ? cache[i] : cache[i] = new AnimIdx(i, fileIndex);
+                            anim = cache[fallbackIndex] != null ? cache[fallbackIndex] : cache[fallbackIndex] = new AnimIdx(fallbackIndex, fileIndex);
                         }
                         else
                         {
-                            anim = cache[i] = new AnimIdx(i, fileIndex);
+                            anim = cache[fallbackIndex] = new AnimIdx(fallbackIndex, fileIndex);
                         }
 
                         if (anim == null)
@@ -684,45 +688,44 @@ namespace Ultima
                         {
                             anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
                         }
+
+                        continue;
+                    }
+
+                    int srcAction = targetToSourceMap[action];
+                    if (srcAction < 0 || srcAction >= animLength)
+                    {
+                        // write empty entry
+                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        indexPos = bin.BaseStream.Position;
+                        continue;
+                    }
+
+                    int srcIndex = index + (srcAction * 5) + directionOffset;
+                    AnimIdx srcAnim;
+                    if (cache != null)
+                    {
+                        srcAnim = cache[srcIndex] != null ? cache[srcIndex] : cache[srcIndex] = new AnimIdx(srcIndex, fileIndex);
                     }
                     else
                     {
-                        int sourceAction = targetToSourceMap[action];
-                        if (sourceAction < 0)
-                        {
-                            // Empty entry
-                            bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
-                            bin.Write(-1);
-                            bin.Write(-1);
-                            bin.Write(-1);
-                            indexPos = bin.BaseStream.Position;
-                        }
-                        else
-                        {
-                            int sourceIdx = index + (sourceAction * 5) + directionOffset;
-                            AnimIdx anim;
-                            if (cache != null)
-                            {
-                                anim = cache[sourceIdx] != null ? cache[sourceIdx] : cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
-                            }
-                            else
-                            {
-                                anim = cache[sourceIdx] = new AnimIdx(sourceIdx, fileIndex);
-                            }
+                        srcAnim = cache[srcIndex] = new AnimIdx(srcIndex, fileIndex);
+                    }
 
-                            if (anim == null)
-                            {
-                                bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
-                                bin.Write(-1);
-                                bin.Write(-1);
-                                bin.Write(-1);
-                                indexPos = bin.BaseStream.Position;
-                            }
-                            else
-                            {
-                                anim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
-                            }
-                        }
+                    if (srcAnim == null)
+                    {
+                        bin.BaseStream.Seek(indexPos, SeekOrigin.Begin);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        bin.Write(-1);
+                        indexPos = bin.BaseStream.Position;
+                    }
+                    else
+                    {
+                        srcAnim.ExportToVDScaled(bin, ref indexPos, ref animPos, scale);
                     }
                 }
             }
