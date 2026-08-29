@@ -22,8 +22,10 @@ namespace UoFiddler.Controls.Classes
         /// <param name="prefix">The prefix to add to the item name (None, A, An, The)</param>
         /// <param name="lootType">The loot type (Regular, Newbied, Blessed, Cursed)</param>
         /// <param name="flippableId">The flippable graphic ID (0 if not flippable)</param>
+        /// <param name="scriptName">The class name without spaces (used for filename and class definition)</param>
+        /// <param name="isReadOnly">Whether to use DefaultName property instead of Name assignment</param>
         /// <returns>The full path to the generated script file, or null if generation failed</returns>
-        public static string GenerateItemScript(int itemId, string itemName, string outputDirectory, int itemWeight = 1, bool useHue = false, int previewHue = 0, bool isStackable = false, string prefix = "None", string lootType = "Regular", int flippableId = 0)
+        public static string GenerateItemScript(int itemId, string itemName, string outputDirectory, int itemWeight = 1, bool useHue = false, int previewHue = 0, bool isStackable = false, string prefix = "None", string lootType = "Regular", int flippableId = 0, string scriptName = null, bool isReadOnly = false)
         {
             if (string.IsNullOrWhiteSpace(itemName) || string.IsNullOrWhiteSpace(outputDirectory))
             {
@@ -32,15 +34,15 @@ namespace UoFiddler.Controls.Classes
 
             try
             {
-                // Create class name by removing spaces and applying title case
-                string className = ApplyTitleCase(itemName);
+                // Create class name using scriptName if provided, otherwise derive from itemName
+                string className = !string.IsNullOrWhiteSpace(scriptName) ? scriptName : ApplyTitleCase(itemName);
 
                 // Create filename by using the class name
                 string fileName = $"{className}.cs";
                 string filePath = Path.Combine(outputDirectory, fileName);
 
                 // Generate the script content
-                string scriptContent = GenerateScriptContent(className, itemId, itemName, itemWeight, useHue, previewHue, isStackable, prefix, lootType, flippableId);
+                string scriptContent = GenerateScriptContent(className, itemId, itemName, itemWeight, useHue, previewHue, isStackable, prefix, lootType, flippableId, isReadOnly);
 
                 // Write the file
                 File.WriteAllText(filePath, scriptContent, Encoding.UTF8);
@@ -92,7 +94,7 @@ namespace UoFiddler.Controls.Classes
         /// <summary>
         /// Generates the C# script content for a RunUO item
         /// </summary>
-        private static string GenerateScriptContent(string className, int itemId, string itemName, int itemWeight, bool useHue, int previewHue, bool isStackable, string prefix = "None", string lootType = "Regular", int flippableId = 0)
+        private static string GenerateScriptContent(string className, int itemId, string itemName, int itemWeight, bool useHue, int previewHue, bool isStackable, string prefix = "None", string lootType = "Regular", int flippableId = 0, bool isReadOnly = false)
         {
             string hex = $"0x{itemId:X}";
 
@@ -103,11 +105,21 @@ namespace UoFiddler.Controls.Classes
                 displayName = $"{prefix.ToLower()} {itemName}".ToLower();
             }
 
+            // Build DefaultName property if isReadOnly is true
+            string defaultNameProperty = "";
+            if (isReadOnly)
+            {
+                defaultNameProperty = $"        public override string DefaultName {{ get {{ return \"{displayName}\"; }} }}\n\n";
+            }
+
             // Build the primary constructor (default constructor)
             StringBuilder constructor1Body = new StringBuilder();
             if (!isStackable)
             {
-                constructor1Body.AppendLine($"            Name = \"{displayName}\";");
+                if (!isReadOnly)
+                {
+                    constructor1Body.AppendLine($"            Name = \"{displayName}\";");
+                }
                 if (useHue)
                 {
                     constructor1Body.AppendLine($"            Hue = {previewHue + 1};");
@@ -126,7 +138,10 @@ namespace UoFiddler.Controls.Classes
                 StringBuilder constructor2Body = new StringBuilder();
                 constructor2Body.AppendLine($"            Stackable = true;");
                 constructor2Body.AppendLine($"            Amount = amt;");
-                constructor2Body.AppendLine($"            Name = \"{displayName}\";");
+                if (!isReadOnly)
+                {
+                    constructor2Body.AppendLine($"            Name = \"{displayName}\";");
+                }
                 if (useHue)
                 {
                     constructor2Body.AppendLine($"            Hue = {previewHue + 1};");
@@ -184,7 +199,7 @@ namespace Server.Items
 {{
     {flippableAttribute}    public class {className} : Item
     {{
-{defaultConstructor}{secondaryConstructor}
+{defaultNameProperty}{defaultConstructor}{secondaryConstructor}
 
 {serialConstructor}
 

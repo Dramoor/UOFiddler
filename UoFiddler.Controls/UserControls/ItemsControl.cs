@@ -1600,7 +1600,9 @@ namespace UoFiddler.Controls.UserControls
                     form.IsArtifact,
                     form.SelectedPrefix,
                     form.SelectedLootType,
-                    form.FlippableId);
+                    form.FlippableId,
+                    form.ScriptName,
+                    form.IsReadOnly);
 
                 if (scriptPath != null)
                 {
@@ -1657,7 +1659,9 @@ namespace UoFiddler.Controls.UserControls
                     form.IsStackable,
                     form.SelectedPrefix,
                     form.SelectedLootType,
-                    form.FlippableId);
+                    form.FlippableId,
+                    form.ScriptName,
+                    form.IsReadOnly);
 
                 if (scriptPath != null)
                 {
@@ -1714,7 +1718,9 @@ namespace UoFiddler.Controls.UserControls
                     form.IsStackable,
                     form.SelectedPrefix,
                     form.SelectedLootType,
-                    form.FlippableId);
+                    form.FlippableId,
+                    form.ScriptName,
+                    form.IsReadOnly);
 
                 if (scriptPath != null)
                 {
