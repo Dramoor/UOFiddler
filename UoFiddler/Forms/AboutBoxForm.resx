@@ -118,7 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.3.4
+    <value>Version 5.3.5
+- Updated script generation to allow for adding an actul Script Name and for setting the labeled name as read only (DefaultName). 
+- Fixed issues with finding item in items tab from Gump id in the Gumps tab.
+
+Version 5.3.4
 - Fixed issues with remapping from l to h and such when using the resize remapping. Should now work properly. 
 
 Version 5.3.3 
