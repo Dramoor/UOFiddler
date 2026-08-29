@@ -2193,6 +2193,47 @@ namespace UoFiddler.Controls.UserControls
         }
 
         /// <summary>
+        /// Selects Item from graphicid.
+        /// </summary>
+        internal static void SelectItem(int graphicId)
+        {
+            RefMarker.SelectedGraphicId = graphicId;
+
+            TabPageNavigator.ActivateOwningTabPage(RefMarker);
+
+            if (!RefMarker.IsLoaded)
+            {
+                if (RefMarker.IsHandleCreated)
+                {
+                    RefMarker.BeginInvoke(new Action(() =>
+                    {
+                        if (!RefMarker.IsLoaded)
+                        {
+                            RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+                        }
+                        // Navigation will happen from ExecutePendingNavigation in OnLoad
+                    }));
+                }
+                else
+                {
+                    RefMarker.OnLoad(RefMarker, EventArgs.Empty);
+                }
+            }
+            else
+            {
+                // Already loaded, navigate immediately via BeginInvoke
+                if (RefMarker.IsHandleCreated)
+                {
+                    RefMarker.BeginInvoke(new Action(() => RefMarker.ExecutePendingNavigation()));
+                }
+                else
+                {
+                    RefMarker.ExecutePendingNavigation();
+                }
+            }
+        }
+
+        /// <summary>
         /// Resolves the current tile selection to a sorted list of graphic IDs.
         /// </summary>
         private List<int> GetSelectedGraphicIds()

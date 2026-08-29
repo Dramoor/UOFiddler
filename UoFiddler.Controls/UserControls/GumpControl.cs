@@ -921,6 +921,44 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
+
+        private void OnClickSelectInItemsTab(object sender, EventArgs e)
+        {
+            if (_manualSelection.Count == 0)
+            {
+                return;
+            }
+
+            //if (listBox.SelectedIndex == -1)
+            //{
+            //    return;
+            //}
+
+            int gumpId = SelectedGumpId;
+            int animationId = gumpId >= 60000 ? gumpId - 60000 : gumpId - 50000;
+
+            // Find the item that has this animation ID
+            int itemId = FindItemByAnimation(animationId);
+            if (itemId >= 0)
+            {
+                ItemsControl.SelectItem(itemId);
+            }
+        }
+
+        private int FindItemByAnimation(int animationId)
+        {
+            // Search through the ItemTable to find an item with this animation ID
+            for (int i = 0; i < TileData.ItemTable.Length; ++i)
+            {
+                if (TileData.ItemTable[i].Animation == animationId)
+                {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        /*
         private void OnClickSelectInItemsTab(object sender, EventArgs e)
         {
             if (_manualSelection.Count == 0)
@@ -945,7 +983,7 @@ namespace UoFiddler.Controls.UserControls
             // Fallback: just activate Items tab
             TabPageNavigator.ActivateOwningTabPage(_refMarker);
         }
-
+        */
         private void ExportSelectedGumps(ImageFormat imageFormat)
         {
             if (_manualSelection.Count == 0)
