@@ -194,6 +194,7 @@ namespace UoFiddler.Controls.Forms
             prefixComboBox.Items.AddRange(new object[] { "None", "A", "An", "The" });
             prefixComboBox.Location = new System.Drawing.Point(51, 75);
             prefixComboBox.Margin = new Padding(4, 3, 4, 3);
+            prefixComboBox.SelectedIndex = 0;
             prefixComboBox.Name = "prefixComboBox";
             prefixComboBox.Size = new System.Drawing.Size(75, 23);
             prefixComboBox.TabIndex = 7;
@@ -207,13 +208,14 @@ namespace UoFiddler.Controls.Forms
             lootTypeComboBox.Location = new System.Drawing.Point(265, 144);
             lootTypeComboBox.Margin = new Padding(4, 3, 4, 3);
             lootTypeComboBox.Name = "lootTypeComboBox";
+            lootTypeComboBox.SelectedIndex = 0; // Default to "Regular"
             lootTypeComboBox.Size = new System.Drawing.Size(116, 23);
             lootTypeComboBox.TabIndex = 17;
             // 
             // okButton
             // 
             okButton.DialogResult = DialogResult.OK;
-            okButton.Location = new System.Drawing.Point(4, 210);
+            okButton.Location = new System.Drawing.Point(13, 210);
             okButton.Margin = new Padding(4, 3, 4, 3);
             okButton.Name = "okButton";
             okButton.Size = new System.Drawing.Size(88, 27);
@@ -225,7 +227,7 @@ namespace UoFiddler.Controls.Forms
             // cancelButton
             // 
             cancelButton.DialogResult = DialogResult.Cancel;
-            cancelButton.Location = new System.Drawing.Point(344, 210);
+            cancelButton.Location = new System.Drawing.Point(361, 210);
             cancelButton.Margin = new Padding(4, 3, 4, 3);
             cancelButton.Name = "cancelButton";
             cancelButton.Size = new System.Drawing.Size(88, 27);

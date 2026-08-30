@@ -3722,6 +3722,52 @@ namespace UoFiddler.Controls.Forms
             }
         }
 
+
+        private void CenterYNumericUpDown_Enter(object sender, EventArgs e)
+        {
+            // BeginInvoke prevents the default click/focus logic from clearing your selection
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                CenterYNumericUpDown.Select(0, CenterYNumericUpDown.Text.Length);
+            });
+        }
+
+        private void CenterXNumericUpDown_Enter(object sender, EventArgs e)
+        {
+            // BeginInvoke prevents the default click/focus logic from clearing your selection
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                CenterXNumericUpDown.Select(0, CenterXNumericUpDown.Text.Length);
+            });
+        }
+        private void RefXNumericUpDown_Enter(object sender, EventArgs e)
+        {
+            // BeginInvoke prevents the default click/focus logic from clearing your selection
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                RefXNumericUpDown.Select(0, RefXNumericUpDown.Text.Length);
+            });
+        }
+
+        private void RefYNumericUpDown_Enter(object sender, EventArgs e)
+        {
+            // BeginInvoke prevents the default click/focus logic from clearing your selection
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                RefYNumericUpDown.Select(0, RefYNumericUpDown.Text.Length);
+            });
+        }
+
+        private void SecondAnimIdNumericUpDown_Enter(object sender, EventArgs e)
+        {
+            // BeginInvoke prevents the default click/focus logic from clearing your selection
+            this.BeginInvoke((MethodInvoker)delegate
+            {
+                SecondAnimIdNumericUpDown.Select(0, SecondAnimIdNumericUpDown.Text.Length);
+            });
+        }
+
+        
         private void ReferencePointX(object sender, EventArgs e)
         {
             AnimationPictureBox.Invalidate();

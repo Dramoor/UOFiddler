@@ -1,4 +1,6 @@
-﻿namespace UoFiddler.Controls.Forms
+﻿using System.Windows.Forms;
+
+namespace UoFiddler.Controls.Forms
 {
     partial class AnimationEditForm
     {
@@ -1252,7 +1254,7 @@
             AddedMobileGroupBox.Name = "AddedMobileGroupBox";
             AddedMobileGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
             AddedMobileGroupBox.Size = new System.Drawing.Size(190, 67);
-            AddedMobileGroupBox.TabIndex = 23;
+            AddedMobileGroupBox.TabIndex = 24;
             AddedMobileGroupBox.TabStop = false;
             AddedMobileGroupBox.Text = "Add Mobiles";
             // 
@@ -1264,7 +1266,7 @@
             DrawOppositeHumanCheckBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             DrawOppositeHumanCheckBox.Name = "DrawOppositeHumanCheckBox";
             DrawOppositeHumanCheckBox.Size = new System.Drawing.Size(147, 19);
-            DrawOppositeHumanCheckBox.TabIndex = 17;
+            DrawOppositeHumanCheckBox.TabIndex = 26;
             DrawOppositeHumanCheckBox.Text = "Draw Opposite Human";
             DrawOppositeHumanCheckBox.UseVisualStyleBackColor = false;
             DrawOppositeHumanCheckBox.CheckedChanged += CbDrawOppositeHuman_CheckedChanged;
@@ -1277,7 +1279,7 @@
             DrawMountedCheckBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             DrawMountedCheckBox.Name = "DrawMountedCheckBox";
             DrawMountedCheckBox.Size = new System.Drawing.Size(133, 19);
-            DrawMountedCheckBox.TabIndex = 16;
+            DrawMountedCheckBox.TabIndex = 25;
             DrawMountedCheckBox.Text = "Draw Mount Frames";
             DrawMountedCheckBox.UseVisualStyleBackColor = false;
             DrawMountedCheckBox.CheckedChanged += CbDrawMounted_CheckedChanged;
@@ -1299,7 +1301,7 @@
             SecondAnimGroupBox.Location = new System.Drawing.Point(0, 437);
             SecondAnimGroupBox.Name = "SecondAnimGroupBox";
             SecondAnimGroupBox.Size = new System.Drawing.Size(190, 240);
-            SecondAnimGroupBox.TabIndex = 26;
+            SecondAnimGroupBox.TabIndex = 27;
             SecondAnimGroupBox.TabStop = false;
             SecondAnimGroupBox.Text = "Second Animation Overlay";
             // 
@@ -1309,7 +1311,7 @@
             SecondAnimCheckBox.Location = new System.Drawing.Point(9, 20);
             SecondAnimCheckBox.Name = "SecondAnimCheckBox";
             SecondAnimCheckBox.Size = new System.Drawing.Size(96, 19);
-            SecondAnimCheckBox.TabIndex = 0;
+            SecondAnimCheckBox.TabIndex = 29;
             SecondAnimCheckBox.Text = "Show overlay";
             SecondAnimCheckBox.UseVisualStyleBackColor = true;
             SecondAnimCheckBox.CheckedChanged += SecondAnimCheckBox_CheckedChanged;
@@ -1321,7 +1323,7 @@
             SecondAnimFileComboBox.Location = new System.Drawing.Point(9, 43);
             SecondAnimFileComboBox.Name = "SecondAnimFileComboBox";
             SecondAnimFileComboBox.Size = new System.Drawing.Size(172, 23);
-            SecondAnimFileComboBox.TabIndex = 1;
+            SecondAnimFileComboBox.TabIndex = 30;
             SecondAnimFileComboBox.SelectedIndexChanged += SecondAnimFileComboBox_SelectedIndexChanged;
             // 
             // SecondAnimIdLabel
@@ -1330,7 +1332,7 @@
             SecondAnimIdLabel.Location = new System.Drawing.Point(9, 73);
             SecondAnimIdLabel.Name = "SecondAnimIdLabel";
             SecondAnimIdLabel.Size = new System.Drawing.Size(18, 15);
-            SecondAnimIdLabel.TabIndex = 2;
+            SecondAnimIdLabel.TabIndex = 31;
             SecondAnimIdLabel.Text = "ID";
             // 
             // SecondAnimIdNumericUpDown
@@ -1339,7 +1341,8 @@
             SecondAnimIdNumericUpDown.Maximum = new decimal(new int[] { 2048, 0, 0, 0 });
             SecondAnimIdNumericUpDown.Name = "SecondAnimIdNumericUpDown";
             SecondAnimIdNumericUpDown.Size = new System.Drawing.Size(70, 23);
-            SecondAnimIdNumericUpDown.TabIndex = 3;
+            SecondAnimIdNumericUpDown.TabIndex = 32;
+            SecondAnimIdNumericUpDown.Enter += SecondAnimIdNumericUpDown_Enter;
             SecondAnimIdNumericUpDown.ValueChanged += SecondAnimIdNumericUpDown_ValueChanged;
             // 
             // SecondAnimColorComboBox
@@ -1349,7 +1352,7 @@
             SecondAnimColorComboBox.Location = new System.Drawing.Point(9, 98);
             SecondAnimColorComboBox.Name = "SecondAnimColorComboBox";
             SecondAnimColorComboBox.Size = new System.Drawing.Size(172, 23);
-            SecondAnimColorComboBox.TabIndex = 4;
+            SecondAnimColorComboBox.TabIndex = 33;
             SecondAnimColorComboBox.SelectedIndexChanged += SecondAnimColorComboBox_SelectedIndexChanged;
             // 
             // SecondAnimOpacityLabel
@@ -1358,7 +1361,7 @@
             SecondAnimOpacityLabel.Location = new System.Drawing.Point(9, 128);
             SecondAnimOpacityLabel.Name = "SecondAnimOpacityLabel";
             SecondAnimOpacityLabel.Size = new System.Drawing.Size(48, 15);
-            SecondAnimOpacityLabel.TabIndex = 5;
+            SecondAnimOpacityLabel.TabIndex = 34;
             SecondAnimOpacityLabel.Text = "Opacity";
             // 
             // SecondAnimOpacityValueLabel
@@ -1367,7 +1370,7 @@
             SecondAnimOpacityValueLabel.Location = new System.Drawing.Point(150, 128);
             SecondAnimOpacityValueLabel.Name = "SecondAnimOpacityValueLabel";
             SecondAnimOpacityValueLabel.Size = new System.Drawing.Size(29, 15);
-            SecondAnimOpacityValueLabel.TabIndex = 6;
+            SecondAnimOpacityValueLabel.TabIndex = 35;
             SecondAnimOpacityValueLabel.Text = "50%";
             // 
             // SecondAnimOpacityTrackBar
@@ -1377,7 +1380,7 @@
             SecondAnimOpacityTrackBar.Maximum = 100;
             SecondAnimOpacityTrackBar.Name = "SecondAnimOpacityTrackBar";
             SecondAnimOpacityTrackBar.Size = new System.Drawing.Size(178, 28);
-            SecondAnimOpacityTrackBar.TabIndex = 7;
+            SecondAnimOpacityTrackBar.TabIndex = 36;
             SecondAnimOpacityTrackBar.TickStyle = System.Windows.Forms.TickStyle.None;
             SecondAnimOpacityTrackBar.Value = 50;
             SecondAnimOpacityTrackBar.ValueChanged += SecondAnimOpacityTrackBar_ValueChanged;
@@ -1388,7 +1391,7 @@
             SecondAnimInFrontCheckBox.Location = new System.Drawing.Point(9, 178);
             SecondAnimInFrontCheckBox.Name = "SecondAnimInFrontCheckBox";
             SecondAnimInFrontCheckBox.Size = new System.Drawing.Size(63, 19);
-            SecondAnimInFrontCheckBox.TabIndex = 8;
+            SecondAnimInFrontCheckBox.TabIndex = 37;
             SecondAnimInFrontCheckBox.Text = "On top";
             SecondAnimInFrontCheckBox.UseVisualStyleBackColor = true;
             SecondAnimInFrontCheckBox.CheckedChanged += SecondAnimInFrontCheckBox_CheckedChanged;
@@ -1399,7 +1402,7 @@
             SecondAnimBoxCheckBox.Location = new System.Drawing.Point(95, 178);
             SecondAnimBoxCheckBox.Name = "SecondAnimBoxCheckBox";
             SecondAnimBoxCheckBox.Size = new System.Drawing.Size(46, 19);
-            SecondAnimBoxCheckBox.TabIndex = 9;
+            SecondAnimBoxCheckBox.TabIndex = 38;
             SecondAnimBoxCheckBox.Text = "Box";
             SecondAnimBoxCheckBox.UseVisualStyleBackColor = true;
             SecondAnimBoxCheckBox.CheckedChanged += SecondAnimBoxCheckBox_CheckedChanged;
@@ -1410,7 +1413,7 @@
             SecondAnimWarningLabel.Location = new System.Drawing.Point(9, 201);
             SecondAnimWarningLabel.Name = "SecondAnimWarningLabel";
             SecondAnimWarningLabel.Size = new System.Drawing.Size(175, 34);
-            SecondAnimWarningLabel.TabIndex = 10;
+            SecondAnimWarningLabel.TabIndex = 28;
             SecondAnimWarningLabel.Visible = false;
             // 
             // FramesGroupBox
@@ -1422,7 +1425,7 @@
             FramesGroupBox.Name = "FramesGroupBox";
             FramesGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
             FramesGroupBox.Size = new System.Drawing.Size(190, 57);
-            FramesGroupBox.TabIndex = 23;
+            FramesGroupBox.TabIndex = 22;
             FramesGroupBox.TabStop = false;
             FramesGroupBox.Text = "Animation Frames";
             // 
@@ -1435,7 +1438,7 @@
             FramesTrackBar.Maximum = 0;
             FramesTrackBar.Name = "FramesTrackBar";
             FramesTrackBar.Size = new System.Drawing.Size(182, 30);
-            FramesTrackBar.TabIndex = 22;
+            FramesTrackBar.TabIndex = 23;
             FramesTrackBar.ValueChanged += OnFrameCountBarChanged;
             // 
             // SpeedGroupBox
@@ -1460,7 +1463,7 @@
             PlayButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             PlayButton.Name = "PlayButton";
             PlayButton.Size = new System.Drawing.Size(30, 30);
-            PlayButton.TabIndex = 13;
+            PlayButton.TabIndex = 20;
             PlayButton.UseVisualStyleBackColor = true;
             PlayButton.Click += ToolStripButtonPlayAnimation_Click;
             // 
@@ -1472,7 +1475,7 @@
             AnimationSpeedTrackBar.Maximum = 14;
             AnimationSpeedTrackBar.Name = "AnimationSpeedTrackBar";
             AnimationSpeedTrackBar.Size = new System.Drawing.Size(136, 30);
-            AnimationSpeedTrackBar.TabIndex = 12;
+            AnimationSpeedTrackBar.TabIndex = 21;
             AnimationSpeedTrackBar.Value = 3;
             AnimationSpeedTrackBar.ValueChanged += AnimationSpeedTrackBar_ValueChanged;
             // 
@@ -1489,7 +1492,7 @@
             LocationCenterGroupBox.Name = "LocationCenterGroupBox";
             LocationCenterGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
             LocationCenterGroupBox.Size = new System.Drawing.Size(190, 89);
-            LocationCenterGroupBox.TabIndex = 21;
+            LocationCenterGroupBox.TabIndex = 14;
             LocationCenterGroupBox.TabStop = false;
             LocationCenterGroupBox.Text = "Location Center";
             // 
@@ -1500,7 +1503,7 @@
             CenterYLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             CenterYLabel.Name = "CenterYLabel";
             CenterYLabel.Size = new System.Drawing.Size(14, 15);
-            CenterYLabel.TabIndex = 18;
+            CenterYLabel.TabIndex = 16;
             CenterYLabel.Text = "Y";
             // 
             // CenterXLabel
@@ -1510,7 +1513,7 @@
             CenterXLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             CenterXLabel.Name = "CenterXLabel";
             CenterXLabel.Size = new System.Drawing.Size(14, 15);
-            CenterXLabel.TabIndex = 17;
+            CenterXLabel.TabIndex = 15;
             CenterXLabel.Text = "X";
             // 
             // SameCenterButton
@@ -1520,7 +1523,7 @@
             SameCenterButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             SameCenterButton.Name = "SameCenterButton";
             SameCenterButton.Size = new System.Drawing.Size(98, 27);
-            SameCenterButton.TabIndex = 16;
+            SameCenterButton.TabIndex = 19;
             SameCenterButton.Text = "Same Center";
             SameCenterButton.UseVisualStyleBackColor = true;
             SameCenterButton.Click += SameCenterButton_Click;
@@ -1535,7 +1538,8 @@
             CenterXNumericUpDown.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             CenterXNumericUpDown.Name = "CenterXNumericUpDown";
             CenterXNumericUpDown.Size = new System.Drawing.Size(50, 23);
-            CenterXNumericUpDown.TabIndex = 5;
+            CenterXNumericUpDown.Enter += CenterXNumericUpDown_Enter;
+            CenterXNumericUpDown.TabIndex = 17;
             CenterXNumericUpDown.ValueChanged += OnCenterXValueChanged;
             CenterXNumericUpDown.KeyDown += TxtSendData_KeyDown;
             // 
@@ -1548,7 +1552,8 @@
             CenterYNumericUpDown.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             CenterYNumericUpDown.Name = "CenterYNumericUpDown";
             CenterYNumericUpDown.Size = new System.Drawing.Size(50, 23);
-            CenterYNumericUpDown.TabIndex = 4;
+            CenterYNumericUpDown.Enter += CenterYNumericUpDown_Enter;
+            CenterYNumericUpDown.TabIndex = 18;
             CenterYNumericUpDown.ValueChanged += OnCenterYValueChanged;
             CenterYNumericUpDown.KeyDown += TxtSendData_KeyDown;
             // 
@@ -1565,7 +1570,7 @@
             ReferencialPointGroupBox.Name = "ReferencialPointGroupBox";
             ReferencialPointGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
             ReferencialPointGroupBox.Size = new System.Drawing.Size(190, 84);
-            ReferencialPointGroupBox.TabIndex = 20;
+            ReferencialPointGroupBox.TabIndex = 9;
             ReferencialPointGroupBox.TabStop = false;
             ReferencialPointGroupBox.Text = "Referencial Point";
             // 
@@ -1577,7 +1582,7 @@
             ToolStripLockButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             ToolStripLockButton.Name = "ToolStripLockButton";
             ToolStripLockButton.Size = new System.Drawing.Size(30, 30);
-            ToolStripLockButton.TabIndex = 11;
+            ToolStripLockButton.TabIndex = 13;
             ToolStripLockButton.TextImageRelation = System.Windows.Forms.TextImageRelation.ImageAboveText;
             ToolStripLockButton.UseVisualStyleBackColor = true;
             ToolStripLockButton.Click += ToolStripLockButton_Click;
@@ -1589,7 +1594,7 @@
             RefYLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             RefYLabel.Name = "RefYLabel";
             RefYLabel.Size = new System.Drawing.Size(14, 15);
-            RefYLabel.TabIndex = 10;
+            RefYLabel.TabIndex = 11;
             RefYLabel.Text = "Y";
             // 
             // RefXLabel
@@ -1599,7 +1604,7 @@
             RefXLabel.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             RefXLabel.Name = "RefXLabel";
             RefXLabel.Size = new System.Drawing.Size(14, 15);
-            RefXLabel.TabIndex = 9;
+            RefXLabel.TabIndex = 10;
             RefXLabel.Text = "X";
             // 
             // RefXNumericUpDown
@@ -1611,8 +1616,9 @@
             RefXNumericUpDown.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             RefXNumericUpDown.Name = "RefXNumericUpDown";
             RefXNumericUpDown.Size = new System.Drawing.Size(50, 23);
-            RefXNumericUpDown.TabIndex = 7;
+            RefXNumericUpDown.TabIndex = 12;
             RefXNumericUpDown.ValueChanged += ReferencePointX;
+            RefXNumericUpDown.Enter += RefXNumericUpDown_Enter;
             RefXNumericUpDown.KeyDown += TxtSendData_KeyDown2;
             // 
             // RefYNumericUpDown
@@ -1624,8 +1630,9 @@
             RefYNumericUpDown.Minimum = new decimal(new int[] { 32768, 0, 0, int.MinValue });
             RefYNumericUpDown.Name = "RefYNumericUpDown";
             RefYNumericUpDown.Size = new System.Drawing.Size(50, 23);
-            RefYNumericUpDown.TabIndex = 6;
+            RefYNumericUpDown.TabIndex = 12;
             RefYNumericUpDown.ValueChanged += ReferencePointY;
+            RefYNumericUpDown.Enter += RefYNumericUpDown_Enter;
             RefYNumericUpDown.KeyDown += TxtSendData_KeyDown2;
             // 
             // CoordinatesGroupBox
@@ -1643,7 +1650,7 @@
             CoordinatesGroupBox.Name = "CoordinatesGroupBox";
             CoordinatesGroupBox.Padding = new System.Windows.Forms.Padding(4, 3, 4, 3);
             CoordinatesGroupBox.Size = new System.Drawing.Size(190, 137);
-            CoordinatesGroupBox.TabIndex = 18;
+            CoordinatesGroupBox.TabIndex = 1;
             CoordinatesGroupBox.TabStop = false;
             CoordinatesGroupBox.Text = "Coordinates";
             // 
@@ -1655,7 +1662,7 @@
             SaveCoordinatesLabel5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             SaveCoordinatesLabel5.Name = "SaveCoordinatesLabel5";
             SaveCoordinatesLabel5.Size = new System.Drawing.Size(79, 13);
-            SaveCoordinatesLabel5.TabIndex = 21;
+            SaveCoordinatesLabel5.TabIndex = 6;
             SaveCoordinatesLabel5.Text = "5:    /     ";
             // 
             // SaveCoordinatesLabel4
@@ -1666,7 +1673,7 @@
             SaveCoordinatesLabel4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             SaveCoordinatesLabel4.Name = "SaveCoordinatesLabel4";
             SaveCoordinatesLabel4.Size = new System.Drawing.Size(79, 13);
-            SaveCoordinatesLabel4.TabIndex = 20;
+            SaveCoordinatesLabel4.TabIndex = 5;
             SaveCoordinatesLabel4.Text = "4:    /     ";
             // 
             // SaveCoordinatesLabel3
@@ -1677,7 +1684,7 @@
             SaveCoordinatesLabel3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             SaveCoordinatesLabel3.Name = "SaveCoordinatesLabel3";
             SaveCoordinatesLabel3.Size = new System.Drawing.Size(79, 13);
-            SaveCoordinatesLabel3.TabIndex = 19;
+            SaveCoordinatesLabel3.TabIndex = 4;
             SaveCoordinatesLabel3.Text = "3:    /     ";
             // 
             // SaveCoordinatesLabel2
@@ -1688,7 +1695,7 @@
             SaveCoordinatesLabel2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             SaveCoordinatesLabel2.Name = "SaveCoordinatesLabel2";
             SaveCoordinatesLabel2.Size = new System.Drawing.Size(79, 13);
-            SaveCoordinatesLabel2.TabIndex = 18;
+            SaveCoordinatesLabel2.TabIndex = 3;
             SaveCoordinatesLabel2.Text = "2:    /     ";
             // 
             // SaveCoordinatesLabel1
@@ -1699,7 +1706,7 @@
             SaveCoordinatesLabel1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             SaveCoordinatesLabel1.Name = "SaveCoordinatesLabel1";
             SaveCoordinatesLabel1.Size = new System.Drawing.Size(79, 13);
-            SaveCoordinatesLabel1.TabIndex = 17;
+            SaveCoordinatesLabel1.TabIndex = 2;
             SaveCoordinatesLabel1.Text = "1:    /     ";
             // 
             // SetCoordinatesButton
@@ -1710,7 +1717,7 @@
             SetCoordinatesButton.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             SetCoordinatesButton.Name = "SetCoordinatesButton";
             SetCoordinatesButton.Size = new System.Drawing.Size(40, 30);
-            SetCoordinatesButton.TabIndex = 16;
+            SetCoordinatesButton.TabIndex = 7;
             SetCoordinatesButton.TabStop = false;
             SetCoordinatesButton.Text = "Set";
             SetCoordinatesButton.UseVisualStyleBackColor = true;
@@ -1724,7 +1731,7 @@
             SaveCoordinatesCheckBox.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
             SaveCoordinatesCheckBox.Name = "SaveCoordinatesCheckBox";
             SaveCoordinatesCheckBox.Size = new System.Drawing.Size(50, 19);
-            SaveCoordinatesCheckBox.TabIndex = 15;
+            SaveCoordinatesCheckBox.TabIndex = 8;
             SaveCoordinatesCheckBox.Text = "Save";
             SaveCoordinatesCheckBox.UseVisualStyleBackColor = false;
             SaveCoordinatesCheckBox.CheckedChanged += CbSaveCoordinates_CheckedChanged;
