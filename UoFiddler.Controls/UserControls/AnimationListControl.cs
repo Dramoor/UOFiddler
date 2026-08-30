@@ -134,6 +134,203 @@ namespace UoFiddler.Controls.UserControls
                 "Ingest_Eat_01"
             }
         };
+        public string[][] GetUOPActionNames { get; } = {
+            // Monster
+            new[]
+            {
+               "Walk Combat",
+               "Idle Combat",
+               "Die Backward",
+               "Die Forward",
+               "Attack 1",
+               "Attack 2",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Get Hit",
+               "Rummage",
+               "Spellcast",
+               "Unused",
+               "Unused",
+               "Block",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Fly",
+               "Unused",
+               "Unused",
+               "Walk",
+               "Special",
+               "Run",
+               "Idle",
+               "Fidget",
+               "Roar",
+               "Peace to Combat",
+               "Mounted - Walk",
+               "Mounted - Run",
+               "Mounted - Idle"
+            },
+            // Sea
+            new[]
+            {
+               "Walk Combat",
+               "Idle Combat",
+               "Die Backward",
+               "Die Forward",
+               "Attack 1",
+               "Attack 2",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Get Hit",
+               "Rummage",
+               "Spellcast",
+               "Unused",
+               "Unused",
+               "Block",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Fly",
+               "Unused",
+               "Unused",
+               "Walk",
+               "Special",
+               "Run",
+               "Idle",
+               "Fidget",
+               "Roar",
+               "Peace to Combat",
+               "Mounted - Walk",
+               "Mounted - Run",
+               "Mounted - Idle"
+            },
+            // Animal
+            new[]
+            {
+               "Walk Combat",
+               "Idle Combat",
+               "Die Backward",
+               "Die Forward",
+               "Attack 1",
+               "Attack 2",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Get Hit",
+               "Rummage",
+               "Spellcast",
+               "Unused",
+               "Unused",
+               "Block",
+               "Unused",
+               "Unused",
+               "Unused",
+               "Fly",
+               "Unused",
+               "Unused",
+               "Walk",
+               "Special",
+               "Run",
+               "Idle",
+               "Fidget",
+               "Roar",
+               "Peace to Combat",
+               "Mounted - Walk",
+               "Mounted - Run",
+               "Mounted - Idle"
+            },
+            // Human
+            new[]
+            {
+            "Walk",
+            "Walk (With Weapon)" ,
+            "Run",
+            "Run (With Weapon)",
+            "Idle",
+            "Idle (With Weapon)",
+            "Fidget",
+            "Idle - Combat (1H Weapon)",
+            "Idle - Combat (2H Weapon)",
+            "Slash Attack (1H Weapon)",
+            "Pierce Attack (1H Weapon)",
+            "Bash Attack (1H Weapon)",
+            "Bash Attack (2H Weapon)",
+            "Slash Attack (2H Weapon)",
+            "Pierce Attack (2H Weapon)",
+            "Combat Walk (2H Weapon)",
+            "Spell 1",
+            "Spell 2",
+            "Bow Attack",
+            "Crossbow Attack",
+            "Get Hit",
+            "Die Backward",
+            "Die Forward",
+            "Walk Mounted",
+            "Run Mounted",
+            "Idle Mounted",
+            "Bash Attack Mounted",
+            "Bow Attack Mounted",
+            "Crossbow Attack Mounted",
+            "Slash Attack Mounted",
+            "Shield Block",
+            "Punch",
+            "Bowing",
+            "Salute (Armed)",
+            "Drinking",
+            "Combat Walk (1H Weapon)",
+            "Combat Walk (Unarmed)",
+            "Idle (Shield)",
+            "Sitting",
+            "Get Hit (2H Weapon)",
+            "Mining",
+            "Idle - Combat (Shield)",
+            "Drinking (Sat Down)",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Idle (2H Weapon) Mounted",
+            "Get Hit Mounted",
+            "Spell Cast Mounted",
+            "Get Hit (Shield) Mounted",
+            "Drinking Mounted",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Unused",
+            "Take off",
+            "Land",
+            "Fly Forward (Slow)",
+            "Fly Forward (Fast)",
+            "Fly Idle",
+            "Fly Idle Combat",
+            "Fly Fidget",
+            "Fly Fidget 2",
+            "Fly Get Hit",
+            "Fly Die Backward",
+            "Fly Die Forward",
+            "Fly Attack (1H Weapon)",
+            "Fly Attack (2H Weapon)",
+            "Fly Attack (Boomerang)",
+            "Fly Get Hit (Shield)",
+            "Fly Spell 1",
+            "Fly Spell 2",
+            "Fly Get Hit",
+            "Fly Drinking",
+            }
+
+
+            
+
+        };
 
         // Tag of the throwaway child node added under a body so the expander ([+]) shows. The real
         // action nodes replace it the first time the body is expanded (see TreeViewMobs_BeforeExpand).
@@ -588,7 +785,7 @@ namespace UoFiddler.Controls.UserControls
 
                 int type = (int)MobTypes.GetTypeOrDefault(body);
                 bool isEquip = type == (int)MobType.Equipment;
-                if (!isEquip && (type < 0 || type >= GetActionNames.Length))
+                if (!isEquip && (type < 0 || type >= GetUOPActionNames.Length))
                 {
                     type = 0;
                 }
@@ -625,11 +822,12 @@ namespace UoFiddler.Controls.UserControls
             var definedActions = Animations.GetUopDefinedActions(body);
             foreach (int i in definedActions)
             {
-                string actionName = i < GetActionNames[actionType].Length
-                    ? GetActionNames[actionType][i]
+                string actionName = i < GetUOPActionNames[actionType].Length
+                    ? GetUOPActionNames[actionType][i]
                     : $"Action{i}";
 
-                parent.Nodes.Add(new TreeNode($"{i} {actionName}") { Tag = i });
+                if (actionName != "Unused")
+                    parent.Nodes.Add(new TreeNode($"{i} {actionName}") { Tag = i });
             }
         }
 
