@@ -334,37 +334,45 @@ namespace UoFiddler.Controls.Forms
         {
             Options.LoadedUltimaClass["AnimationEdit"] = true;
 
-            // Ensure Animations and AnimationEdit have reloaded and discovered any animN files
-            // Pass profile name if available
-            string profileName = null;
-            try
+            // Only reload the animation files on first load, not on every file switch.
+            // Reloading clears ALL caches, which destroys edited animation data when switching files.
+            // The _loaded flag ensures we only do this once, preserving cached edits when returning to a file.
+            if (!_loaded)
             {
-                var optionsType = Type.GetType("UoFiddler.Controls.Classes.Options, UoFiddler.Controls");
-                if (optionsType != null)
+                // Ensure Animations and AnimationEdit have reloaded and discovered any animN files
+                // Pass profile name if available
+                string profileName = null;
+                try
                 {
-                    var profileProp = optionsType.GetProperty("ProfileName");
-                    if (profileProp != null)
-                        profileName = profileProp.GetValue(null) as string;
+                    var optionsType = Type.GetType("UoFiddler.Controls.Classes.Options, UoFiddler.Controls");
+                    if (optionsType != null)
+                    {
+                        var profileProp = optionsType.GetProperty("ProfileName");
+                        if (profileProp != null)
+                            profileName = profileProp.GetValue(null) as string;
+                    }
                 }
-            }
-            catch { }
+                catch { }
 
-            try
-            {
-                Ultima.Animations.Reload();
-            }
-            catch
-            {
-                // ignore reload errors
-            }
+                try
+                {
+                    Ultima.Animations.Reload();
+                }
+                catch
+                {
+                    // ignore reload errors
+                }
 
-            try
-            {
-                Ultima.AnimationEdit.Reload();
-            }
-            catch
-            {
-                // ignore
+                try
+                {
+                    Ultima.AnimationEdit.Reload();
+                }
+                catch
+                {
+                    // ignore
+                }
+
+                _loaded = true;
             }
 
             // Populate file selection combo dynamically based on available anim files
