@@ -54,6 +54,102 @@ namespace UoFiddler.Controls.UserControls
         private static int _pendingNavigationNumber = -1;
 
         /// <summary>
+        /// Gets a cliloc string from the currently loaded cliloc data.
+        /// If cliloc is not loaded, attempts to load a default one.
+        /// </summary>
+        public static string GetStringFromLoaded(int number)
+        {
+            if (_cliloc == null)
+            {
+                // Attempt to load a default cliloc in order of preference
+                string lang;
+                if (Files.GetFilePath("cliloc.enu") != null)
+                {
+                    lang = "enu";
+                }
+                else if (Files.GetFilePath("cliloc.deu") != null)
+                {
+                    lang = "deu";
+                }
+                else if (Files.GetFilePath("cliloc.custom1") != null)
+                {
+                    lang = "custom1";
+                }
+                else if (Files.GetFilePath("cliloc.custom2") != null)
+                {
+                    lang = "custom2";
+                }
+                else
+                {
+                    lang = "enu";
+                }
+
+                _cliloc = new StringList(lang, false);
+            }
+
+            return _cliloc.GetString(number);
+        }
+
+        /// <summary>
+        /// Sets or updates a cliloc entry in the currently loaded cliloc data.
+        /// If cliloc is not loaded, attempts to load a default one first.
+        /// </summary>
+        public static void SetEntryInLoaded(int number, string text)
+        {
+            if (_cliloc == null)
+            {
+                // Load default as in GetStringFromLoaded
+                string lang;
+                if (Files.GetFilePath("cliloc.enu") != null)
+                {
+                    lang = "enu";
+                }
+                else if (Files.GetFilePath("cliloc.deu") != null)
+                {
+                    lang = "deu";
+                }
+                else if (Files.GetFilePath("cliloc.custom1") != null)
+                {
+                    lang = "custom1";
+                }
+                else if (Files.GetFilePath("cliloc.custom2") != null)
+                {
+                    lang = "custom2";
+                }
+                else
+                {
+                    lang = "enu";
+                }
+
+                _cliloc = new StringList(lang, false);
+            }
+
+            // Find and update or add the entry
+            var entry = _cliloc.GetEntry(number);
+            entry.Text = text ?? string.Empty;
+
+            // Update the master Entries list
+            var existingIndex = _cliloc.Entries.FindIndex(e => e.Number == number);
+            if (existingIndex >= 0)
+            {
+                _cliloc.Entries[existingIndex] = entry;
+            }
+            else
+            {
+                _cliloc.Entries.Add(entry);
+            }
+
+            // Also update the internal StringTable so GetString() returns the updated value
+            var stringTable = _cliloc.GetType().GetField("_stringTable", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)?.GetValue(_cliloc) as Dictionary<int, string>;
+            if (stringTable != null)
+            {
+                stringTable[number] = text ?? string.Empty;
+            }
+
+            Options.ChangedUltimaClass["StringList"] = true;
+        }
+
+        /// <summary>
         /// Sets Language and loads cliloc
         /// </summary>
         private int Lang
@@ -298,6 +394,25 @@ namespace UoFiddler.Controls.UserControls
                 if (_pendingNavigationNumber >= 0 && IsHandleCreated)
                 {
                     BeginInvoke(new Action(() => ExecutePendingNavigation()));
+                }
+            }
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+
+            // When this control becomes visible, execute any pending navigation
+            // so that pending selections from other tabs take effect
+            if (Visible && _loaded && _pendingNavigationNumber >= 0)
+            {
+                if (IsHandleCreated)
+                {
+                    BeginInvoke(new Action(() => ExecutePendingNavigation()));
+                }
+                else
+                {
+                    ExecutePendingNavigation();
                 }
             }
         }

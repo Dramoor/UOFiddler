@@ -1915,6 +1915,12 @@ namespace UoFiddler.Controls.UserControls
 
         private void OnClickSelectAllTabs(object sender, EventArgs e)
         {
+            // Update _selectedGraphicId from current FocusIndex in case user right-clicked on a different item
+            if (ItemsTileView.FocusIndex >= 0 && ItemsTileView.FocusIndex < _itemList.Count)
+            {
+                _selectedGraphicId = _itemList[ItemsTileView.FocusIndex];
+            }
+
             if (_selectedGraphicId >= 0)
             {
                 // Cache navigation targets for all tabs

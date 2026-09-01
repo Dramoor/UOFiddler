@@ -90,6 +90,9 @@ namespace UoFiddler.Controls.UserControls
             label1 = new System.Windows.Forms.Label();
             textBoxUnk3 = new System.Windows.Forms.TextBox();
             label12 = new System.Windows.Forms.Label();
+            labelCliloc = new System.Windows.Forms.Label();
+            textBoxCliloc = new System.Windows.Forms.TextBox();
+            buttonSetCliloc = new System.Windows.Forms.Button();
             textBoxAnim = new System.Windows.Forms.TextBox();
             label2 = new System.Windows.Forms.Label();
             checkedListBox1 = new System.Windows.Forms.CheckedListBox();
@@ -120,6 +123,7 @@ namespace UoFiddler.Controls.UserControls
             toolStripDropDownButton1 = new System.Windows.Forms.ToolStripDropDownButton();
             memorySaveWarningToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             saveDirectlyOnChangesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            useTheseSettingsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             setFilterToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             toolStripSeparator4 = new System.Windows.Forms.ToolStripSeparator();
             setTextureOnDoubleClickToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -372,6 +376,9 @@ namespace UoFiddler.Controls.UserControls
             splitContainer3.Panel1.Controls.Add(label1);
             splitContainer3.Panel1.Controls.Add(textBoxUnk3);
             splitContainer3.Panel1.Controls.Add(label12);
+            splitContainer3.Panel1.Controls.Add(labelCliloc);
+            splitContainer3.Panel1.Controls.Add(textBoxCliloc);
+            splitContainer3.Panel1.Controls.Add(buttonSetCliloc);
             splitContainer3.Panel1.Controls.Add(textBoxAnim);
             splitContainer3.Panel1.Controls.Add(label2);
             // 
@@ -722,6 +729,36 @@ namespace UoFiddler.Controls.UserControls
             textBoxAnim.TabIndex = 2;
             textBoxAnim.TextChanged += OnTextChangedItemAnim;
             // 
+            // labelCliloc
+            // 
+            labelCliloc.AutoSize = true;
+            labelCliloc.Location = new System.Drawing.Point(4, 127);
+            labelCliloc.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            labelCliloc.Name = "labelCliloc";
+            labelCliloc.Size = new System.Drawing.Size(39, 15);
+            labelCliloc.TabIndex = 21;
+            labelCliloc.Text = "Cliloc";
+            // 
+            // textBoxCliloc
+            // 
+            textBoxCliloc.Location = new System.Drawing.Point(186, 123);
+            textBoxCliloc.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            textBoxCliloc.Name = "textBoxCliloc";
+            textBoxCliloc.ReadOnly = false;
+            textBoxCliloc.Size = new System.Drawing.Size(230, 23);
+            textBoxCliloc.TabIndex = 24;
+            // 
+            // buttonSetCliloc
+            // 
+            buttonSetCliloc.Location = new System.Drawing.Point(424, 123);
+            buttonSetCliloc.Margin = new System.Windows.Forms.Padding(4, 3, 4, 3);
+            buttonSetCliloc.Name = "buttonSetCliloc";
+            buttonSetCliloc.Size = new System.Drawing.Size(56, 23);
+            buttonSetCliloc.TabIndex = 25;
+            buttonSetCliloc.Text = "Set";
+            buttonSetCliloc.UseVisualStyleBackColor = true;
+            buttonSetCliloc.Click += new System.EventHandler(OnClickSetCliloc);
+            // 
             // label2
             // 
             label2.AutoSize = true;
@@ -999,7 +1036,7 @@ namespace UoFiddler.Controls.UserControls
             // toolStripDropDownButton1
             // 
             toolStripDropDownButton1.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
-            toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { memorySaveWarningToolStripMenuItem, saveDirectlyOnChangesToolStripMenuItem, setFilterToolStripMenuItem, toolStripSeparator4, setTextureOnDoubleClickToolStripMenuItem, setTexturesToolStripMenuItem });
+            toolStripDropDownButton1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { memorySaveWarningToolStripMenuItem, saveDirectlyOnChangesToolStripMenuItem, useTheseSettingsToolStripMenuItem, setFilterToolStripMenuItem, toolStripSeparator4, setTextureOnDoubleClickToolStripMenuItem, setTexturesToolStripMenuItem });
             toolStripDropDownButton1.ImageTransparentColor = System.Drawing.Color.Magenta;
             toolStripDropDownButton1.Name = "toolStripDropDownButton1";
             toolStripDropDownButton1.Size = new System.Drawing.Size(45, 22);
@@ -1020,6 +1057,13 @@ namespace UoFiddler.Controls.UserControls
             saveDirectlyOnChangesToolStripMenuItem.Name = "saveDirectlyOnChangesToolStripMenuItem";
             saveDirectlyOnChangesToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
             saveDirectlyOnChangesToolStripMenuItem.Text = "Save directly on changes";
+            // 
+            // useTheseSettingsToolStripMenuItem
+            // 
+            useTheseSettingsToolStripMenuItem.CheckOnClick = true;
+            useTheseSettingsToolStripMenuItem.Name = "useTheseSettingsToolStripMenuItem";
+            useTheseSettingsToolStripMenuItem.Size = new System.Drawing.Size(205, 22);
+            useTheseSettingsToolStripMenuItem.Text = "Copy These Settings";
             // 
             // setFilterToolStripMenuItem
             // 
@@ -1186,6 +1230,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.PictureBox pictureBoxItem;
         private System.Windows.Forms.PictureBox pictureBoxLand;
         private System.Windows.Forms.ToolStripMenuItem saveDirectlyOnChangesToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem useTheseSettingsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectInItemsToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectInLandtilesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem selectRadarColorToolStripMenuItem;
@@ -1201,6 +1246,9 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.TabPage tabPageItems;
         private System.Windows.Forms.TabPage tabPageLand;
         private System.Windows.Forms.TextBox textBoxAnim;
+        private System.Windows.Forms.TextBox textBoxCliloc;
+        private System.Windows.Forms.Button buttonSetCliloc;
+        private System.Windows.Forms.Label labelCliloc;
         private System.Windows.Forms.TextBox textBoxHeigth;
         private System.Windows.Forms.TextBox textBoxHue;
         private System.Windows.Forms.TextBox textBoxName;

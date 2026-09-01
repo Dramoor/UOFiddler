@@ -296,6 +296,18 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+
+            // When this control becomes visible, execute any pending navigation
+            // so that pending selections from other tabs take effect
+            if (Visible && _loaded && _pendingNavigationGumpId >= 0)
+            {
+                ExecutePendingNavigation();
+            }
+        }
+
         private void PopulateListBox(bool showOnlyValid)
         {
             listView.BeginUpdate();

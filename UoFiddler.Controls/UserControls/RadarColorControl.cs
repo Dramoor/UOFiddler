@@ -496,7 +496,12 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _refMarker.tabControl2.SelectTab(1);
-                _refMarker.SelectLandRow(pos);
+                // Clear selection first, then select - use BeginInvoke to ensure ListView is ready
+                _refMarker.BeginInvoke(new Action(() =>
+                {
+                    _refMarker.tileViewLand.FocusIndex = -1;
+                    _refMarker.SelectLandRow(pos);
+                }));
             }
             else
             {
@@ -513,7 +518,12 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _refMarker.tabControl2.SelectTab(0);
-                _refMarker.SelectItemRow(pos);
+                // Clear selection first, then select - use BeginInvoke to ensure ListView is ready
+                _refMarker.BeginInvoke(new Action(() =>
+                {
+                    _refMarker.tileViewItem.FocusIndex = -1;
+                    _refMarker.SelectItemRow(pos);
+                }));
             }
         }
 
@@ -567,6 +577,18 @@ namespace UoFiddler.Controls.UserControls
 
             // Execute any pending navigation from cross-tab selection
             ExecutePendingNavigation();
+        }
+
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+
+            // When this control becomes visible, execute any pending navigation
+            // so that pending selections from other tabs take effect
+            if (Visible && IsLoaded)
+            {
+                ExecutePendingNavigation();
+            }
         }
 
         private void PopulateMeanStrategyCombo()

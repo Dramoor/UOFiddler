@@ -727,6 +727,12 @@ namespace UoFiddler.Controls.UserControls
 
         private void OnClickSelectAllTabs(object sender, EventArgs e)
         {
+            // Update _selectedGraphicId from current FocusIndex in case user right-clicked on a different tile
+            if (LandTilesTileView.FocusIndex >= 0 && LandTilesTileView.FocusIndex < _tileList.Count)
+            {
+                _selectedGraphicId = _tileList[LandTilesTileView.FocusIndex];
+            }
+
             if (_selectedGraphicId >= 0)
             {
                 // Cache navigation targets for all three tabs

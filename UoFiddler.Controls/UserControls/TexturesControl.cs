@@ -193,6 +193,25 @@ namespace UoFiddler.Controls.UserControls
             }
         }
 
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+
+            // When this control becomes visible, execute any pending navigation
+            // so that pending selections from other tabs take effect
+            if (Visible && _loaded && _pendingNavigationTextureId >= 0)
+            {
+                if (IsHandleCreated)
+                {
+                    BeginInvoke(new Action(() => ExecutePendingNavigation()));
+                }
+                else
+                {
+                    ExecutePendingNavigation();
+                }
+            }
+        }
+
         private void OnTextureChangeEvent(object sender, int index)
         {
             if (!_loaded)

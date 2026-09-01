@@ -36,6 +36,8 @@ namespace UoFiddler.Controls.UserControls
             saveDirectlyOnChangesToolStripMenuItem.Checked = Options.TileDataDirectlySaveOnChange;
             saveDirectlyOnChangesToolStripMenuItem.CheckedChanged += SaveDirectlyOnChangesToolStripMenuItemOnCheckedChanged;
 
+            useTheseSettingsToolStripMenuItem.CheckedChanged += UseTheseSettingsToolStripMenuItemOnCheckedChanged;
+
             ControlEvents.FilePathChangeEvent += OnFilePathChangeEvent;
             ControlEvents.TileDataChangeEvent += OnTileDataChangeEvent;
             ControlEvents.PreviewBackgroundColorChangeEvent += OnPreviewBackgroundColorChanged;
@@ -98,6 +100,11 @@ namespace UoFiddler.Controls.UserControls
         private static bool _pendingNavigationIsLand;
 
         private bool _changingIndex;
+        private string _savedCliloc = string.Empty;
+        private ItemData? _savedItemTemplate;
+        private LandData? _savedLandTemplate;
+        private int _savedClilocItem = -1;  // cliloc number for the saved item template
+        private int _savedClilocLand = -1;  // cliloc number for the saved land template
 
         // Virtual ListView backing state. _itemIndices/_landIndices map each
         // visible row position to the real graphic id; default identity, narrowed
@@ -309,7 +316,12 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _refMarker.tabcontrol.SelectTab(1);
-                _refMarker.SelectLandRow(pos);
+                // Clear selection first, then select - use BeginInvoke to ensure ListView is ready
+                _refMarker.BeginInvoke(new Action(() =>
+                {
+                    _refMarker.listViewLand.SelectedIndices.Clear();
+                    _refMarker.SelectLandRow(pos);
+                }));
                 return true;
             }
             else
@@ -327,7 +339,12 @@ namespace UoFiddler.Controls.UserControls
                 }
 
                 _refMarker.tabcontrol.SelectTab(0);
-                _refMarker.SelectItemRow(pos);
+                // Clear selection first, then select - use BeginInvoke to ensure ListView is ready
+                _refMarker.BeginInvoke(new Action(() =>
+                {
+                    _refMarker.listViewItem.SelectedIndices.Clear();
+                    _refMarker.SelectItemRow(pos);
+                }));
                 return true;
             }
         }
@@ -606,6 +623,18 @@ namespace UoFiddler.Controls.UserControls
             ExecutePendingNavigation();
         }
 
+        protected override void OnVisibleChanged(EventArgs e)
+        {
+            base.OnVisibleChanged(e);
+
+            // When this control becomes visible, execute any pending navigation
+            // so that pending selections from other tabs take effect
+            if (Visible && IsLoaded)
+            {
+                ExecutePendingNavigation();
+            }
+        }
+
         private void OnFilePathChangeEvent()
         {
             Reload();
@@ -715,6 +744,11 @@ namespace UoFiddler.Controls.UserControls
 
             ItemData data = TileData.ItemTable[index];
             _changingIndex = true;
+
+            // Store the current item's cliloc number for saving when "Set" is clicked
+            int clilocNumber = index < 0x4000 ? 1020000 + index : 1078872 + index;
+            _savedCliloc = clilocNumber.ToString();
+
             textBoxName.Text = data.Name;
             textBoxAnim.Text = data.Animation.ToString();
             textBoxWeight.Text = data.Weight.ToString();
@@ -728,12 +762,62 @@ namespace UoFiddler.Controls.UserControls
             textBoxUnk2.Text = data.Unk2.ToString();
             textBoxUnk3.Text = data.Unk3.ToString();
 
+            // Load cliloc string for this item if available using ClilocControl shared data
+            try
+            {
+                string clilocText = ClilocControl.GetStringFromLoaded(clilocNumber);
+                textBoxCliloc.Text = clilocText ?? string.Empty;
+            }
+            catch
+            {
+                textBoxCliloc.Text = string.Empty;
+            }
+
             Array enumValues = Enum.GetValues(typeof(TileFlag));
             int maxLength = Art.IsUOAHS() ? enumValues.Length : (enumValues.Length / 2) + 1;
             for (int i = 1; i < maxLength; ++i)
             {
                 checkedListBox1.SetItemChecked(i - 1, (data.Flags & (TileFlag)enumValues.GetValue(i)) != 0);
             }
+
+            // Apply saved template if "Use These Settings" is checked
+            if (useTheseSettingsToolStripMenuItem.Checked && _savedItemTemplate.HasValue)
+            {
+                var template = _savedItemTemplate.Value;
+                textBoxName.Text = template.Name;
+                textBoxAnim.Text = template.Animation.ToString();
+                textBoxWeight.Text = template.Weight.ToString();
+                textBoxQuality.Text = template.Quality.ToString();
+                textBoxQuantity.Text = template.Quantity.ToString();
+                textBoxHue.Text = template.Hue.ToString();
+                textBoxStackOff.Text = template.StackingOffset.ToString();
+                textBoxValue.Text = template.Value.ToString();
+                textBoxHeigth.Text = template.Height.ToString();
+                textBoxUnk1.Text = template.MiscData.ToString();
+                textBoxUnk2.Text = template.Unk2.ToString();
+                textBoxUnk3.Text = template.Unk3.ToString();
+
+                // Apply template flags
+                for (int i = 1; i < maxLength; ++i)
+                {
+                    checkedListBox1.SetItemChecked(i - 1, (template.Flags & (TileFlag)enumValues.GetValue(i)) != 0);
+                }
+
+                // Apply template cliloc
+                if (_savedClilocItem >= 0)
+                {
+                    try
+                    {
+                        string clilocText = ClilocControl.GetStringFromLoaded(_savedClilocItem);
+                        textBoxCliloc.Text = clilocText ?? string.Empty;
+                    }
+                    catch
+                    {
+                        textBoxCliloc.Text = string.Empty;
+                    }
+                }
+            }
+
             _changingIndex = false;
         }
 
@@ -767,6 +851,23 @@ namespace UoFiddler.Controls.UserControls
             for (int i = 1; i < maxLength; ++i)
             {
                 checkedListBox2.SetItemChecked(i - 1, (data.Flags & (TileFlag)enumValues.GetValue(i)) != 0);
+            }
+
+            // Apply saved template if "Use These Settings" is checked
+            if (useTheseSettingsToolStripMenuItem.Checked && _savedLandTemplate.HasValue)
+            {
+                var template = _savedLandTemplate.Value;
+                textBoxNameLand.Text = template.Name;
+                textBoxTexID.Text = template.TextureId.ToString();
+
+                // Apply template flags
+                for (int i = 1; i < maxLength; ++i)
+                {
+                    checkedListBox2.SetItemChecked(i - 1, (template.Flags & (TileFlag)enumValues.GetValue(i)) != 0);
+                }
+
+                // Apply template cliloc (land tiles don't use cliloc in the UI, but we could add it if needed)
+                // For now, land tiles don't have a cliloc textbox, so this is just a placeholder for consistency
             }
 
             _changingIndex = false;
@@ -923,6 +1024,38 @@ namespace UoFiddler.Controls.UserControls
         private void SaveDirectlyOnChangesToolStripMenuItemOnCheckedChanged(object sender, EventArgs eventArgs)
         {
             Options.TileDataDirectlySaveOnChange = saveDirectlyOnChangesToolStripMenuItem.Checked;
+        }
+
+        private void UseTheseSettingsToolStripMenuItemOnCheckedChanged(object sender, EventArgs eventArgs)
+        {
+            if (useTheseSettingsToolStripMenuItem.Checked)
+            {
+                // Save the current item template
+                int itemIndex = GetSelectedItemGraphic();
+                if (itemIndex >= 0)
+                {
+                    _savedItemTemplate = TileData.ItemTable[itemIndex];
+                    // Save the cliloc for this item
+                    _savedClilocItem = itemIndex < 0x4000 ? 1020000 + itemIndex : 1078872 + itemIndex;
+                }
+
+                // Save the current land template
+                int landIndex = GetSelectedLandGraphic();
+                if (landIndex >= 0)
+                {
+                    _savedLandTemplate = TileData.LandTable[landIndex];
+                    // Land tiles have their own cliloc range - using same formula as items for now
+                    _savedClilocLand = landIndex < 0x4000 ? 1020000 + landIndex : 1078872 + landIndex;
+                }
+            }
+            else
+            {
+                // Clear the templates when unchecking
+                _savedItemTemplate = null;
+                _savedLandTemplate = null;
+                _savedClilocItem = -1;
+                _savedClilocLand = -1;
+            }
         }
 
         private void OnTextChangedItemAnim(object sender, EventArgs e)
@@ -1505,6 +1638,36 @@ namespace UoFiddler.Controls.UserControls
                 MarkLandModified(index);
                 Options.ChangedUltimaClass["TileData"] = true;
                 ControlEvents.FireTileDataChangeEvent(this, index);
+            }
+        }
+
+        private void OnClickSetCliloc(object sender, EventArgs e)
+        {
+            if (tabcontrol.SelectedIndex != 0) // only for items
+            {
+                return;
+            }
+
+            int index = GetSelectedItemGraphic();
+            if (index < 0)
+            {
+                return;
+            }
+
+            try
+            {
+                int clilocNumber = index < 0x4000 ? 1020000 + index : 1078872 + index;
+                string newText = textBoxCliloc.Text ?? string.Empty;
+
+                // Update shared cliloc in ClilocControl so other UI updates reflect change
+                ClilocControl.SetEntryInLoaded(clilocNumber, newText);
+
+                // Mark StringList as changed
+                Options.ChangedUltimaClass["StringList"] = true;
+            }
+            catch
+            {
+                // Swallow errors and do nothing
             }
         }
 
