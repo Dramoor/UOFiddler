@@ -118,7 +118,16 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.3.5
+    <value>Version 5.3.6
+- Tiledata can now set the cliloc direct.
+- Can now select "Copy These Settings" in tiledta misc dropdown to copy any saved settings to the next tildata selection.
+- Fixed bugs in select in all tabs not always selecting accurate in tiledata and radarcolor.
+- Fixed issues where in animation edit it would reload everytime selecting mul file and not loading back to cache if present.
+- Added in a setting for the Animation List Control for the treeview building to show the proper frame names based on Pincos Super EC Viewer.
+- Edited some tab indexes in the AnimationEdit preview/edit tab so tabbing can go sequential.
+- Added in Enter handlers for the NumericUpDowns in the AnimationEdit form to auto select entry.
+	
+Version 5.3.5
 - Updated script generation to allow for adding an actul Script Name and for setting the labeled name as read only (DefaultName). 
 - Fixed issues with finding item in items tab from Gump id in the Gumps tab.
 
