@@ -118,7 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.3.6
+    <value>Version 5.3.7
+- Fixed issue with anim - anim6 not saving properly beacuse the cache was not loading when saving.
+- Hues can not go to 10,000.
+	
+Version 5.3.6
 - Tiledata can now set the cliloc direct.
 - Can now select "Copy These Settings" in tiledta misc dropdown to copy any saved settings to the next tildata selection.
 - Fixed bugs in select in all tabs not always selecting accurate in tiledata and radarcolor.
