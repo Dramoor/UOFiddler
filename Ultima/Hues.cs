@@ -1,5 +1,4 @@
 using System;
-using System.Buffers.Binary;
 using System.Drawing;
 using System.Drawing.Imaging;
 using System.IO;
@@ -28,7 +27,7 @@ namespace Ultima
             string path = Files.GetFilePath("hues.mul");
             int index = 0;
 
-            const int maxHueCount = 3000;
+            const int maxHueCount = 10000;
             List = new Hue[maxHueCount];
 
             if (path != null)
@@ -37,32 +36,38 @@ namespace Ultima
                 {
                     int blockCount = (int)fs.Length / 708;
 
-                    if (blockCount > 375)
+                    if (blockCount > 1250)
                     {
-                        blockCount = 375;
+                        blockCount = 1250;
                     }
 
                     _header = new int[blockCount];
-
-                    // Disk layout per HueDataMul: 32 ushorts (64) + 2 ushorts (4) + 20-byte name = 88 bytes.
-                    // Each block = 4-byte header + 8 * 88 = 708 bytes.
-                    const int hueDataSize = 88;
-                    const int blockSize = 4 + 8 * hueDataSize;
-                    var buffer = new byte[blockCount * blockSize];
-                    fs.ReadExactly(buffer, 0, buffer.Length);
-                    ReadOnlySpan<byte> bufferSpan = buffer;
-
-                    int cursor = 0;
-                    for (int i = 0; i < blockCount; ++i)
+                    int structSize = Marshal.SizeOf(typeof(HueDataMul));
+                    var buffer = new byte[blockCount * (4 + (8 * structSize))];
+                    GCHandle gc = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+                    try
                     {
-                        _header[i] = BinaryPrimitives.ReadInt32LittleEndian(bufferSpan.Slice(cursor));
-                        cursor += 4;
+                        fs.Read(buffer, 0, buffer.Length);
+                        long currentPos = 0;
 
-                        for (int j = 0; j < 8; ++j, ++index)
+                        for (int i = 0; i < blockCount; ++i)
                         {
-                            List[index] = new Hue(index, bufferSpan.Slice(cursor, hueDataSize));
-                            cursor += hueDataSize;
+                            var ptrHeader = new IntPtr(gc.AddrOfPinnedObject() + currentPos);
+                            currentPos += 4;
+                            _header[i] = (int)Marshal.PtrToStructure(ptrHeader, typeof(int));
+
+                            for (int j = 0; j < 8; ++j, ++index)
+                            {
+                                var ptr = new IntPtr(gc.AddrOfPinnedObject() + currentPos);
+                                currentPos += structSize;
+                                var cur = (HueDataMul)Marshal.PtrToStructure(ptr, typeof(HueDataMul));
+                                List[index] = new Hue(index, cur);
+                            }
                         }
+                    }
+                    finally
+                    {
+                        gc.Free();
                     }
                 }
             }
@@ -136,7 +141,7 @@ namespace Ultima
         {
             index &= 0x3FFF;
 
-            if (index >= 0 && index < 3000)
+            if (index >= 0 && index < 10000)
             {
                 return List[index];
             }
@@ -296,33 +301,6 @@ namespace Ultima
             TableEnd = mulStruct.tableEnd;
 
             Name = TileDataHelpers.ReadNameString(mulStruct.name, 20);
-            Name = Name.Replace("\n", " ");
-        }
-
-        /// <summary>
-        /// Builds a Hue directly from the on-disk byte layout: 32 ushorts of
-        /// colors, then tableStart / tableEnd ushorts, then a 20-byte ASCII
-        /// name. Lets the loader skip Marshal.PtrToStructure boxing per hue.
-        /// </summary>
-        public Hue(int index, ReadOnlySpan<byte> data)
-        {
-            Index = index;
-            Colors = new ushort[32];
-            for (int i = 0; i < 32; ++i)
-            {
-                ushort c = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(i * 2));
-                if (c == 0 || c > 0x7fff)
-                {
-                    c = 1;
-                }
-
-                Colors[i] = c;
-            }
-
-            TableStart = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(64));
-            TableEnd = BinaryPrimitives.ReadUInt16LittleEndian(data.Slice(66));
-
-            Name = TileDataHelpers.ReadNameString(data.Slice(68, 20));
             Name = Name.Replace("\n", " ");
         }
 

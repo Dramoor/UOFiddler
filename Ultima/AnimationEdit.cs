@@ -73,31 +73,37 @@ namespace Ultima
             if (_fileIndex.IdxLength > 0)
             {
                 _animCache = new AnimIdx[_fileIndex.IdxLength / 12];
+                _animCaches[1] = _animCache;
             }
 
             if (_fileIndex2.IdxLength > 0)
             {
                 _animCache2 = new AnimIdx[_fileIndex2.IdxLength / 12];
+                _animCaches[2] = _animCache2;
             }
 
             if (_fileIndex3.IdxLength > 0)
             {
                 _animCache3 = new AnimIdx[_fileIndex3.IdxLength / 12];
+                _animCaches[3] = _animCache3;
             }
 
             if (_fileIndex4.IdxLength > 0)
             {
                 _animCache4 = new AnimIdx[_fileIndex4.IdxLength / 12];
+                _animCaches[4] = _animCache4;
             }
 
             if (_fileIndex5.IdxLength > 0)
             {
                 _animCache5 = new AnimIdx[_fileIndex5.IdxLength / 12];
+                _animCaches[5] = _animCache5;
             }
 
             if (_fileIndex6.IdxLength > 0)
             {
                 _animCache6 = new AnimIdx[_fileIndex6.IdxLength / 12];
+                _animCaches[6] = _animCache6;
             }
         }
 

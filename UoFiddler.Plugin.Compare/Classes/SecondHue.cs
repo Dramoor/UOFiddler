@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Runtime.InteropServices;
 using Ultima;
 
 namespace UoFiddler.Plugin.Compare.Classes
@@ -15,7 +16,7 @@ namespace UoFiddler.Plugin.Compare.Classes
         {
             int index = 0;
 
-            List = new Hue[3000];
+            List = new Hue[10000];
 
             if (path != null)
             {
@@ -23,30 +24,36 @@ namespace UoFiddler.Plugin.Compare.Classes
                 {
                     int blockCount = (int)fs.Length / 708;
 
-                    if (blockCount > 375)
+                    if (blockCount > 1250)
                     {
-                        blockCount = 375;
+                        blockCount = 1250;
                     }
 
-                    // Disk layout per HueDataMul: 32 ushorts (64) + 2 ushorts (4) + 20-byte name = 88 bytes.
-                    // Each block = 4-byte header + 8 * 88 = 708 bytes.
-                    const int hueDataSize = 88;
-                    const int blockSize = 4 + 8 * hueDataSize;
-                    var buffer = new byte[blockCount * blockSize];
-                    fs.ReadExactly(buffer, 0, buffer.Length);
-                    ReadOnlySpan<byte> bufferSpan = buffer;
-
-                    int cursor = 0;
-                    for (int i = 0; i < blockCount; ++i)
+                    int structSize = Marshal.SizeOf(typeof(HueDataMul));
+                    var buffer = new byte[blockCount * (4 + (8 * structSize))];
+                    GCHandle gc = GCHandle.Alloc(buffer, GCHandleType.Pinned);
+                    try
                     {
-                        // 4-byte header per block is unused on the Compare side.
-                        cursor += 4;
+                        fs.Read(buffer, 0, buffer.Length);
+                        long currentPos = 0;
 
-                        for (int j = 0; j < 8; ++j, ++index)
+                        for (int i = 0; i < blockCount; ++i)
                         {
-                            List[index] = new Hue(index, bufferSpan.Slice(cursor, hueDataSize));
-                            cursor += hueDataSize;
+                            // 4-byte header per block is unused on the Compare side.
+                            currentPos += 4;
+
+                            for (int j = 0; j < 8; ++j, ++index)
+                            {
+                                var ptr = new IntPtr(gc.AddrOfPinnedObject() + currentPos);
+                                currentPos += structSize;
+                                var cur = (HueDataMul)Marshal.PtrToStructure(ptr, typeof(HueDataMul));
+                                List[index] = new Hue(index, cur);
+                            }
                         }
+                    }
+                    finally
+                    {
+                        gc.Free();
                     }
                 }
             }
