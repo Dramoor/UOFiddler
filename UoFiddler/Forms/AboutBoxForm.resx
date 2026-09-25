@@ -118,7 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.3.8
+    <value>Version 5.3.9
+- Fixed animations in the item detail form to show properly when turned on.
+- Added option in the Item tab to turn on animations in item list with "animation detail" to see the animation run in the preview section.
+	
+Version 5.3.8
 - Added in options to "Copy Reized" and "Copy Resized Remapped" options to copy an animation in a mul to an empty slot in the mul.
 	
 Version 5.3.7

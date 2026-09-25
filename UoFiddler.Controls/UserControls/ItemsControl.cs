@@ -40,12 +40,18 @@ namespace UoFiddler.Controls.UserControls
 
             InitializeFilterMenuItems();
             InitializeExportWithHueMenu();
+            InitializeAnimateDetailMenu();
 
             // Hook into VisibleChanged to execute pending navigation when the tab is activated
             VisibleChanged += (_, _) => {
                 if (Visible && IsLoaded && _pendingNavigationGraphicId >= 0)
                 {
                     ExecutePendingNavigation();
+                }
+                else if (!Visible)
+                {
+                    // Clean up animation when tab is deactivated
+                    CleanupDetailAnimation();
                 }
             };
         }
@@ -76,6 +82,13 @@ namespace UoFiddler.Controls.UserControls
         // Item hue preview
         private int _previewHue = -1;
         private bool _detailPartialHue;
+
+        // Item detail animation
+        private bool _animateDetail;
+        private Timer _animationDetailTimer;
+        private int _frameDetail;
+        private Animdata.AnimdataEntry _infoDetail;
+        private int _currentAnimatingGraphic = -1;
 
         // Current search type
         private SearchType _currentSearchType = SearchType.Name;
@@ -304,6 +317,109 @@ namespace UoFiddler.Controls.UserControls
             {
                 // Ignore errors in designer
             }
+        }
+
+        /// <summary>
+        /// Initializes the animate detail menu item in the Misc dropdown
+        /// </summary>
+        private void InitializeAnimateDetailMenu()
+        {
+            try
+            {
+                if (MiscToolStripDropDownButton == null)
+                {
+                    return;
+                }
+
+                var animateDetailMenuItem = new ToolStripMenuItem
+                {
+                    Name = "animateDetailMenuItem",
+                    Text = "Animate Detail",
+                    CheckOnClick = true,
+                    Checked = _animateDetail
+                };
+                animateDetailMenuItem.Click += AnimateDetail_Click;
+                MiscToolStripDropDownButton.DropDownItems.Add(animateDetailMenuItem);
+            }
+            catch
+            {
+                // Ignore errors in designer
+            }
+        }
+
+        /// <summary>
+        /// Handles the animate detail menu item click
+        /// </summary>
+        private void AnimateDetail_Click(object sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem)
+            {
+                _animateDetail = menuItem.Checked;
+
+                if (!_animateDetail)
+                {
+                    // Stop animation
+                    if (_animationDetailTimer != null)
+                    {
+                        if (_animationDetailTimer.Enabled)
+                        {
+                            _animationDetailTimer.Stop();
+                        }
+                        _animationDetailTimer.Dispose();
+                        _animationDetailTimer = null;
+                    }
+
+                    // Redraw the current detail
+                    if (_selectedGraphicId >= 0)
+                    {
+                        UpdateDetail(_selectedGraphicId);
+                    }
+                }
+                else
+                {
+                    // Start animation if the current item has animation
+                    if (_selectedGraphicId >= 0 && _infoDetail != null)
+                    {
+                        StartDetailAnimation();
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Starts the detail animation timer
+        /// </summary>
+        private void StartDetailAnimation()
+        {
+            if (_infoDetail == null)
+            {
+                return;
+            }
+
+            _animationDetailTimer = new Timer();
+            _frameDetail = -1;
+            _currentAnimatingGraphic = _selectedGraphicId;
+            _animationDetailTimer.Interval = 100 * _infoDetail.FrameInterval;
+            _animationDetailTimer.Tick += DetailAnimationTick;
+            _animationDetailTimer.Start();
+        }
+
+        /// <summary>
+        /// Cleans up and stops the detail animation timer
+        /// </summary>
+        private void CleanupDetailAnimation()
+        {
+            if (_animationDetailTimer != null)
+            {
+                if (_animationDetailTimer.Enabled)
+                {
+                    _animationDetailTimer.Stop();
+                }
+                _animationDetailTimer.Dispose();
+                _animationDetailTimer = null;
+            }
+            _infoDetail = null;
+            _currentAnimatingGraphic = -1;
         }
 
         /// <summary>
@@ -1087,6 +1203,17 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
+            // Stop any running animation
+            if (_animationDetailTimer != null)
+            {
+                if (_animationDetailTimer.Enabled)
+                {
+                    _animationDetailTimer.Stop();
+                }
+                _animationDetailTimer.Dispose();
+                _animationDetailTimer = null;
+            }
+
             // Validate graphic ID is within bounds
             if (graphic < 0 || graphic >= TileData.ItemTable.Length)
             {
@@ -1119,31 +1246,23 @@ namespace UoFiddler.Controls.UserControls
                 var distance = bit.Size.Height + 10;
                 splitContainer2.SplitterDistance = distance < defaultSplitterDistance ? defaultSplitterDistance : distance;
 
-                Bitmap newBit = new Bitmap(DetailPictureBox.Size.Width, DetailPictureBox.Size.Height);
-                using (Graphics newGraph = Graphics.FromImage(newBit))
+                // Apply hue if preview is set
+                Bitmap displayBit = bit;
+                if (_previewHue >= 0)
                 {
-                    newGraph.Clear(Options.PreviewBackgroundColor);
-
-                    // Apply hue if preview is set
-                    if (_previewHue >= 0)
-                    {
-                        // Clone the bitmap to apply hue
-                        Bitmap hueBit = new Bitmap(bit);
-                        bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
-                        Hue hue = Hues.List[_previewHue];
-                        hue.ApplyTo(hueBit, usePartialHue);
-                        _detailPartialHue = usePartialHue;
-                        newGraph.DrawImage(hueBit, (DetailPictureBox.Size.Width - hueBit.Width) / 2, 5);
-                        hueBit.Dispose();
-                    }
-                    else
-                    {
-                        newGraph.DrawImage(bit, (DetailPictureBox.Size.Width - bit.Width) / 2, 5);
-                    }
+                    displayBit = new Bitmap(bit);
+                    bool usePartialHue = (item.Flags & TileFlag.PartialHue) != 0;
+                    Hue hue = Hues.List[_previewHue];
+                    hue.ApplyTo(displayBit, usePartialHue);
+                    _detailPartialHue = usePartialHue;
                 }
 
-                DetailPictureBox.Image?.Dispose();
-                DetailPictureBox.Image = newBit;
+                UpdateDetailPicture(displayBit, graphic);
+
+                if (_previewHue >= 0)
+                {
+                    displayBit.Dispose();
+                }
 
                 Art.Measure(bit, out xMin, out yMin, out xMax, out yMax);
             }
@@ -1172,17 +1291,139 @@ namespace UoFiddler.Controls.UserControls
             //sb.AppendLine($"Graphic pixel size width, height: {bit?.Width ?? 0} {bit?.Height ?? 0} ");
             //sb.AppendLine($"Graphic pixel offset xMin, yMin, xMax, yMax: {xMin} {yMin} {xMax} {yMax}");
 
+            _infoDetail = null;
             if ((item.Flags & TileFlag.Animation) != 0)
             {
                 Animdata.AnimdataEntry info = Animdata.GetAnimData(graphic);
                 if (info != null)
                 {
+                    _infoDetail = info;
                     sb.AppendLine($"Animation FrameCount: {info.FrameCount} Interval: {info.FrameInterval}");
+
+                    // Start animation if it's enabled
+                    if (_animateDetail)
+                    {
+                        _currentAnimatingGraphic = graphic;
+                        StartDetailAnimation();
+                    }
                 }
             }
 
             DetailTextBox.Clear();
             DetailTextBox.AppendText(sb.ToString());
+        }
+
+        /// <summary>
+        /// Updates the detail picture with bottom-aligned image drawing for animation support
+        /// </summary>
+        private void UpdateDetailPicture(Bitmap bit, int graphic)
+        {
+            try
+            {
+                if (bit == null)
+                {
+                    // Just clear the display
+                    Bitmap clearBit = new Bitmap(DetailPictureBox.Size.Width, DetailPictureBox.Size.Height);
+                    using (Graphics clearGraph = Graphics.FromImage(clearBit))
+                    {
+                        clearGraph.Clear(Options.PreviewBackgroundColor);
+                    }
+                    DetailPictureBox.Image?.Dispose();
+                    DetailPictureBox.Image = clearBit;
+                    return;
+                }
+
+                // Verify bitmap dimensions are valid before accessing
+                int bitWidth = 0;
+                int bitHeight = 0;
+
+                try
+                {
+                    bitWidth = bit.Width;
+                    bitHeight = bit.Height;
+                }
+                catch
+                {
+                    // Bitmap is invalid/disposed, can't use it
+                    return;
+                }
+
+                if (bitWidth <= 0 || bitHeight <= 0)
+                {
+                    return;
+                }
+
+                Bitmap newBit = new Bitmap(DetailPictureBox.Size.Width, DetailPictureBox.Size.Height);
+                using (Graphics newGraph = Graphics.FromImage(newBit))
+                {
+                    newGraph.Clear(Options.PreviewBackgroundColor);
+
+                    int x = (DetailPictureBox.Size.Width - bitWidth) / 2;
+                    // Bottom-align the image: position it so the bottom edge is consistent
+                    int y = DetailPictureBox.Size.Height - bitHeight - 5;
+
+                    try
+                    {
+                        newGraph.DrawImage(bit, x, y);
+                    }
+                    catch
+                    {
+                        // If draw fails, just continue with blank image
+                    }
+                }
+
+                DetailPictureBox.Image?.Dispose();
+                DetailPictureBox.Image = newBit;
+            }
+            catch
+            {
+                // Ignore errors when updating detail picture during animation
+            }
+        }
+
+        /// <summary>
+        /// Handles animation frame update for detail preview
+        /// </summary>
+        private void DetailAnimationTick(object sender, EventArgs e)
+        {
+            if (_infoDetail == null || _currentAnimatingGraphic < 0)
+            {
+                return;
+            }
+
+            try
+            {
+                ++_frameDetail;
+                if (_frameDetail >= _infoDetail.FrameCount)
+                {
+                    _frameDetail = 0;
+                }
+
+                int frameGraphicId = _currentAnimatingGraphic + _infoDetail.FrameData[_frameDetail];
+                Bitmap sourceBit = Art.GetStatic(frameGraphicId);
+
+                if (sourceBit == null)
+                {
+                    return;
+                }
+
+                // Clone the bitmap immediately to ensure we have a valid copy
+                // The Art system may reuse or dispose the original
+                Bitmap animBit = new Bitmap(sourceBit);
+
+                if (_previewHue >= 0)
+                {
+                    Hue hue = Hues.List[_previewHue];
+                    hue.ApplyTo(animBit, _detailPartialHue);
+                }
+
+                UpdateDetailPicture(animBit, _currentAnimatingGraphic);
+                animBit?.Dispose();
+            }
+            catch
+            {
+                // Ignore errors during animation
+            }
         }
 
         private void ChangeBackgroundColorToolStripMenuItemDetail_Click(object sender, EventArgs e)

@@ -79,7 +79,10 @@ namespace UoFiddler.Controls.Forms
             }
 
             Bitmap bit = (Bitmap)Graphic.Tag;
-            e.Graphics.DrawImage(bit, (e.ClipRectangle.Width - bit.Width) / 2, 5);
+            int x = (e.ClipRectangle.Width - bit.Width) / 2;
+            // Bottom-align the image: position it so the bottom edge is consistent
+            int y = e.ClipRectangle.Height - bit.Height - 5;
+            e.Graphics.DrawImage(bit, x, y);
         }
 
         private void OnLoad(object sender, EventArgs e)
