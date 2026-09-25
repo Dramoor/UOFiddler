@@ -543,6 +543,71 @@ namespace UoFiddler.Controls.Forms
                 : AnimationListTreeView.Nodes[tag];
         }
 
+        private TreeNode FindBodyNodeInTree(int bodyIndex)
+        {
+            // Search for the body node in the TreeView by its Tag
+            foreach (TreeNode node in AnimationListTreeView.Nodes)
+            {
+                if (node.Tag is int tag && tag == bodyIndex)
+                {
+                    return node;
+                }
+            }
+            return null;
+        }
+
+        private void RefreshBodyNodeInTree(int bodyIndex)
+        {
+            // Find the body node
+            TreeNode bodyNode = FindBodyNodeInTree(bodyIndex);
+            if (bodyNode == null)
+            {
+                return;
+            }
+
+            // Re-validate the body's actions
+            int animLength = Animations.GetAnimLength(bodyIndex, _fileType);
+            bool bodyHasValidActions = false;
+
+            // Update each action node's color based on current animation data
+            for (int j = 0; j < animLength; ++j)
+            {
+                if (j < bodyNode.Nodes.Count)
+                {
+                    TreeNode actionNode = bodyNode.Nodes[j];
+                    if (AnimationEdit.IsActionDefined(_fileType, bodyIndex, j))
+                    {
+                        // Action is now defined, remove red color
+                        if (actionNode.ForeColor == _invalidColor)
+                        {
+                            bodyHasValidActions = true;
+                            actionNode.ForeColor = Color.Black;
+                        }
+                    }
+                    else
+                    {
+                        // Action is not defined, mark as red
+                        actionNode.ForeColor = _invalidColor;
+                    }
+                }
+            }
+
+            // Update body node color based on whether any actions are valid
+            if (bodyHasValidActions || AnimationEdit.IsActionDefined(_fileType, bodyIndex, 0))
+            {
+                // Body now has valid actions, remove red color
+                bodyNode.ForeColor = Color.Black;
+            }
+            else
+            {
+                // Body has no valid actions, mark as red
+                bodyNode.ForeColor = _invalidColor;
+            }
+
+            // Force the TreeView to repaint
+            AnimationListTreeView.Invalidate();
+        }
+
         private unsafe void SetPaletteBox()
         {
             if (_fileType == 0)
@@ -1382,6 +1447,596 @@ namespace UoFiddler.Controls.Forms
             }
 
             FileSavedDialog.Show(FindForm(), path, "Frames saved successfully.");
+        }
+
+        /// <summary>
+        /// Shows a remapping dialog for selecting how to map source actions to target actions.
+        /// The destination type is locked (radio buttons disabled) to prevent mismatches.
+        /// Returns the targetToSourceMap array, or null if cancelled.
+        /// </summary>
+        private int[] ShowRemapDialog(int destinationType)
+        {
+            int currentAnimLength = Animations.GetAnimLength(_currentBody, _fileType);
+
+            string[] highdropdownLabels = new string[]
+            {
+                "00 (Walk)", "01 (Idle1)", "02 (Die1)", "03 (Die2)", "04 (Attack1)", "05 (Attack2)",
+                "06 (Attack3)", "07 (AttackBow)", "08 (AttackCrossbow)", "09 (AttackThrow)", "10 (GetHit)", "11 (Pillage)",
+                "12 (Stomp)", "13 (Cast2)", "14 (Cast3)", "15 (BlockRight)", "16 (BlockLeft)", "17 (Idle2)",
+                "18 (Fidget)", "19 (Fly)", "20 (Takeoff)", "21 (GetHitInAir)"
+            };
+
+            string[] highLabels = new string[]
+            {
+                "00 Walk", "01 Idle1", "02 Die1", "03 Die2", "04 Attack1", "05 Attack2",
+                "06 Attack3", "07 AttackBow", "08 AttackCrossbow", "09 AttackThrow", "10 GetHit", "11 Pillage",
+                "12 Stomp", "13 Cast2", "14 Cast3", "15 BlockRight", "16 BlockLeft", "17 Idle2",
+                "18 Fidget", "19 Fly", "20 Takeoff", "21 GetHitInAir"
+            };
+
+            string[] lowdropdownLabels = new string[]
+            {
+                "00 (Walk)", "01 (Run)", "02 (Idle)", "03 (Eat)", "04 (Alert)", "05 (Attack1)",
+                "06 (Attack2)", "07 (GetHit)", "08 (Die1)", "09 (Idle)", "10 (Fidget)", "11 (LieDown)", "12 (Die2)"
+            };
+
+            string[] lowLabels = new string[]
+            {
+                "00 Walk", "01 Run", "02 Idle", "03 Eat", "04 Alert", "05 Attack1",
+                "06 Attack2", "07 GetHit", "08 Die1", "09 Idle", "10 Fidget", "11 LieDown", "12 Die2"
+            };
+
+            string[] peopledropdownLabels = new string[]
+            {
+                "00 (Walk)", "01 (Run)", "02 (Idle)", "03 (Eat)", "04 (Alert)", "05 (Attack1)",
+                "06 (Attack2)", "07 (Idle2)", "08 (GetHit)", "09 (Die1)", "10 (Die2)", "11 (Fidget)", "12 (LieDown)",
+                "13 (Fly)", "14 (Takeoff)", "15 (Unknown)", "16 (Unknown)", "17 (Unknown)", "18 (Unknown)",
+                "19 (Unknown)", "20 (Unknown)", "21 (Unknown)", "22 (Unknown)", "23 (Unknown)", "24 (Unknown)",
+                "25 (Unknown)", "26 (Unknown)", "27 (Unknown)", "28 (Unknown)", "29 (Unknown)", "30 (Unknown)",
+                "31 (Unknown)", "32 (Unknown)", "33 (Unknown)", "34 (Unknown)"
+            };
+
+            string[] peopleLabels = new string[]
+            {
+                "00 Walk", "01 Run", "02 Idle", "03 Eat", "04 Alert", "05 Attack1",
+                "06 Attack2", "07 Idle2", "08 GetHit", "09 Die1", "10 Die2", "11 Fidget", "12 LieDown",
+                "13 Fly", "14 Takeoff", "15 Unknown", "16 Unknown", "17 Unknown", "18 Unknown",
+                "19 Unknown", "20 Unknown", "21 Unknown", "22 Unknown", "23 Unknown", "24 Unknown",
+                "25 Unknown", "26 Unknown", "27 Unknown", "28 Unknown", "29 Unknown", "30 Unknown",
+                "31 Unknown", "32 Unknown", "33 Unknown", "34 Unknown"
+            };
+
+            using (Form cfg = new Form())
+            {
+                cfg.StartPosition = FormStartPosition.CenterParent;
+                cfg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                cfg.MinimizeBox = false;
+                cfg.MaximizeBox = false;
+                cfg.ShowInTaskbar = false;
+                cfg.Text = "Action Remapping";
+
+                var lblType = new Label { Left = 8, Top = 12, Width = 120, Text = "Target Type:" };
+                var rbHigh = new RadioButton { Left = 130, Top = 10, Width = 80, Text = "High (H)", Enabled = false };
+                var rbLow = new RadioButton { Left = 210, Top = 10, Width = 80, Text = "Low (L)", Enabled = false };
+                var rbPeople = new RadioButton { Left = 290, Top = 10, Width = 80, Text = "People (P)", Enabled = false };
+
+                // Set the destination type and disable radio buttons to prevent changing it
+                rbHigh.Checked = destinationType == 0;
+                rbLow.Checked = destinationType == 1;
+                rbPeople.Checked = destinationType == 2;
+
+                var mapHigh = new System.Collections.Generic.List<ComboBox>();
+                var mapLow = new System.Collections.Generic.List<ComboBox>();
+                var mapPeople = new System.Collections.Generic.List<ComboBox>();
+
+                int panelHeightHigh = 22 * 28 + 10;
+                int panelHeightLow = 13 * 28 + 10;
+                int panelHeightPeople = 35 * 28 + 10;
+                int panelWidthHigh = 600;
+                int panelWidthLow = 600;
+                int panelWidthPeople = 600;
+                int labelWidthHigh = 100;
+                int labelWidthLow = 100;
+                int labelWidthPeople = 100;
+
+                Func<System.Collections.Generic.List<ComboBox>, string[], int, int, int, int, int, Panel> BuildMapPanel =
+                    (mapList, targetLabels, srcType, panelHeight, panelWidth, labelWidth, cbWidth) =>
+                {
+                    Panel pnl = new Panel { AutoScroll = true };
+                    int y = 5;
+                    int count = targetLabels != null ? targetLabels.Length : 0;
+                    int lblLeft = 8;
+                    int cbLeft = lblLeft + labelWidth + 5;
+                    int cbWidthLocal = cbWidth > 0 ? cbWidth : panelWidth - cbLeft - 8;
+
+                    for (int tgt = 0; tgt < count; tgt++)
+                    {
+                        string lblText = targetLabels != null ? targetLabels[tgt] : tgt.ToString();
+                        var lbl = new Label { Left = lblLeft, Top = y + 6, Width = labelWidth, Text = lblText, AutoSize = false };
+                        var cb = new ComboBox { Left = cbLeft, Top = y + 2, Width = cbWidthLocal, DropDownStyle = ComboBoxStyle.DropDownList };
+                        var items = new System.Collections.Generic.List<MapItem>();
+                        items.Add(new MapItem(-1, "None"));
+                        for (int src = 0; src < currentAnimLength; src++)
+                        {
+                            if (!AnimationEdit.IsActionDefined(_fileType, _currentBody, src))
+                                continue;
+
+                            int effectiveSourceType = Animations.GetAnimLength(_currentBody, _fileType) == 22 ? 0 : Animations.GetAnimLength(_currentBody, _fileType) == 13 ? 1 : 2;
+                            string baseLabel;
+                            if (effectiveSourceType == 1 && src < lowdropdownLabels.Length)
+                            {
+                                baseLabel = lowdropdownLabels[src];
+                            }
+                            else if (effectiveSourceType == 0 && src < highdropdownLabels.Length)
+                            {
+                                baseLabel = highdropdownLabels[src];
+                            }
+                            else if (effectiveSourceType == 2 && src < peopledropdownLabels.Length)
+                            {
+                                baseLabel = peopledropdownLabels[src];
+                            }
+                            else
+                            {
+                                baseLabel = src.ToString();
+                            }
+
+                            items.Add(new MapItem(src, baseLabel));
+                        }
+
+                        foreach (var it in items) cb.Items.Add(it);
+                        MapItem selItem = items.FirstOrDefault(x => x.Index == tgt);
+                        if (selItem != null) cb.SelectedItem = selItem; else cb.SelectedIndex = 0;
+                        pnl.Controls.Add(lbl);
+                        pnl.Controls.Add(cb);
+                        mapList.Add(cb);
+                        y += 28;
+                    }
+                    pnl.Size = new System.Drawing.Size(panelWidth, panelHeight);
+                    return pnl;
+                };
+
+                var panelHigh = BuildMapPanel(mapHigh, highLabels, 0, panelHeightHigh, panelWidthHigh, labelWidthHigh, 0);
+                var panelLow = BuildMapPanel(mapLow, lowLabels, 1, panelHeightLow, panelWidthLow, labelWidthLow, 0);
+                var panelPeople = BuildMapPanel(mapPeople, peopleLabels, 2, panelHeightPeople, panelWidthPeople, labelWidthPeople, 0);
+
+                panelHigh.Location = new System.Drawing.Point(8, 40);
+                panelLow.Location = new System.Drawing.Point(8, 40);
+                panelPeople.Location = new System.Drawing.Point(8, 40);
+                panelHigh.Visible = rbHigh.Checked;
+                panelLow.Visible = rbLow.Checked;
+                panelPeople.Visible = rbPeople.Checked;
+
+                Button btnOk = null;
+                Button btnCancel = null;
+
+                EventHandler rbChanged = (s, ev) =>
+                {
+                    panelHigh.Visible = rbHigh.Checked;
+                    panelLow.Visible = rbLow.Checked;
+                    panelPeople.Visible = rbPeople.Checked;
+
+                    int newPanelH = rbHigh.Checked ? panelHeightHigh : rbLow.Checked ? panelHeightLow : panelHeightPeople;
+                    int newPanelW = rbHigh.Checked ? panelWidthHigh : rbLow.Checked ? panelWidthLow : panelWidthPeople;
+                    cfg.ClientSize = new System.Drawing.Size(newPanelW + 60, newPanelH + 120);
+
+                    btnOk.Top = cfg.ClientSize.Height - 45;
+                    btnCancel.Top = cfg.ClientSize.Height - 45;
+                };
+
+                rbHigh.CheckedChanged += rbChanged;
+                rbLow.CheckedChanged += rbChanged;
+                rbPeople.CheckedChanged += rbChanged;
+
+                int initialPanelHeight = destinationType == 0 ? panelHeightHigh : destinationType == 1 ? panelHeightLow : panelHeightPeople;
+                int initialPanelWidth = destinationType == 0 ? panelWidthHigh : destinationType == 1 ? panelWidthLow : panelWidthPeople;
+                cfg.ClientSize = new System.Drawing.Size(initialPanelWidth + 60, initialPanelHeight + 120);
+
+                btnOk = new Button { Text = "OK", Left = 240, Width = 60, Top = cfg.ClientSize.Height - 45, DialogResult = DialogResult.OK };
+                btnCancel = new Button { Text = "Cancel", Left = 310, Width = 60, Top = cfg.ClientSize.Height - 45, DialogResult = DialogResult.Cancel };
+
+                cfg.Controls.AddRange(new Control[] { lblType, rbHigh, rbLow, rbPeople, panelHigh, panelLow, panelPeople, btnOk, btnCancel });
+                cfg.AcceptButton = btnOk;
+                cfg.CancelButton = btnCancel;
+
+                if (cfg.ShowDialog(FindForm()) != DialogResult.OK)
+                {
+                    return null;
+                }
+
+                // Use the destination type that was passed in (which is now locked/confirmed)
+                System.Collections.Generic.List<ComboBox> chosenMap = null;
+                if (destinationType == 0) chosenMap = mapHigh;
+                else if (destinationType == 1) chosenMap = mapLow;
+                else if (destinationType == 2) chosenMap = mapPeople;
+                else chosenMap = mapHigh;
+
+                int[] targetToSourceMap = null;
+                if (chosenMap != null)
+                {
+                    targetToSourceMap = new int[chosenMap.Count];
+                    for (int t = 0; t < chosenMap.Count; t++)
+                    {
+                        var combo = chosenMap[t];
+                        var selObj = combo.SelectedItem as MapItem;
+                        if (combo.SelectedIndex <= 0 || selObj == null || selObj.Index < 0)
+                            targetToSourceMap[t] = -1;
+                        else
+                            targetToSourceMap[t] = selObj.Index;
+                    }
+                }
+
+                return targetToSourceMap;
+            }
+        }
+
+        private void OnClickCopyResized(object sender, EventArgs e)
+        {
+            if (_fileType == 0)
+            {
+                return;
+            }
+
+            // Show resize dialog
+            using (var resizeDialog = new AnimationExportResizeDialog())
+            {
+                if (resizeDialog.ShowDialog(FindForm()) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                int scalePercentage = resizeDialog.ResizePercentage;
+
+                // Validate scale percentage to prevent overflow and underflow
+                if (scalePercentage < 10 || scalePercentage > 500)
+                {
+                    MessageBox.Show(FindForm(), "Scale percentage must be between 10% and 500%.", "Invalid Scale", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Calculate the maximum safe scale based on frame dimensions
+                // to ensure scaled dimensions don't exceed ushort.MaxValue (65535)
+                float validateScale = scalePercentage / 100.0f;
+
+                // Check if any frame in the animation would exceed safe dimensions
+                bool willOverflow = false;
+                for (int dir = 0; dir < 5; dir++)
+                {
+                    if (AnimationEdit.GetAnimation(_fileType, _currentBody, _currentAction, dir) is { } anim)
+                    {
+                        if (anim.Frames != null)
+                        {
+                            for (int frameIdx = 0; frameIdx < anim.Frames.Count; frameIdx++)
+                            {
+                                var frame = anim.Frames[frameIdx];
+                                int scaledW = Math.Max(1, (int)Math.Round(frame.Width * validateScale));
+                                int scaledH = Math.Max(1, (int)Math.Round(frame.Height * validateScale));
+
+                                if (scaledW > ushort.MaxValue || scaledH > ushort.MaxValue)
+                                {
+                                    willOverflow = true;
+                                    break;
+                                }
+                            }
+                            if (willOverflow) break;
+                        }
+                    }
+                }
+
+                if (willOverflow)
+                {
+                    MessageBox.Show(FindForm(), $"Scale {scalePercentage}% would create frames larger than the maximum allowed size. Try a smaller percentage.", "Scale Too Large", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                    return;
+                }
+
+                // Get the source animation length to filter available slots
+                int sourceAnimLength = Animations.GetAnimLength(_currentBody, _fileType);
+
+                // Show slot selection dialog with animation length filter
+                using (var slotDialog = new SelectAnimationSlotDialog(_fileType, _currentBody, null, sourceAnimLength))
+                {
+                    if (slotDialog.ShowDialog(FindForm()) != DialogResult.OK)
+                    {
+                        return;
+                    }
+
+                    int destBody = slotDialog.SelectedBody;
+                    if (destBody < 0)
+                    {
+                        MessageBox.Show(FindForm(), "Invalid slot selected.", "Copy Resized", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    try
+                    {
+                        // Export resized animation to temp file
+                        float scale = scalePercentage / 100.0f;
+                        string tempFile = Path.Combine(Path.GetTempPath(), $"anim_resize_{Guid.NewGuid()}.vd");
+
+                        try
+                        {
+                            AnimationEdit.ExportToVDScaled(_fileType, _currentBody, tempFile, -1, scale);
+                        }
+                        catch (OverflowException)
+                        {
+                            MessageBox.Show(FindForm(), $"Scale {scalePercentage}% resulted in an overflow. Try a different scale percentage (between 10% and 500%).", "Scale Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        // Verify that the temp file was created and has content
+                        if (!File.Exists(tempFile) || new FileInfo(tempFile).Length == 0)
+                        {
+                            MessageBox.Show(FindForm(), "Failed to create resized animation. The animation may be empty or invalid.", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        // Load the resized animation from the temp VD file into the destination body
+                        try
+                        {
+                            using (FileStream fs = new FileStream(tempFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            {
+                                using (BinaryReader bin = new BinaryReader(fs))
+                                {
+                                    AnimationEdit.LoadFromVD(_fileType, destBody, bin);
+                                }
+                            }
+                        }
+                        catch (OverflowException)
+                        {
+                            MessageBox.Show(FindForm(), "An overflow error occurred while loading the resized animation. The animation may be too large or invalid.", "Load Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        // Refresh the TreeView node for the destination body (now that it has animations)
+                        RefreshBodyNodeInTree(destBody);
+
+                        // Select the destination body in the tree
+                        TreeNode destNode = FindBodyNodeInTree(destBody);
+                        if (destNode != null)
+                        {
+                            AnimationListTreeView.SelectedNode = destNode;
+                        }
+
+                        // Mark animations as modified so they will be saved/warned on close
+                        Options.ChangedUltimaClass["Animations"] = true;
+
+                        MessageBox.Show(FindForm(), $"Animation copied to slot {destBody} successfully (resized to {scalePercentage}%).", "Copy Resized", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+                        // Clean up temp file
+                        try { File.Delete(tempFile); } catch { }
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(FindForm(), $"Error copying animation: {ex.Message}", "Copy Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
+        }
+
+        private void OnClickCopyResizedRemapped(object sender, EventArgs e)
+        {
+            if (_fileType == 0)
+            {
+                return;
+            }
+
+            // Show resize dialog
+            using (var resizeDialog = new AnimationExportResizeDialog())
+            {
+                if (resizeDialog.ShowDialog(FindForm()) != DialogResult.OK)
+                {
+                    return;
+                }
+
+                int scalePercentage = resizeDialog.ResizePercentage;
+
+                // Create and show the remapping configuration dialog with full UI
+                using (Form cfg = new Form())
+                {
+                    cfg.StartPosition = FormStartPosition.CenterParent;
+                    cfg.FormBorderStyle = FormBorderStyle.FixedDialog;
+                    cfg.MinimizeBox = false;
+                    cfg.MaximizeBox = false;
+                    cfg.ShowInTaskbar = false;
+                    cfg.Text = "Copy Remapped (Resized) - Select Type and Destination";
+
+                    int sourceAnimLength = Animations.GetAnimLength(_currentBody, _fileType);
+                    int defaultType = sourceAnimLength == 22 ? 0 : sourceAnimLength == 13 ? 1 : 2; // 0=High,1=Low,2=People
+
+                    // Create type selection
+                    var lblType = new Label { Left = 8, Top = 12, Width = 120, Text = "Target Type:" };
+                    var rbHigh = new RadioButton { Left = 130, Top = 10, Width = 80, Text = "High (H)" };
+                    var rbLow = new RadioButton { Left = 210, Top = 10, Width = 80, Text = "Low (L)" };
+                    var rbPeople = new RadioButton { Left = 290, Top = 10, Width = 80, Text = "People (P)" };
+
+                    rbHigh.Checked = defaultType == 0;
+                    rbLow.Checked = defaultType == 1;
+                    rbPeople.Checked = defaultType == 2;
+
+                    // Create slot selection list box below radio buttons
+                    var lblSlot = new Label { Left = 8, Top = 45, Width = 80, Text = "Select Slot:" };
+                    var slotListBox = new ListBox { Left = 8, Top = 65, Width = 400, Height = 100 };
+
+                    // Populate slot list based on selected type
+                    Action rebuildSlotList = () =>
+                    {
+                        slotListBox.Items.Clear();
+
+                        // Determine selected target type (0=High/Monster, 1=Low/Animal, 2=People/Human)
+                        int selectedType = rbHigh.Checked ? 0 : rbLow.Checked ? 1 : 2;
+
+                        // Map UI type selection to MobType
+                        // High (H) = Monster (22 actions)
+                        // Low (L) = Animal (13 actions)
+                        // People (P) = Human (35 actions)
+                        MobType targetMobType = selectedType == 0 ? MobType.Monster : selectedType == 1 ? MobType.Animal : MobType.Human;
+
+                        for (int bodyId = 0; bodyId < 10000; bodyId++)
+                        {
+                            if (bodyId == _currentBody) continue;
+
+                            try
+                            {
+                                // Check if this body's type matches the selected target type
+                                MobType bodyMobType = Animations.GetBodyMobType(bodyId, _fileType);
+                                if (bodyMobType != targetMobType)
+                                {
+                                    continue; // Skip bodies that don't match the selected type
+                                }
+
+                                // Check if this body is empty (no animations defined)
+                                bool isEmpty = true;
+                                int animLength = Animations.GetAnimLength(bodyId, _fileType);
+                                for (int action = 0; action < animLength; action++)
+                                {
+                                    if (AnimationEdit.IsActionDefined(_fileType, bodyId, action))
+                                    {
+                                        isEmpty = false;
+                                        break;
+                                    }
+                                }
+
+                                if (isEmpty)
+                                {
+                                    slotListBox.Items.Add(new MapItem(bodyId, $"Body {bodyId}"));
+                                }
+                            }
+                            catch { }
+                        }
+
+                        if (slotListBox.Items.Count > 0)
+                        {
+                            slotListBox.SelectedIndex = 0;
+                        }
+                    };
+
+                    // Initial population
+                    rebuildSlotList();
+
+                    // Update slot list when type changes
+                    EventHandler typeChanged = (s, ev) => rebuildSlotList();
+                    rbHigh.CheckedChanged += typeChanged;
+                    rbLow.CheckedChanged += typeChanged;
+                    rbPeople.CheckedChanged += typeChanged;
+
+                    // Buttons
+                    var btnOk = new Button { Text = "OK", Left = 240, Width = 60, Top = 180, DialogResult = DialogResult.OK };
+                    var btnCancel = new Button { Text = "Cancel", Left = 310, Width = 60, Top = 180, DialogResult = DialogResult.Cancel };
+
+                    cfg.Controls.AddRange(new Control[] { lblType, rbHigh, rbLow, rbPeople, lblSlot, slotListBox, btnOk, btnCancel });
+                    cfg.ClientSize = new System.Drawing.Size(420, 240);
+                    cfg.AcceptButton = btnOk;
+                    cfg.CancelButton = btnCancel;
+
+                    if (cfg.ShowDialog(FindForm()) != DialogResult.OK)
+                    {
+                        return;
+                    }
+
+                    int selectedType = rbHigh.Checked ? 0 : rbLow.Checked ? 1 : 2;
+                    int destBody = (slotListBox.SelectedItem as MapItem)?.Index ?? -1;
+
+                    if (destBody < 0)
+                    {
+                        MessageBox.Show(FindForm(), "Invalid slot selected.", "Copy Resized Remapped", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        return;
+                    }
+
+                    // Show the remapping dialog to allow user to customize action mappings
+                    int[] remappingArray = ShowRemapDialog(selectedType);
+                    if (remappingArray == null)
+                    {
+                        // User cancelled the remap dialog
+                        return;
+                    }
+
+                    // Perform the copy with resize and remap
+                    try
+                    {
+                        float scale = scalePercentage / 100.0f;
+
+                        // Export resized animation to temp file
+                        string tempFile = Path.Combine(Path.GetTempPath(), $"anim_remap_resize_{Guid.NewGuid()}.vd");
+
+                        try
+                        {
+                            // Get source animation type (0=Monster/H, 1=Animal/L, 2=Human/P)
+                            int currAnimLength = Animations.GetAnimLength(_currentBody, _fileType);
+                            int sourceType = currAnimLength == 22 ? 0 : currAnimLength == 13 ? 1 : 2;
+
+                            // If source and target types are the same, just use scaled export
+                            if (sourceType == selectedType)
+                            {
+                                AnimationEdit.ExportToVDScaled(_fileType, _currentBody, tempFile, -1, scale);
+                            }
+                            else
+                            {
+                                // Different types: use the user-defined remapping from the dialog
+                                AnimationEdit.ExportToVDRemapScaled(_fileType, _currentBody, tempFile, selectedType, remappingArray, scale);
+                            }
+                        }
+                        catch (OverflowException)
+                        {
+                            MessageBox.Show(FindForm(), $"Scale {scalePercentage}% resulted in an overflow. Try a different scale percentage (between 10% and 500%).", "Scale Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        // Verify that the temp file was created and has content
+                        if (!File.Exists(tempFile) || new FileInfo(tempFile).Length == 0)
+                        {
+                            MessageBox.Show(FindForm(), "Failed to create resized animation. The animation may be empty or invalid.", "Export Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+
+                        // Load the resized animation from the temp VD file into the destination body
+                        try
+                        {
+                            using (FileStream fs = new FileStream(tempFile, FileMode.Open, FileAccess.Read, FileShare.Read))
+                            {
+                                using (BinaryReader bin = new BinaryReader(fs))
+                                {
+                                    AnimationEdit.LoadFromVD(_fileType, destBody, bin);
+                                }
+                            }
+                        }
+                        catch (OverflowException)
+                        {
+                            MessageBox.Show(FindForm(), "An overflow error occurred while loading the resized animation. The animation may be too large or invalid.", "Load Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                            return;
+                        }
+                        finally
+                        {
+                            // Clean up temp file
+                            try
+                            {
+                                if (File.Exists(tempFile))
+                                {
+                                    File.Delete(tempFile);
+                                }
+                            }
+                            catch { }
+                        }
+
+                        // Refresh the TreeView node for the destination body
+                        RefreshBodyNodeInTree(destBody);
+
+                        // Select the destination body in the tree
+                        TreeNode destNode = FindBodyNodeInTree(destBody);
+                        if (destNode != null)
+                        {
+                            AnimationListTreeView.SelectedNode = destNode;
+                        }
+
+                        // Mark animations as modified
+                        Options.ChangedUltimaClass["Animations"] = true;
+
+                        MessageBox.Show(FindForm(), $"Animation copied and resized to slot {destBody} (type {(selectedType == 0 ? "High" : selectedType == 1 ? "Low" : "People")}) successfully.", "Copy Resized Remapped", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    }
+                    catch (Exception ex)
+                    {
+                        MessageBox.Show(FindForm(), $"Error copying animation: {ex.Message}", "Copy Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    }
+                }
+            }
         }
 
         private void OnClickRemoveAction(object sender, EventArgs e)

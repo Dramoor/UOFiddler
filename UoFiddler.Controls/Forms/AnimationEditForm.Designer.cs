@@ -49,6 +49,8 @@ namespace UoFiddler.Controls.Forms
             tovdRemappedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             tovdResizedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             tovdResizedRemappedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            copyResizedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            copyResizedRemappedToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportActionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportActionAsBmpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             exportActionAsTiffToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -347,7 +349,7 @@ namespace UoFiddler.Controls.Forms
             // 
             // exportToolStripMenuItem1
             // 
-            exportToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { tovdToolStripMenuItem, tovdRemappedToolStripMenuItem, tovdResizedToolStripMenuItem, tovdResizedRemappedToolStripMenuItem });
+            exportToolStripMenuItem1.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] { tovdToolStripMenuItem, tovdRemappedToolStripMenuItem, tovdResizedToolStripMenuItem, tovdResizedRemappedToolStripMenuItem, copyResizedToolStripMenuItem, copyResizedRemappedToolStripMenuItem });
             exportToolStripMenuItem1.Name = "exportToolStripMenuItem1";
             exportToolStripMenuItem1.Size = new System.Drawing.Size(157, 22);
             exportToolStripMenuItem1.Text = "Export Animation";
@@ -379,6 +381,20 @@ namespace UoFiddler.Controls.Forms
             tovdResizedRemappedToolStripMenuItem.Size = new System.Drawing.Size(105, 22);
             tovdResizedRemappedToolStripMenuItem.Text = "To Resized Remapped .vd";
             tovdResizedRemappedToolStripMenuItem.Click += OnClickExportToVDResizedRemapped;
+            //
+            // copyResizedToolStripMenuItem
+            //
+            copyResizedToolStripMenuItem.Name = "copyResizedToolStripMenuItem";
+            copyResizedToolStripMenuItem.Size = new System.Drawing.Size(105, 22);
+            copyResizedToolStripMenuItem.Text = "Copy Resized";
+            copyResizedToolStripMenuItem.Click += OnClickCopyResized;
+            //
+            // copyResizedRemappedToolStripMenuItem
+            //
+            copyResizedRemappedToolStripMenuItem.Name = "copyResizedRemappedToolStripMenuItem";
+            copyResizedRemappedToolStripMenuItem.Size = new System.Drawing.Size(105, 22);
+            copyResizedRemappedToolStripMenuItem.Text = "Copy Resized Remapped";
+            copyResizedRemappedToolStripMenuItem.Click += OnClickCopyResizedRemapped;
             // 
             // exportActionToolStripMenuItem
             // 
@@ -2002,6 +2018,8 @@ namespace UoFiddler.Controls.Forms
         private System.Windows.Forms.ToolStripMenuItem tovdRemappedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tovdResizedToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem tovdResizedRemappedToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyResizedToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem copyResizedRemappedToolStripMenuItem;
         private System.Windows.Forms.TrackBar DirectionTrackBar;
         private System.Windows.Forms.TreeView AnimationListTreeView;
         private System.Windows.Forms.StatusStrip StatusStrip;

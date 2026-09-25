@@ -421,9 +421,17 @@ namespace Ultima
 
         public static void LoadFromVD(int fileType, int body, BinaryReader bin)
         {
+            // Read VD file header (same format as output by ExportToVD/ExportToVDScaled)
+            short version = bin.ReadInt16();       // Should be 6
+            short animType = bin.ReadInt16();      // 0=Monster(22), 1=Sea(13), 2=Human(35)
+
+            // Determine animation length from the FILE's stored animation type, not the destination body
+            // This ensures we read the correct number of entries regardless of destination type
+            int fileAnimLength = animType == 0 ? 22 : animType == 1 ? 13 : 35;
+            int animLength = fileAnimLength * 5;
+
             AnimIdx[] cache = GetCache(fileType);
             GetFileIndex(body, fileType, 0, 0, out FileIndex _, out int index);
-            int animLength = Animations.GetAnimLength(body, fileType) * 5;
             var entries = new Entry3D[animLength];
 
             for (int i = 0; i < animLength; ++i)
@@ -830,6 +838,46 @@ namespace Ultima
                     else
                     {
                         anim.Save(binmul, binidx);
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Copies an animation from source body to destination body in the same file
+        /// </summary>
+        public static void CopyAnimation(int fileType, int sourceBody, int destBody)
+        {
+            AnimIdx[] cache = GetCache(fileType);
+            if (cache == null)
+            {
+                return;
+            }
+
+            // Copy all actions and directions
+            int actionCount = Animations.GetActionCapacity(sourceBody, fileType);
+            for (int action = 0; action < actionCount; action++)
+            {
+                for (int direction = 0; direction < 5; direction++)
+                {
+                    try
+                    {
+                        GetFileIndex(sourceBody, fileType, action, direction, out FileIndex sourceFileIndex, out int sourceIndex);
+                        GetFileIndex(destBody, fileType, action, direction, out FileIndex destFileIndex, out int destIndex);
+
+                        // Get source animation
+                        AnimIdx sourceAnim = GetAnimation(fileType, sourceBody, action, direction);
+
+                        if (sourceAnim?.Frames != null && sourceAnim.Frames.Count > 0)
+                        {
+                            // Create the destination animation by making a shallow copy reference
+                            // This works because Frames list and Palette are shared by reference
+                            cache[destIndex] = sourceAnim;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip if unable to copy this direction
                     }
                 }
             }
@@ -1433,9 +1481,10 @@ namespace Ultima
             {
                 for (int j = 0; j < RawData.Length; j++)
                 {
-                    int newHeader = RawData[j].run | (RawData[j].offsetY << 12) | (RawData[j].offsetX << 22);
-                    newHeader ^= _doubleXor;
-                    bin.Write(newHeader);
+                    // Use unsigned arithmetic to prevent overflow on bit shifts
+                    uint newHeader = (uint)RawData[j].run | ((uint)RawData[j].offsetY << 12) | ((uint)RawData[j].offsetX << 22);
+                    newHeader ^= unchecked((uint)_doubleXor);
+                    bin.Write((int)newHeader);
                     foreach (byte b in RawData[j].data)
                     {
                         bin.Write(b);
@@ -1521,6 +1570,12 @@ namespace Ultima
             int newCenterX = (int)Math.Round(frame.Center.X * scale);
             int newCenterY = (int)Math.Round(frame.Center.Y * scale);
 
+            // Clamp dimensions to ushort maximum to prevent overflow
+            if (newWidth > ushort.MaxValue || newHeight > ushort.MaxValue)
+            {
+                throw new OverflowException($"Scaled frame dimensions ({newWidth}x{newHeight}) exceed maximum allowed size ({ushort.MaxValue}x{ushort.MaxValue})");
+            }
+
             // Step 4: Write header
             output.Write((short)newCenterX);
             output.Write((short)newCenterY);
@@ -1571,9 +1626,10 @@ namespace Ultima
                         runOffsetX = ((runOffsetX % 1024) + 1024) % 1024;
                         runOffsetY = ((runOffsetY % 1024) + 1024) % 1024;
 
-                        int header = currentChunkSize | (runOffsetY << 12) | (runOffsetX << 22);
-                        header ^= _doubleXor;
-                        output.Write(header);
+                        // Use unsigned arithmetic to prevent overflow on bit shifts
+                        uint header = (uint)currentChunkSize | ((uint)runOffsetY << 12) | ((uint)runOffsetX << 22);
+                        header ^= unchecked((uint)_doubleXor);
+                        output.Write((int)header);
 
                         for (int i = 0; i < currentChunkSize; i++)
                         {
@@ -1715,9 +1771,10 @@ namespace Ultima
                     runOffsetX = runOffsetX & 0x3FF;
                     runOffsetY = runOffsetY & 0x3FF;
 
-                    int header = runData.Count | (runOffsetY << 12) | (runOffsetX << 22);
-                    header ^= _doubleXor;
-                    output.Write(header);
+                    // Use unsigned arithmetic to prevent overflow on bit shifts
+                    uint header = (uint)runData.Count | ((uint)runOffsetY << 12) | ((uint)runOffsetX << 22);
+                    header ^= unchecked((uint)_doubleXor);
+                    output.Write((int)header);
 
                     foreach (byte idx in runData)
                         output.Write(idx);
