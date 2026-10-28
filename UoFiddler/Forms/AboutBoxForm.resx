@@ -118,7 +118,11 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.3.9
+    <value>Version 5.4.0
+- Fixed issue with .vd headers.
+- Made buttons to view next and previous in the cliloc serach, they also will loop back to the start or end. 
+
+Version 5.3.9
 - Fixed animations in the item detail form to show properly when turned on.
 - Added option in the Item tab to turn on animations in item list with "animation detail" to see the animation run in the preview section.
 	

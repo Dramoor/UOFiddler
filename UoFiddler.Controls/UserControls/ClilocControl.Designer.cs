@@ -53,6 +53,7 @@ namespace UoFiddler.Controls.UserControls
             GotoEntry = new System.Windows.Forms.ToolStripTextBox();
             GotoButton = new System.Windows.Forms.ToolStripButton();
             FindEntry = new System.Windows.Forms.ToolStripTextBox();
+            FindPrevButton = new System.Windows.Forms.ToolStripButton();
             FindButton = new System.Windows.Forms.ToolStripButton();
             RegexToolStripButton = new System.Windows.Forms.ToolStripButton();
             toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
@@ -128,7 +129,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // toolStrip1
             // 
-            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { LangComboBox, toolStripSeparator1, GotoEntry, GotoButton, FindEntry, FindButton, RegexToolStripButton, toolStripSeparator2, toolStripButton1, toolStripSeparator5, ClilocExportButton, toolStripDropDownButton1 });
+            toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] { LangComboBox, toolStripSeparator1, GotoEntry, GotoButton, FindEntry, FindPrevButton, FindButton, RegexToolStripButton, toolStripSeparator2, toolStripButton1, toolStripSeparator5, ClilocExportButton, toolStripDropDownButton1 });
             toolStrip1.Location = new System.Drawing.Point(0, 0);
             toolStrip1.Name = "toolStrip1";
             toolStrip1.RenderMode = System.Windows.Forms.ToolStripRenderMode.System;
@@ -175,13 +176,22 @@ namespace UoFiddler.Controls.UserControls
             FindEntry.Enter += FindEntry_Enter;
             FindEntry.KeyDown += FindEntry_KeyDown;
             // 
+            // FindPrevButton
+            // 
+            FindPrevButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
+            FindPrevButton.ImageTransparentColor = System.Drawing.Color.Magenta;
+            FindPrevButton.Name = "FindPrevButton";
+            FindPrevButton.Size = new System.Drawing.Size(52, 22);
+            FindPrevButton.Text = "Find Prev";
+            FindPrevButton.Click += FindPreviousEntryClick;
+            // 
             // FindButton
             // 
             FindButton.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Text;
             FindButton.ImageTransparentColor = System.Drawing.Color.Magenta;
             FindButton.Name = "FindButton";
-            FindButton.Size = new System.Drawing.Size(34, 22);
-            FindButton.Text = "Find";
+            FindButton.Size = new System.Drawing.Size(52, 22);
+            FindButton.Text = "Find Next";
             FindButton.Click += FindEntryClick;
             // 
             // RegexToolStripButton
@@ -277,6 +287,7 @@ namespace UoFiddler.Controls.UserControls
         private System.Windows.Forms.DataGridView dataGridView1;
         private System.Windows.Forms.ToolStripMenuItem deleteEntryToolStripMenuItem;
         private System.Windows.Forms.ToolStripButton FindButton;
+        private System.Windows.Forms.ToolStripButton FindPrevButton;
         private System.Windows.Forms.ToolStripTextBox FindEntry;
         private System.Windows.Forms.ToolStripButton GotoButton;
         private System.Windows.Forms.ToolStripTextBox GotoEntry;

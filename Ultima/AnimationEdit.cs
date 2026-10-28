@@ -419,19 +419,41 @@ namespace Ultima
             return valid && length >= 1;
         }
 
-        public static void LoadFromVD(int fileType, int body, BinaryReader bin)
+        public static void LoadFromVD(int fileType, int body, BinaryReader bin, bool readHeader = false)
         {
-            // Read VD file header (same format as output by ExportToVD/ExportToVDScaled)
-            short version = bin.ReadInt16();       // Should be 6
-            short animType = bin.ReadInt16();      // 0=Monster(22), 1=Sea(13), 2=Human(35)
+            int fileAnimLength = 22;  // Default
 
-            // Determine animation length from the FILE's stored animation type, not the destination body
-            // This ensures we read the correct number of entries regardless of destination type
-            int fileAnimLength = animType == 0 ? 22 : animType == 1 ? 13 : 35;
+            // Optionally read the VD file header if the caller hasn't already
+            if (readHeader)
+            {
+                short version = bin.ReadInt16();       // Should be 6
+                short animType = bin.ReadInt16();      // 0=Monster(22), 1=Sea(13), 2=Human(35)
+
+                System.Diagnostics.Debug.WriteLine($"AnimationEdit.LoadFromVD: version={version}, animType={animType}, fileType={fileType}, body={body}");
+
+                // Determine animation length from the FILE's stored animation type, not the destination body
+                fileAnimLength = animType == 0 ? 22 : animType == 1 ? 13 : 35;
+            }
+            else
+            {
+                // Header was already read by the caller; get the animation type from the body
+                int bodyAnimLength = Animations.GetAnimLength(body, fileType);
+                fileAnimLength = bodyAnimLength == 22 ? 22 : bodyAnimLength == 13 ? 13 : 35;
+                System.Diagnostics.Debug.WriteLine($"AnimationEdit.LoadFromVD: Header already read by caller, fileType={fileType}, body={body}, inferred fileAnimLength={fileAnimLength}");
+            }
+
             int animLength = fileAnimLength * 5;
 
             AnimIdx[] cache = GetCache(fileType);
+            if (cache == null)
+            {
+                System.Diagnostics.Debug.WriteLine($"AnimationEdit.LoadFromVD: ERROR - cache is null for fileType={fileType}");
+                return;
+            }
+
             GetFileIndex(body, fileType, 0, 0, out FileIndex _, out int index);
+            System.Diagnostics.Debug.WriteLine($"AnimationEdit.LoadFromVD: body={body}, starting index={index}, animLength={animLength}, cache.Length={cache.Length}");
+
             var entries = new Entry3D[animLength];
 
             for (int i = 0; i < animLength; ++i)
@@ -441,15 +463,34 @@ namespace Ultima
                 entries[i].Extra = bin.ReadInt32();
             }
 
+            int loadedCount = 0;
+            int skippedCount = 0;
+
             foreach (Entry3D entry in entries)
             {
                 if ((entry.Lookup > 0) && (entry.Lookup < bin.BaseStream.Length) && (entry.Length > 0))
                 {
-                    bin.BaseStream.Seek(entry.Lookup, SeekOrigin.Begin);
-                    cache[index] = new AnimIdx(bin, entry.Extra);
+                    try
+                    {
+                        bin.BaseStream.Seek(entry.Lookup, SeekOrigin.Begin);
+                        cache[index] = new AnimIdx(bin, entry.Extra);
+                        System.Diagnostics.Debug.WriteLine($"AnimationEdit.LoadFromVD: Loaded animation at index {index}, lookup={entry.Lookup}, length={entry.Length}");
+                        loadedCount++;
+                    }
+                    catch (EndOfStreamException ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"AnimationEdit.LoadFromVD: Failed to load animation at index {index}, offset {entry.Lookup}, length {entry.Length}: {ex.Message}");
+                        skippedCount++;
+                    }
+                }
+                else
+                {
+                    skippedCount++;
                 }
                 ++index;
             }
+
+            System.Diagnostics.Debug.WriteLine($"AnimationEdit.LoadFromVD: Complete - Loaded {loadedCount} animations, Skipped {skippedCount}");
         }
 
         public static void ExportToVD(int fileType, int body, string file)
@@ -946,12 +987,37 @@ namespace Ultima
             }
 
             var start = (int)bin.BaseStream.Position;
+
+            // Validate there's at least 4 bytes for frameCount
+            if (bin.BaseStream.Position + 4 > bin.BaseStream.Length)
+            {
+                System.Diagnostics.Debug.WriteLine($"AnimIdx constructor: Not enough data for frameCount at position {bin.BaseStream.Position}, stream length {bin.BaseStream.Length}");
+                Frames = new List<FrameEdit>();
+                return;
+            }
+
             int frameCount = bin.ReadInt32();
+            System.Diagnostics.Debug.WriteLine($"AnimIdx constructor: Read frameCount={frameCount} at position {start}");
+
+            // Validate frameCount is reasonable
+            if (frameCount < 0 || frameCount > 100000)
+            {
+                System.Diagnostics.Debug.WriteLine($"AnimIdx constructor: Invalid frameCount={frameCount}");
+                Frames = new List<FrameEdit>();
+                return;
+            }
 
             var lookups = new int[frameCount];
 
             for (int i = 0; i < frameCount; ++i)
             {
+                // Validate there are 4 more bytes to read
+                if (bin.BaseStream.Position + 4 > bin.BaseStream.Length)
+                {
+                    System.Diagnostics.Debug.WriteLine($"AnimIdx constructor: Not enough data for frame offset {i} at position {bin.BaseStream.Position}");
+                    Frames = new List<FrameEdit>();
+                    return;
+                }
                 lookups[i] = start + bin.ReadInt32();
             }
 
@@ -959,9 +1025,20 @@ namespace Ultima
 
             for (int i = 0; i < frameCount; ++i)
             {
-                bin.BaseStream.Seek(lookups[i], SeekOrigin.Begin);
-                Frames.Add(new FrameEdit(bin));
+                try
+                {
+                    bin.BaseStream.Seek(lookups[i], SeekOrigin.Begin);
+                    Frames.Add(new FrameEdit(bin));
+                }
+                catch (EndOfStreamException ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"AnimIdx constructor: Failed to read frame {i} at offset {lookups[i]}: {ex.Message}");
+                    // Frame data is truncated, skip remaining frames
+                    break;
+                }
             }
+
+            System.Diagnostics.Debug.WriteLine($"AnimIdx constructor: Successfully loaded {Frames.Count} frames");
         }
 
         public unsafe Bitmap[] GetFrames()

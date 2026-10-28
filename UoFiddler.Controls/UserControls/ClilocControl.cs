@@ -22,7 +22,7 @@ using UoFiddler.Controls.Helpers;
 
 namespace UoFiddler.Controls.UserControls
 {
-    public partial class ClilocControl : UserControl
+    public partial class ClilocControl : UserControl 
     {
         public ClilocControl()
         {
@@ -519,8 +519,10 @@ namespace UoFiddler.Controls.UserControls
             var searchMethod = SearchHelper.GetSearchMethod(RegexToolStripButton.Checked);
 
             bool hasErrors = false;
+            int startRow = dataGridView1.Rows.GetFirstRow(DataGridViewElementStates.Selected) + 1;
 
-            for (int i = dataGridView1.Rows.GetFirstRow(DataGridViewElementStates.Selected) + 1; i < dataGridView1.Rows.Count; ++i)
+            // First search: forward from current position to end
+            for (int i = startRow; i < dataGridView1.Rows.Count; ++i)
             {
                 var searchResult = searchMethod(FindEntry.Text, dataGridView1.Rows[i].Cells[1].Value.ToString());
                 if (searchResult.HasErrors)
@@ -537,6 +539,29 @@ namespace UoFiddler.Controls.UserControls
                 dataGridView1.Rows[i].Selected = true;
                 dataGridView1.FirstDisplayedScrollingRowIndex = i;
                 return;
+            }
+
+            // If not found and no errors, cycle to beginning and search from start
+            if (!hasErrors)
+            {
+                for (int i = 0; i < startRow; ++i)
+                {
+                    var searchResult = searchMethod(FindEntry.Text, dataGridView1.Rows[i].Cells[1].Value.ToString());
+                    if (searchResult.HasErrors)
+                    {
+                        hasErrors = true;
+                        break;
+                    }
+
+                    if (!searchResult.EntryFound)
+                    {
+                        continue;
+                    }
+
+                    dataGridView1.Rows[i].Selected = true;
+                    dataGridView1.FirstDisplayedScrollingRowIndex = i;
+                    return;
+                }
             }
 
             MessageBox.Show(hasErrors ? "Invalid regular expression." : "Entry not found.", "Find Entry",
@@ -581,6 +606,9 @@ namespace UoFiddler.Controls.UserControls
                 startRow = dataGridView1.Rows.Count - 1;
             }
 
+            int endRow = startRow;
+
+            // First search: backward from current position to beginning
             for (int i = startRow; i >= 0; --i)
             {
                 var searchResult = searchMethod(FindEntry.Text, dataGridView1.Rows[i].Cells[1].Value.ToString());
@@ -601,9 +629,38 @@ namespace UoFiddler.Controls.UserControls
                 return;
             }
 
+            // If not found and no errors, cycle to end and search backward from there
+            if (!hasErrors)
+            {
+                for (int i = dataGridView1.Rows.Count - 1; i > endRow; --i)
+                {
+                    var searchResult = searchMethod(FindEntry.Text, dataGridView1.Rows[i].Cells[1].Value.ToString());
+                    if (searchResult.HasErrors)
+                    {
+                        hasErrors = true;
+                        break;
+                    }
+
+                    if (!searchResult.EntryFound)
+                    {
+                        continue;
+                    }
+
+                    dataGridView1.ClearSelection();
+                    dataGridView1.Rows[i].Selected = true;
+                    dataGridView1.FirstDisplayedScrollingRowIndex = i;
+                    return;
+                }
+            }
+
             MessageBox.Show(hasErrors ? "Invalid regular expression." : "Entry not found.", "Find Entry",
                 MessageBoxButtons.OK, MessageBoxIcon.Error,
                 MessageBoxDefaultButton.Button1);
+        }
+
+        private void FindPreviousEntryClick(object sender, EventArgs e)
+        {
+            FindPreviousEntry();
         }
 
         private void OnClickSave(object sender, EventArgs e)

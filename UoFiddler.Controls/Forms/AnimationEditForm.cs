@@ -2842,7 +2842,8 @@ namespace UoFiddler.Controls.Forms
                                 MessageBoxIcon.Information, MessageBoxDefaultButton.Button1);
                             return;
                         }
-                        AnimationEdit.LoadFromVD(_fileType, _currentBody, bin);
+                        // Header (version and animType) already read; pass readHeader=false
+                        AnimationEdit.LoadFromVD(_fileType, _currentBody, bin, readHeader: false);
                     }
                 }
 
