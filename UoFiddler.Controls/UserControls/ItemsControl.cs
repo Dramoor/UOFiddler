@@ -1066,6 +1066,7 @@ namespace UoFiddler.Controls.UserControls
 
                 IsLoaded = true;
                 UpdateFileLoadedLabel();
+                UpdateEmptySlotsLabel();
             }
         }
 
@@ -1172,6 +1173,7 @@ namespace UoFiddler.Controls.UserControls
             }
 
             ItemsTileView.VirtualListSize = _itemList.Count;
+            UpdateEmptySlotsLabel();
             ItemsTileView.Invalidate();
         }
 
@@ -1675,6 +1677,7 @@ namespace UoFiddler.Controls.UserControls
                 int moveToId = ids[0] - 1;
                 SelectedGraphicId = moveToId <= 0 ? 0 : moveToId; // TODO: get last index visible instead just curr -1
             }
+            UpdateEmptySlotsLabel();
             ItemsTileView.Invalidate();
 
             Options.ChangedUltimaClass["Art"] = true;
@@ -1755,6 +1758,25 @@ namespace UoFiddler.Controls.UserControls
         private void UpdateFileLoadedLabel()
         {
             FileLoadedLabel.Text = Art.IsUsingUopLegacy() ? "Loaded: UOP" : "Loaded: MUL";
+        }
+
+        private void UpdateEmptySlotsLabel()
+        {
+            int maxItemId = Art.GetMaxItemId();
+            int totalSlots = maxItemId + 1;
+
+            // Count how many items are actually valid
+            int validItems = 0;
+            for (int i = 0; i <= maxItemId; i++)
+            {
+                if (Art.IsValidStatic(i))
+                {
+                    validItems++;
+                }
+            }
+
+            int emptySlots = totalSlots - validItems;
+            EmptySlotsLabel.Text = $"Free Slots: {emptySlots}";
         }
 
         private void ExecutePendingNavigation()
@@ -2003,6 +2025,7 @@ namespace UoFiddler.Controls.UserControls
                     SelectedGraphicId = prevSelected;
                 }
 
+                UpdateEmptySlotsLabel();
                 ItemsTileView.Invalidate();
             }
             else

@@ -119,6 +119,10 @@
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
     <value>Version 5.4.0
+- Adjusted some slots to be human slots in the anim6.mul files. Unsure if the is actually correct but they look a bit better in this setting.
+- Added in a free slots counter on the items tab.
+	
+Version 5.4.0
 - Fixed issue with .vd headers.
 - Made buttons to view next and previous in the cliloc serach, they also will loop back to the start or end. 
 

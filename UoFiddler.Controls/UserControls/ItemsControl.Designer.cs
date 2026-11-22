@@ -86,6 +86,7 @@ namespace UoFiddler.Controls.UserControls
             NameLabel = new ToolStripStatusLabel();
             GraphicLabel = new ToolStripStatusLabel();
             FileLoadedLabel = new ToolStripStatusLabel();
+            EmptySlotsLabel = new ToolStripStatusLabel();
             PreLoader = new System.ComponentModel.BackgroundWorker();
             ToolStrip = new ToolStrip();
             saveToolStripButton = new ToolStripButton();
@@ -473,7 +474,7 @@ namespace UoFiddler.Controls.UserControls
             // 
             // StatusStrip
             // 
-            StatusStrip.Items.AddRange(new ToolStripItem[] { NameLabel, GraphicLabel, FileLoadedLabel });
+            StatusStrip.Items.AddRange(new ToolStripItem[] { NameLabel, GraphicLabel, FileLoadedLabel, EmptySlotsLabel });
             StatusStrip.Location = new System.Drawing.Point(0, 447);
             StatusStrip.Name = "StatusStrip";
             StatusStrip.Padding = new Padding(1, 0, 16, 0);
@@ -506,6 +507,14 @@ namespace UoFiddler.Controls.UserControls
             FileLoadedLabel.Size = new System.Drawing.Size(120, 17);
             FileLoadedLabel.Text = "Loaded:";
             FileLoadedLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // EmptySlotsLabel
+            // 
+            EmptySlotsLabel.AutoSize = false;
+            EmptySlotsLabel.Name = "EmptySlotsLabel";
+            EmptySlotsLabel.Size = new System.Drawing.Size(150, 17);
+            EmptySlotsLabel.Text = "Free Slots: 0";
+            EmptySlotsLabel.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // PreLoader
             // 
@@ -812,6 +821,7 @@ namespace UoFiddler.Controls.UserControls
         private ToolStripMenuItem ExportAllToolStripMenuItem;
         private ToolStripMenuItem extractToolStripMenuItem;
         private ToolStripStatusLabel FileLoadedLabel;
+        private ToolStripStatusLabel EmptySlotsLabel;
         private ToolStripMenuItem findNextFreeSlotToolStripMenuItem;
         private ToolStripStatusLabel GraphicLabel;
         private ToolStripMenuItem insertAtToolStripMenuItem;
