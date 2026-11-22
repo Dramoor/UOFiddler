@@ -118,7 +118,7 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="richTextBox1.Text" xml:space="preserve">
-    <value>Version 5.4.0
+    <value>Version 5.5.0
 - Adjusted some slots to be human slots in the anim6.mul files. Unsure if the is actually correct but they look a bit better in this setting.
 - Added in a free slots counter on the items tab.
 	
